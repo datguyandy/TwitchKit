@@ -663,4 +663,85 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(schedule.lastAdAt, try XCTUnwrap(TwitchDateParser.date(from: "2024-01-01T00:00:00Z")))
         XCTAssertEqual(schedule.duration, 60)
     }
+
+    func test_decodeAdSnoozeToleratesEmptyDateStrings() throws {
+        // Same Twitch quirk AdSchedule already tolerates: date fields can be
+        // empty strings instead of absent, and one bad field must not fail
+        // the whole decode.
+        let json = """
+        {
+            "snooze_count": 3,
+            "snooze_refresh_at": "",
+            "next_ad_at": ""
+        }
+        """.data(using: .utf8)!
+
+        let snooze = try JSONDecoder.twitch().decode(AdSnooze.self, from: json)
+
+        XCTAssertEqual(snooze.snoozeCount, 3)
+        XCTAssertNil(snooze.snoozeRefreshAt)
+        XCTAssertNil(snooze.nextAdAt)
+    }
+
+    // MARK: - CustomReward
+
+    /// Real payload shape from the Get Custom Reward docs: `default_image` uses
+    /// `url_1x`/`url_2x`/`url_4x` and each limit setting carries its value under
+    /// an endpoint-specific key (`max_per_stream`, `max_per_user_per_stream`).
+    private static let customRewardJSON = """
+    {
+        "broadcaster_name": "torpedo09",
+        "broadcaster_login": "torpedo09",
+        "broadcaster_id": "274637212",
+        "id": "92af127c-7326-4483-a52b-b0da0be61c01",
+        "image": null,
+        "background_color": "#00E5CB",
+        "is_enabled": true,
+        "cost": 50000,
+        "title": "game analysis",
+        "prompt": "",
+        "is_user_input_required": false,
+        "max_per_stream_setting": {
+            "is_enabled": true,
+            "max_per_stream": 3
+        },
+        "max_per_user_per_stream_setting": {
+            "is_enabled": true,
+            "max_per_user_per_stream": 1
+        },
+        "global_cooldown_setting": {
+            "is_enabled": true,
+            "global_cooldown_seconds": 300
+        },
+        "is_paused": false,
+        "is_in_stock": true,
+        "default_image": {
+            "url_1x": "https://static-cdn.jtvnw.net/custom-reward-images/default-1.png",
+            "url_2x": "https://static-cdn.jtvnw.net/custom-reward-images/default-2.png",
+            "url_4x": "https://static-cdn.jtvnw.net/custom-reward-images/default-4.png"
+        },
+        "should_redemptions_skip_request_queue": false,
+        "redemptions_redeemed_current_stream": null,
+        "cooldown_expires_at": null
+    }
+    """.data(using: .utf8)!
+
+    func test_decodeCustomReward_defaultImageURLs() throws {
+        let reward = try JSONDecoder.twitch().decode(CustomReward.self, from: Self.customRewardJSON)
+
+        XCTAssertEqual(reward.defaultImage.url1X, "https://static-cdn.jtvnw.net/custom-reward-images/default-1.png")
+        XCTAssertEqual(reward.defaultImage.url2X, "https://static-cdn.jtvnw.net/custom-reward-images/default-2.png")
+        XCTAssertEqual(reward.defaultImage.url4X, "https://static-cdn.jtvnw.net/custom-reward-images/default-4.png")
+        XCTAssertNil(reward.image)
+    }
+
+    func test_decodeCustomReward_limitSettingValues() throws {
+        let reward = try JSONDecoder.twitch().decode(CustomReward.self, from: Self.customRewardJSON)
+
+        XCTAssertTrue(reward.maxPerStreamSetting.isEnabled)
+        XCTAssertEqual(reward.maxPerStreamSetting.value, 3)
+        XCTAssertTrue(reward.maxPerUserPerStreamSetting.isEnabled)
+        XCTAssertEqual(reward.maxPerUserPerStreamSetting.value, 1)
+        XCTAssertEqual(reward.globalCooldownSetting.globalCooldownSeconds, 300)
+    }
 }

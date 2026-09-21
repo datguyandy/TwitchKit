@@ -159,7 +159,7 @@ public struct TwitchOAuthClient: Sendable {
             "scopes": rawScopes.joined(separator: " "),
         ])
 
-        let (data, response) = try await httpClient.data(for: request)
+        let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
         guard http.statusCode == 200 else {
             throw oauthError(from: data, status: http.statusCode, fallbackMessage: "Device code request failed")
@@ -256,9 +256,14 @@ public struct TwitchOAuthClient: Sendable {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/validate")!)
         request.setValue("OAuth \(accessToken)", forHTTPHeaderField: "Authorization")
 
-        let (_, response) = try await httpClient.data(for: request)
+        let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
-        return http.statusCode == 200
+        switch http.statusCode {
+        case 200: return true
+        case 401: return false
+        case 500...599: throw HelixError.serverError(status: http.statusCode)
+        default: throw oauthError(from: data, status: http.statusCode, fallbackMessage: "Token validation failed")
+        }
     }
 
     private func postTokenRequest(fields: [String: String]) async throws -> OAuthToken {
@@ -267,7 +272,7 @@ public struct TwitchOAuthClient: Sendable {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded(fields)
 
-        let (data, response) = try await httpClient.data(for: request)
+        let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
         guard http.statusCode == 200 else {
             throw oauthError(from: data, status: http.statusCode, fallbackMessage: "OAuth token request failed")
@@ -275,9 +280,27 @@ public struct TwitchOAuthClient: Sendable {
         return try JSONDecoder.twitch().decode(OAuthToken.self, from: data)
     }
 
+    /// Mirrors `HelixClient`: transport failures surface as
+    /// `HelixError.transport` so callers can pattern-match one error type
+    /// across the whole SDK (offline vs. timeout vs. TLS) instead of
+    /// special-casing raw `URLError`s from the token endpoints.
+    private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await httpClient.data(for: request)
+        } catch let error as URLError {
+            if Task.isCancelled { throw CancellationError() }
+            throw HelixError.transport(error)
+        }
+    }
+
     private func oauthError(from data: Data, status: Int, fallbackMessage: String) -> HelixError {
         let decoded = try? JSONDecoder.twitch().decode(TwitchOAuthError.self, from: data)
-        return .oauth(decoded ?? TwitchOAuthError.fallback(status: status, message: fallbackMessage))
+        guard let decoded else {
+            return .oauth(TwitchOAuthError.fallback(status: status, message: fallbackMessage))
+        }
+        // The HTTP status remains authoritative even when the JSON omits it.
+        return .oauth(TwitchOAuthError(error: decoded.error, status: status,
+                                      message: decoded.message, errorDescription: decoded.errorDescription))
     }
 
     private func authorizationURL(

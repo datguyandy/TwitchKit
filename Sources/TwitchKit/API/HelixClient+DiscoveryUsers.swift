@@ -60,16 +60,31 @@ extension HelixClient {
         return user
     }
 
-    /// Gets authorization scopes granted by a user to this application.
-    public func fetchAuthorization(userID: String, clientID: String? = nil) async throws -> UserAuthorization {
-        var queryItems = [URLQueryItem(name: "user_id", value: userID)]
-        HelixQuery.append(HelixQuery.item("client_id", clientID), to: &queryItems)
-        let response: HelixResponse<UserAuthorization> = try await request(
-            endpoint: "users/authorization",
-            queryItems: queryItems
-        )
-        guard let authorization = response.data.first else { throw HelixError.notFound }
+    /// Gets authorization scopes granted by a user to the authenticated application.
+    /// Requires an app access token.
+    public func fetchAuthorization(userID: String) async throws -> UserAuthorization {
+        guard let authorization = try await fetchAuthorizations(userIDs: [userID]).first else {
+            throw HelixError.notFound
+        }
         return authorization
+    }
+
+    /// The authenticated app token determines the client; `clientID` is not sent to Twitch.
+    @available(*, deprecated, message: "Use fetchAuthorization(userID:); Twitch determines the application from its app access token")
+    public func fetchAuthorization(userID: String, clientID: String?) async throws -> UserAuthorization {
+        try await fetchAuthorization(userID: userID)
+    }
+
+    /// Gets granted scopes for up to ten users using an app access token.
+    public func fetchAuthorizations(userIDs: [String]) async throws -> [UserAuthorization] {
+        guard (1...10).contains(userIDs.count), userIDs.allSatisfy({ !$0.isEmpty }) else {
+            throw HelixError.badRequest(.fallback(status: 400, message: "Between 1 and 10 nonempty user IDs are required"))
+        }
+        let response: HelixResponse<UserAuthorization> = try await request(
+            endpoint: "authorization/users",
+            queryItems: HelixQuery.items("user_id", values: userIDs)
+        )
+        return response.data
     }
 
     /// Gets one page of users blocked by a broadcaster.
@@ -202,7 +217,9 @@ public struct TwitchTeam: Decodable, Sendable, Equatable {
 }
 
 public struct UserAuthorization: Decodable, Sendable, Equatable {
-    public let clientId: String
+    public let hasAuthorized: Bool
+    @available(*, deprecated, message: "Twitch does not return client_id for this endpoint")
+    public let clientId: String?
     public let userId: String
     public let userLogin: String?
     public let userName: String?

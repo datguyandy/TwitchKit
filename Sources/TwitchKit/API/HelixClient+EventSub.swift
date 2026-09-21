@@ -90,8 +90,14 @@ extension HelixClient {
                 return deletedCount
             }
             for subscription in page.data {
-                try await deleteEventSubSubscription(id: subscription.id)
-                deletedCount += 1
+                do {
+                    try await deleteEventSubSubscription(id: subscription.id)
+                    deletedCount += 1
+                } catch HelixError.notFound {
+                    // Already deleted by a concurrent operation (or Twitch
+                    // itself) — it's gone either way; keep draining instead
+                    // of aborting the run and losing the count.
+                }
             }
         }
 

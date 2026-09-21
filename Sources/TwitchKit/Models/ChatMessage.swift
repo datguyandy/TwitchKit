@@ -45,6 +45,8 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     public let sourceMessageId: String?
     public let sourceBadges: [ChatBadge]?
 
+    public let isSourceOnly: Bool?
+
     // MARK: - Nested Types
 
     public struct ChatMessageBody: Codable, Sendable, Equatable {
@@ -75,6 +77,7 @@ public struct ChatFragment: Codable, Sendable, Equatable {
     public let cheermote: CheermoteReference?
     public let emote: EmoteReference?
     public let mention: MentionReference?
+    public let gif: GIFReference?
 }
 
 public struct EmoteReference: Codable, Sendable, Equatable {
@@ -100,4 +103,10 @@ public struct ChatBadge: Codable, Sendable, Equatable {
     public let setId: String
     public let id: String
     public let info: String
+}
+
+/// GIF metadata in a chat message fragment.
+public struct GIFReference: Codable, Sendable, Equatable {
+    public let gifId: String
+    public let url: String
 }

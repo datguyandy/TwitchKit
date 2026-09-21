@@ -6,8 +6,11 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-21
+
 ### Added
 
+- September 2026 API compatibility: GIF chat fragments, stream-offline IDs, AutoMod v2 blocked-link details, watch-streak/modiversary notifications, source-only announcements, and clip title/duration options.
 - Auth: `OAuthToken` now records `obtainedAt` (stamped when stored) and exposes `expiresAt`/`isExpired(within:at:)`; the token provider proactively refreshes tokens within 60 seconds of expiry instead of paying a failed 401 round-trip.
 - EventSub: an injectable `EventSubWebSocket` seam (`socketFactory` on `EventSubClient`/`TwitchClient`) so the WebSocket message-handling, dedup, keepalive, reconnect, and resubscribe paths are testable; ships with socket-driven tests.
 - EventSub: `EventSubWebhookVerifier.isTimestampFresh` and combined signature+freshness `isValid` overloads reject replayed webhook requests older than Twitch's 10-minute window.
@@ -25,6 +28,22 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ### Fixed
 
+- Restored pinned-chat endpoints and Send Chat Message's `pin` option, with duration and incompatible-parameter validation. The earlier audit incorrectly described these documented endpoints as nonexistent.
+- Custom Power-ups now use `bits/custom_power_ups`, support ID filters, decode the documented `bits`/reward fields, and subscribe using EventSub version 1. Redemption events now decode `custom_power_up`, `user_input`, and `status` instead of requiring a nonexistent `type` field.
+- Token validation now distinguishes a 401 from service failures; an outage no longer triggers token refresh. In-flight refresh success/rejection and token loads cannot overwrite a newer login or undo logout.
+- User authorization now uses `authorization/users`, supports up to ten user IDs, and decodes `has_authorized` without requiring a nonexistent `client_id`.
+- OAuth error classification preserves the HTTP status when JSON omits it; server outages cannot be mistaken for rejected credentials.
+- Conduit shard updates enforce Twitch's documented 1–100 shard batch size.
+- Helix: `CustomRewardImage` used pre-conversion snake_case `CodingKeys` raw values (`"url_1x"`), which `.convertFromSnakeCase` can never match — every Get/Create/Update Custom Reward call failed to decode. `CustomRewardLimitSetting.value` now also decodes Twitch's endpoint-specific keys (`max_per_stream` / `max_per_user_per_stream`); it previously silently decoded as `nil` on every response.
+- Auth: `TwitchOAuthClient` wraps transport-level `URLError`s as `HelixError.transport`, matching `HelixClient`, so token-endpoint callers can distinguish offline/timeout/TLS failures with one error type.
+- EventSub: an `unsubscribe()` that raced an in-flight resubscribe round (actor reentrancy across the create's `await`) is no longer resurrected — the freshly created server-side subscription is deleted instead of being written back into the client's maps.
+- EventSub: the `session_reconnect` handoff task captures the client weakly, matching every other stored task, instead of pinning the actor until the handoff resolves.
+- EventSub: client-initiated socket teardown sends close code `goingAway` instead of `abnormalClosure` (1006), which RFC 6455 reserves for *reporting* abnormal closes and forbids sending on the wire.
+- Helix: `deleteAllEventSubSubscriptions` tolerates a 404 on an individual delete (already removed by a concurrent operation) instead of aborting the run and losing the deletion count.
+- Helix: `AdSnooze.snoozeRefreshAt`/`nextAdAt` are now optional and tolerate Twitch's empty-string dates, matching the hardening `AdSchedule` received.
+- Helix: the single 503 retry now waits 100–400 ms (jittered) instead of re-requesting an already-degraded service immediately.
+- Privacy: the raw response body logged when a Helix decode fails is explicitly `.private` (the path sits under stream-key/extension-secret/conduit-secret endpoints), and EventSub envelope-decode failures no longer force raw payload prefixes (which can carry chat content) to `.public`.
+- Performance: `EventSubClient` reuses one actor-isolated `JSONDecoder` for the envelope and typed-notification passes instead of allocating two decoders per received message.
 - Auth: a failed token refresh no longer logs the user out on transient errors (network timeouts, token-endpoint outages). The stored token is only destroyed when the OAuth server definitively rejects the refresh (a 400/401/403 OAuth error). Concurrent `refreshIfNeeded()` calls now coalesce onto a single in-flight refresh instead of racing the same refresh token, which Twitch rotates on use.
 - EventSub: the client can now deallocate after being dropped. Its path-monitor, receive-loop, keepalive-watchdog, and reconnect tasks previously retained the actor while suspended, making `deinit` (and its socket/monitor cleanup) unreachable once connected. The reconnect ladder also no longer grows an async frame per failed attempt.
 - EventSub: `connect(timeout:)` now honors its deadline. The internal session-welcome wait is cancellation-aware, so a connected-but-silent server fails the connect at the configured timeout instead of blocking until the socket errors.
@@ -35,9 +54,14 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - Helix: stream schedule endpoints now decode Twitch's single-object `data` envelope (they could never decode before), and `updateChannelStreamSchedule` sends vacation settings as query parameters instead of a JSON body Twitch silently ignored.
 - Helix: `ShieldModeStatus.lastActivatedAt` is now optional and tolerates the empty string Twitch sends when Shield Mode was never activated; `AdSchedule`'s date fields tolerate the empty strings sent for offline channels. Both previously failed the whole response decode.
 
-### Removed
+### Migration notes
 
-- Helix: removed the chat-pin API surface (`fetchPinnedChatMessage`, `pinChatMessage`, `updatePinnedChatMessage`, `unpinChatMessage`, `PinnedChatMessage`, and the `pin` parameter of `sendChatMessage`). These wrapped a `chat/pins` endpoint that does not exist in the Helix API and always failed.
+- `updateConduitShards` now returns `ConduitShardUpdateResult`; read `updated` and `errors` to handle partial failures.
+- `ShieldModeStatus.lastActivatedAt` is optional; handle channels that have never enabled Shield Mode.
+- User-authorization responses now expose `hasAuthorized`; `clientId` is optional and deprecated because Twitch does not return it. Use `fetchAuthorization(userID:)` or `fetchAuthorizations(userIDs:)` with an app access token.
+
+- `CustomPowerUp.sku` and `EventSubCustomPowerUpRedemption.type`/`message` were not fields in Twitch's response and have been removed. Use `CustomPowerUp.bits` (the former `cost` remains a deprecated alias), and the redemption's `customPowerUp`, `userInput`, and `status`. `redeemedAt` is now required by the documented redemption contract.
+- `AdSnooze` dates are optional, matching the defensive handling of empty date strings in `AdSchedule`.
 
 ## [0.3.4] - 2026-06-12
 

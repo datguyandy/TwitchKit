@@ -117,6 +117,7 @@ public struct EventSubStreamOnline: Codable, Sendable, Equatable {
 }
 
 public struct EventSubStreamOffline: Codable, Sendable, Equatable {
+    public let id: String?
     public let broadcasterUserId: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
@@ -136,6 +137,32 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
     public let status: String?
     public let heldAt: Date?
     public let reason: String?
+    public let automod: AutoModDetails?
+    public let blockedTerm: BlockedTermDetails?
+
+    public struct Boundary: Codable, Sendable, Equatable {
+        public let startPos: Int
+        public let endPos: Int
+    }
+
+    public struct AutoModDetails: Codable, Sendable, Equatable {
+        public let category: String
+        public let level: Int
+        public let boundaries: [Boundary]
+    }
+
+    /// Populated for both blocked_term and blocked_link reasons.
+    public struct BlockedTermDetails: Codable, Sendable, Equatable {
+        public let termsFound: [Term]
+
+        public struct Term: Codable, Sendable, Equatable {
+            public let termId: String
+            public let boundary: Boundary
+            public let ownerBroadcasterUserId: String
+            public let ownerBroadcasterUserLogin: String
+            public let ownerBroadcasterUserName: String
+        }
+    }
 }
 
 public struct EventSubAutoModSettingsUpdate: Codable, Sendable, Equatable {
@@ -379,6 +406,19 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     public let announcement: Announcement?
     public let charityDonation: CharityDonation?
     public let bitsBadgeTier: BitsBadgeTier?
+    public let watchStreak: WatchStreak?
+    public let modiversary: Modiversary?
+    public let sharedChatModiversary: Modiversary?
+    public let isSourceOnly: Bool?
+
+    public struct WatchStreak: Codable, Sendable, Equatable {
+        public let streakCount: Int
+        public let channelPointsAwarded: Int
+    }
+
+    public struct Modiversary: Codable, Sendable, Equatable {
+        public let months: Int
+    }
 
     public struct Subscription: Codable, Sendable, Equatable {
         public let subTier: SubscriptionTier
@@ -823,10 +863,20 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let id: String
-    public let type: String
-    public let cost: Int?
-    public let message: ChatMessage.ChatMessageBody?
-    public let redeemedAt: Date?
+    public let userInput: String
+    public let status: ChannelPointsRedemptionStatus
+    public let customPowerUp: PowerUp
+    public let redeemedAt: Date
+
+    public struct PowerUp: Codable, Sendable, Equatable {
+        public let id: String
+        public let title: String
+        public let bits: Int
+        public let prompt: String
+    }
+
+    @available(*, deprecated, message: "Use customPowerUp.bits")
+    public var cost: Int? { customPowerUp.bits }
 }
 
 public struct EventSubSuspiciousUserMessage: Decodable, Sendable, Equatable {

@@ -187,8 +187,10 @@ final class EventSubSocketTests: XCTestCase {
 
         let observed = await collector.value
         XCTAssertEqual(observed, [.connecting, .connected, .reconnecting])
-        // handleDisconnect() closes the dead socket abnormally before retrying.
-        XCTAssertEqual(socketA.cancelCloseCodes, [.abnormalClosure])
+        // handleDisconnect() closes the dead socket before retrying. The close
+        // code must be goingAway: 1006 (abnormalClosure) is reserved by RFC
+        // 6455 for *reporting* an abnormal close and must never be sent.
+        XCTAssertEqual(socketA.cancelCloseCodes, [.goingAway])
 
         await client.disconnect()
     }
@@ -271,6 +273,198 @@ final class EventSubSocketTests: XCTestCase {
             let transportBody = try XCTUnwrap(object["transport"] as? [String: Any])
             XCTAssertEqual(transportBody["session_id"] as? String, "session-2")
         }
+
+        await client.disconnect()
+    }
+
+    // MARK: - 6. unsubscribe() during an in-flight resubscribe must win
+
+    func test_unsubscribeDuringInFlightResubscribeIsNotResurrected() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let gate = ResponseGate()
+
+        // HTTP script: initial create on session-1; the session-2 re-create
+        // parks on the gate so the test can interleave an unsubscribe while
+        // it is deterministically in flight; the unsubscribe's DELETE; and a
+        // final DELETE for the record the parked re-create returns — issued
+        // only if the client correctly notices the subscription was dropped
+        // mid-flight instead of resurrecting it.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 204, body: ""),
+                .json(statusCode: 204, body: ""),
+            ]
+        )
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        let record = try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        XCTAssertEqual(record.id, "sub-1")
+
+        // Kill the socket: the ladder reconnects onto socketB and starts the
+        // resubscribe round, whose create parks on the gate.
+        socketA.failReceive(with: HelixError.networkError("socket dropped"))
+        let parked = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(parked, "the ladder should dial socketB and wait for its welcome")
+        guard parked else {
+            await client.disconnect()
+            return
+        }
+        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        // Bounded wait until the re-create is in flight (request #2 recorded).
+        var attempts = 0
+        while await transport.recordedRequests().count < 2, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        // While the re-create is parked, the caller unsubscribes. The actor is
+        // reentrant, so this interleaves with resubscribeAll()'s await.
+        try await client.unsubscribe(id: "sub-1")
+
+        // Let the parked re-create complete. The subscription is no longer
+        // desired, so the client must delete the record it just created
+        // instead of writing it back into its maps.
+        await gate.open()
+
+        attempts = 0
+        while await transport.recordedRequests().count < 4, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let requests = await transport.recordedRequests()
+        let deletes = requests.filter { $0.httpMethod == "DELETE" }
+        XCTAssertEqual(
+            deletes.compactMap { $0.url?.query() }.sorted(),
+            ["id=sub-1", "id=sub-9"],
+            "an unsubscribe that raced the resubscribe round must not be resurrected — the freshly created record must be deleted"
+        )
+
+        await client.disconnect()
+    }
+
+    func test_unsubscribeCleanupRetriesAfterServerFailure() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let gate = ResponseGate()
+
+        // HTTP script: initial create on session-1; the session-2 re-create
+        // parks on the gate so the test can interleave an unsubscribe while
+        // it is deterministically in flight; the unsubscribe's DELETE; and a
+        // final DELETE for the record the parked re-create returns — issued
+        // only if the client correctly notices the subscription was dropped
+        // mid-flight instead of resurrecting it.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 204, body: ""),
+                .json(statusCode: 500, body: ""),
+                .json(statusCode: 404, body: ""),
+            ]
+        )
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        let record = try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        XCTAssertEqual(record.id, "sub-1")
+
+        // Kill the socket: the ladder reconnects onto socketB and starts the
+        // resubscribe round, whose create parks on the gate.
+        socketA.failReceive(with: HelixError.networkError("socket dropped"))
+        let parked = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(parked, "the ladder should dial socketB and wait for its welcome")
+        guard parked else {
+            await client.disconnect()
+            return
+        }
+        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        // Bounded wait until the re-create is in flight (request #2 recorded).
+        var attempts = 0
+        while await transport.recordedRequests().count < 2, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        // While the re-create is parked, the caller unsubscribes. The actor is
+        // reentrant, so this interleaves with resubscribeAll()'s await.
+        try await client.unsubscribe(id: "sub-1")
+
+        // Let the parked re-create complete. The subscription is no longer
+        // desired, so the client must delete the record it just created
+        // instead of writing it back into its maps.
+        await gate.open()
+
+        attempts = 0
+        while await transport.recordedRequests().count < 5, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let requests = await transport.recordedRequests()
+        let deletes = requests.filter { $0.httpMethod == "DELETE" }
+        XCTAssertEqual(
+            deletes.compactMap { $0.url?.query() }.sorted(),
+            ["id=sub-1", "id=sub-9", "id=sub-9"],
+            "an unsubscribe that raced the resubscribe round must not be resurrected — the freshly created record must be deleted"
+        )
+
+        await client.disconnect()
+    }
+
+    // MARK: - 7. Revocation frames surface as .revocation events
+
+    func test_revocationFrameYieldsRevocationEvent() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+
+        // Single-consumer stream, same sentinel pattern as the dedup test:
+        // once the sentinel arrives, the revocation frame pushed before it has
+        // definitely been processed.
+        let collector = Task { () -> EventSubRevocation? in
+            var seen: EventSubRevocation?
+            for await event in client.events {
+                if case .revocation(let revocation) = event { seen = revocation }
+                if case .unknown(let type, _) = event, type == "test.event.sentinel" { break }
+            }
+            return seen
+        }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        socket.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
+        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+
+        let revocation = await collector.value
+        XCTAssertEqual(revocation?.id, "sub-1")
+        XCTAssertEqual(revocation?.type, "channel.follow")
+        XCTAssertEqual(revocation?.status, .authorizationRevoked)
+        XCTAssertEqual(revocation?.condition, ["broadcaster_user_id": "b"])
 
         await client.disconnect()
     }
@@ -515,6 +709,31 @@ private func notificationJSON(messageId: String, type: String) -> String {
       },
       "payload": {
         "event": { "value": 1 }
+      }
+    }
+    """
+}
+
+private func revocationJSON(messageId: String, subscriptionId: String, type: String) -> String {
+    """
+    {
+      "metadata": {
+        "message_id": "\(messageId)",
+        "message_type": "revocation",
+        "message_timestamp": "2024-01-01T00:00:02Z",
+        "subscription_type": "\(type)"
+      },
+      "payload": {
+        "subscription": {
+          "id": "\(subscriptionId)",
+          "status": "authorization_revoked",
+          "type": "\(type)",
+          "version": "2",
+          "condition": { "broadcaster_user_id": "b" },
+          "transport": { "method": "websocket", "session_id": "session-1" },
+          "created_at": "2024-01-01T00:00:00Z",
+          "cost": 0
+        }
       }
     }
     """

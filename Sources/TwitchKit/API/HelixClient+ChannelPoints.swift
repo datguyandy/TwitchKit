@@ -185,20 +185,39 @@ public struct CustomReward: Decodable, Sendable, Equatable {
 }
 
 public struct CustomRewardImage: Decodable, Sendable, Equatable {
+    // `.convertFromSnakeCase` turns the wire keys `url_1x`/`url_2x`/`url_4x` into
+    // `url1X`/`url2X`/`url4X`, which match these property names — no CodingKeys needed.
     public let url1X: String
     public let url2X: String
     public let url4X: String
-
-    enum CodingKeys: String, CodingKey {
-        case url1X = "url_1x"
-        case url2X = "url_2x"
-        case url4X = "url_4x"
-    }
 }
 
 public struct CustomRewardLimitSetting: Codable, Sendable, Equatable {
     public let isEnabled: Bool
     public let value: Int?
+
+    // Twitch carries the limit under an endpoint-specific key (`max_per_stream` or
+    // `max_per_user_per_stream`) depending on which setting this is, so accept either.
+    enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case value
+        case maxPerStream
+        case maxPerUserPerStream
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        value = try container.decodeIfPresent(Int.self, forKey: .maxPerStream)
+            ?? container.decodeIfPresent(Int.self, forKey: .maxPerUserPerStream)
+            ?? container.decodeIfPresent(Int.self, forKey: .value)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encodeIfPresent(value, forKey: .value)
+    }
 }
 
 public struct CustomRewardCooldownSetting: Codable, Sendable, Equatable {

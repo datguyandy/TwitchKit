@@ -21,7 +21,7 @@ The package is currently pre-1.0. It provides typed authentication, token storag
 Add TwitchKit as a Swift Package dependency:
 
 ```swift
-.package(url: "https://github.com/AndrewBeshay/TwitchKit.git", from: "0.3.0")
+.package(url: "https://github.com/AndrewBeshay/TwitchKit.git", from: "0.4.0")
 ```
 
 Then add the product to your target:
@@ -232,11 +232,14 @@ let isValid = verifier.isValid(
     messageID: request.headers["Twitch-Eventsub-Message-Id"],
     timestamp: request.headers["Twitch-Eventsub-Message-Timestamp"],
     body: requestBody,
-    signature: request.headers["Twitch-Eventsub-Message-Signature"]
+    signature: request.headers["Twitch-Eventsub-Message-Signature"],
+    maxAge: .seconds(600)
 )
 
 let challenge = try EventSubWebhookVerifier.challenge(from: requestBody)
 ```
+
+Only process the request when `isValid` is true. Before applying side effects, atomically check and record `Twitch-Eventsub-Message-Id` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
 
 ## Supported APIs
 
@@ -247,7 +250,7 @@ let challenge = try EventSubWebhookVerifier.challenge(from: requestBody)
 | Users | Authenticated user, users by ID/login |
 | Channels | Channel info, channel updates, followers, followed channels, editors, content classification labels |
 | Streams and games | Streams, stream lookup, stream key, top games, games by ID/name/IGDB ID |
-| Chat | Global/channel badges, global/channel emotes, emote sets, user emotes, chatters, chat settings, shared chat sessions, announcements, shoutouts, user chat colors, Send Chat Message |
+| Chat | Global/channel badges, global/channel emotes, emote sets, user emotes, chatters, chat settings, shared chat sessions, pinned messages, announcements, shoutouts, user chat colors, Send Chat Message |
 | Moderation | AutoMod status/settings, bans/timeouts, unban requests, blocked terms, delete chat message, moderated channels, moderators, VIPs, Shield Mode, warnings, suspicious users |
 | EventSub management | Create/list/delete subscriptions, bulk cleanup helper, WebSocket/webhook/conduit transports, batching flag |
 | Creator tools | Schedules, charity campaigns/donations, Hype Train status, polls, predictions, raids, stream markers, goals |

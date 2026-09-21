@@ -75,10 +75,13 @@ extension HelixClient {
     }
 
     /// Gets custom Power-ups created by a broadcaster.
-    public func fetchCustomPowerUps(broadcasterID: String) async throws -> [CustomPowerUp] {
+    public func fetchCustomPowerUps(broadcasterID: String, ids: [String] = []) async throws -> [CustomPowerUp] {
+        guard ids.count <= 50 else {
+            throw HelixError.badRequest(.fallback(status: 400, message: "Twitch allows up to 50 custom Power-up IDs"))
+        }
         let response: HelixResponse<CustomPowerUp> = try await request(
-            endpoint: "bits/power-ups",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
+            endpoint: "bits/custom_power_ups",
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)] + HelixQuery.items("id", values: ids)
         )
         return response.data
     }
@@ -211,13 +214,27 @@ public struct Cheermote: Decodable, Sendable, Equatable {
 
 public struct CustomPowerUp: Decodable, Sendable, Equatable {
     public let id: String
-    public let sku: String
-    public let cost: Int
-    public let title: String?
-    public let prompt: String?
-    public let backgroundColor: String?
-    public let isEnabled: Bool?
-    public let isPaused: Bool?
+    public let broadcasterId: String
+    public let broadcasterLogin: String
+    public let broadcasterName: String
+    public let bits: Int
+    public let title: String
+    public let prompt: String
+    public let image: CustomRewardImage?
+    public let defaultImage: CustomRewardImage
+    public let backgroundColor: String
+    public let isEnabled: Bool
+    public let isUserInputRequired: Bool
+    public let maxPerStreamSetting: CustomRewardLimitSetting
+    public let maxPerUserPerStreamSetting: CustomRewardLimitSetting
+    public let globalCooldownSetting: CustomRewardCooldownSetting
+    public let isPaused: Bool
+    public let isInStock: Bool
+    public let redemptionsRedeemedCurrentStream: Int?
+    public let cooldownExpiresAt: Date?
+
+    @available(*, deprecated, renamed: "bits")
+    public var cost: Int { bits }
 }
 
 public struct ExtensionTransaction: Decodable, Sendable, Equatable {

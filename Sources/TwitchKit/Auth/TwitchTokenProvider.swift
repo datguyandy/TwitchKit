@@ -17,6 +17,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
     private let oauthClient: TwitchOAuthClient
     private let tokenStore: any TwitchTokenStore
 
+    private var tokenRevision: UInt64 = 0
     private var cachedToken: OAuthToken?
     private var hasLoadedStoredToken = false
 
@@ -70,6 +71,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
     /// current time when the caller didn't provide one so expiry can be
     /// computed later.
     public func setToken(_ token: OAuthToken) async throws {
+        tokenRevision &+= 1
         var token = token
         if token.obtainedAt == nil {
             token = OAuthToken(
@@ -123,8 +125,11 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
             throw HelixError.unauthorized
         }
 
+        let revision = tokenRevision
         do {
             let refreshedToken = try await oauthClient.refreshAccessToken(refreshToken: refreshToken)
+            // Logout or token replacement supersedes this network response.
+            guard tokenRevision == revision else { return }
             try await setToken(refreshedToken)
             tokenProviderLogger.info("Token refresh succeeded")
         } catch {
@@ -134,7 +139,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
             // about the refresh token's validity — logging out on those
             // would erase a perfectly recoverable session over a blip, and
             // the same refresh token remains usable on the next attempt.
-            if Self.isDefinitiveRefreshRejection(error) {
+            if tokenRevision == revision, Self.isDefinitiveRefreshRejection(error) {
                 tokenProviderLogger.warning("Token refresh rejected by OAuth server; logging out")
                 try await logout()
             }
@@ -174,7 +179,9 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
             return
         }
 
+        let revision = tokenRevision
         let isValid = try await oauthClient.validateAccessToken(token.accessToken)
+        guard tokenRevision == revision else { return }
         if !isValid {
             tokenProviderLogger.warning("Token validation failed; attempting refresh")
             try await refreshIfNeeded()
@@ -183,6 +190,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
 
     /// Deletes the current token from memory and storage.
     public func logout() async throws {
+        tokenRevision &+= 1
         cachedToken = nil
         hasLoadedStoredToken = true
         try await tokenStore.deleteToken()
@@ -197,7 +205,9 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
             return nil
         }
 
+        let revision = tokenRevision
         let storedToken = try await tokenStore.loadToken()
+        guard tokenRevision == revision else { return cachedToken }
         cachedToken = storedToken
         // Only latch a SUCCESSFUL load. A nil read is not proof of
         // "signed out": Keychain-backed stores can transiently report

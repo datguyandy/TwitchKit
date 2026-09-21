@@ -129,7 +129,8 @@ let isValid = verifier.isValid(
     messageID: request.headers["Twitch-Eventsub-Message-Id"],
     timestamp: request.headers["Twitch-Eventsub-Message-Timestamp"],
     body: requestBody,
-    signature: request.headers["Twitch-Eventsub-Message-Signature"]
+    signature: request.headers["Twitch-Eventsub-Message-Signature"],
+    maxAge: .seconds(600)
 )
 ```
 
@@ -138,6 +139,8 @@ When Twitch sends a webhook callback verification request, respond with the chal
 ```swift
 let challenge = try EventSubWebhookVerifier.challenge(from: requestBody)
 ```
+
+Only process the request when `isValid` is true. Before applying side effects, atomically check and record `Twitch-Eventsub-Message-Id` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
 
 ## Known And Unknown Events
 

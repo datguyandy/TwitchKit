@@ -1168,6 +1168,28 @@ final class HTTPClientTests: XCTestCase {
         )
     }
 
+    func test_deleteAllEventSubSubscriptionsToleratesConcurrentlyDeletedSubscription() async throws {
+        // A 404 on one delete means another client (or Twitch) already removed
+        // that subscription — the cleanup must skip it and keep draining
+        // instead of aborting the whole run and losing the count.
+        let transport = MockHTTPClient(responses: [
+            .json(statusCode: 200, body: #"{"data":[{"id":"subscription-1","status":"enabled","type":"stream.online","version":"1","condition":{"broadcaster_user_id":"1234"},"transport":{"method":"websocket","session_id":"session-id"},"created_at":"2024-01-01T00:00:00Z","cost":1},{"id":"subscription-2","status":"enabled","type":"stream.offline","version":"1","condition":{"broadcaster_user_id":"1234"},"transport":{"method":"websocket","session_id":"session-id"},"created_at":"2024-01-01T00:00:00Z","cost":1}],"pagination":{}}"#),
+            .json(statusCode: 404, body: #"{"error":"Not Found","status":404,"message":"subscription not found"}"#),
+            .json(statusCode: 204, body: ""),
+            .json(statusCode: 200, body: #"{"data":[],"pagination":{}}"#)
+        ])
+        let auth = makeAuth()
+        try await auth.setToken(OAuthToken(accessToken: "access-token"))
+        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+
+        let deletedCount = try await api.deleteAllEventSubSubscriptions(filter: .status(.enabled))
+
+        // Only subscription-2 was deleted by THIS call; subscription-1 was already gone.
+        XCTAssertEqual(deletedCount, 1)
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.map(\.httpMethod), ["GET", "DELETE", "DELETE", "GET"])
+    }
+
     func test_fetchChannelsInfoUsesRepeatedBroadcasterIDs() async throws {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 200, body: """
@@ -1958,6 +1980,9 @@ final class HTTPClientTests: XCTestCase {
 actor MockHTTPClient: HTTPClient {
     enum Response {
         case json(statusCode: Int, body: String, headers: [String: String] = [:])
+        /// Parks the request until `gate.open()` — for tests that need to
+        /// interleave other calls while this one is deterministically in flight.
+        case gatedJSON(gate: ResponseGate, statusCode: Int, body: String)
         case nonHTTP(body: Data)
         case cancellation
         case failure(any Error & Sendable)
@@ -1990,6 +2015,16 @@ actor MockHTTPClient: HTTPClient {
             )!
             return (Data(body.utf8), response)
 
+        case .gatedJSON(let gate, let statusCode, let body):
+            await gate.wait()
+            let response = HTTPURLResponse(
+                url: request.url ?? URL(string: "https://example.com")!,
+                statusCode: statusCode,
+                httpVersion: "HTTP/1.1",
+                headerFields: [:]
+            )!
+            return (Data(body.utf8), response)
+
         case .nonHTTP(let body):
             return (body, URLResponse(url: request.url ?? URL(string: "https://example.com")!, mimeType: nil, expectedContentLength: body.count, textEncodingName: nil))
 
@@ -1999,6 +2034,25 @@ actor MockHTTPClient: HTTPClient {
         case .failure(let error):
             throw error
         }
+    }
+}
+
+/// Holds a `gatedJSON` mock response in flight until `open()` is called.
+actor ResponseGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func open() {
+        isOpen = true
+        for waiter in waiters {
+            waiter.resume()
+        }
+        waiters.removeAll()
+    }
+
+    func wait() async {
+        guard !isOpen else { return }
+        await withCheckedContinuation { waiters.append($0) }
     }
 }
 

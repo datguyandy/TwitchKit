@@ -69,6 +69,7 @@ extension HelixClient {
     ///   - message: The chat message text.
     ///   - replyParentMessageId: Optional message ID to reply to (creates a thread).
     ///   - forSourceOnly: For app access tokens in Shared Chat, whether to send only to the source channel.
+    ///   - pin: Send and pin for 20 minutes; cannot be combined with reply or source-only parameters.
     /// - Returns: The result including `messageId`, `isSent`, and optional `dropReason`.
     /// - Throws: `HelixError.forbidden` if the user is banned or lacks permissions.
     /// - SeeAlso: [Send Chat Message](https://dev.twitch.tv/docs/api/reference/#send-chat-message)
@@ -77,14 +78,19 @@ extension HelixClient {
         senderId: String,
         message: String,
         replyParentMessageId: String? = nil,
-        forSourceOnly: Bool? = nil
+        forSourceOnly: Bool? = nil,
+        pin: Bool? = nil
     ) async throws -> SendChatMessageResponse {
+        if pin == true, replyParentMessageId != nil || forSourceOnly != nil {
+            throw HelixError.badRequest(.fallback(status: 400, message: "Pinned messages cannot include replyParentMessageId or forSourceOnly"))
+        }
         let body = SendChatMessageRequest(
             broadcasterId: broadcasterId,
             senderId: senderId,
             message: message,
             replyParentMessageId: replyParentMessageId,
-            forSourceOnly: forSourceOnly
+            forSourceOnly: forSourceOnly,
+            pin: pin
         )
         let bodyData = try JSONEncoder.twitch().encode(body)
         let response: HelixResponse<SendChatMessageResponse> = try await request(
@@ -103,6 +109,7 @@ private struct SendChatMessageRequest: Encodable {
     let message: String
     let replyParentMessageId: String?
     let forSourceOnly: Bool?
+    let pin: Bool?
 }
 
 /// Response from the Send Chat Message endpoint.

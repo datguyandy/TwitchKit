@@ -140,7 +140,8 @@ extension HelixClient {
         broadcasterID: String,
         moderatorID: String,
         message: String,
-        color: ChatAnnouncementColor? = nil
+        color: ChatAnnouncementColor? = nil,
+        forSourceOnly: Bool? = nil
     ) async throws {
         try await requestNoContent(
             endpoint: "chat/announcements",
@@ -149,7 +150,7 @@ extension HelixClient {
                 URLQueryItem(name: "broadcaster_id", value: broadcasterID),
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ],
-            body: try JSONEncoder.twitch().encode(ChatAnnouncementRequest(message: message, color: color?.rawValue))
+            body: try JSONEncoder.twitch().encode(ChatAnnouncementRequest(message: message, color: color?.rawValue, forSourceOnly: forSourceOnly))
         )
     }
 
@@ -166,6 +167,65 @@ extension HelixClient {
                 URLQueryItem(name: "from_broadcaster_id", value: broadcasterID),
                 URLQueryItem(name: "to_broadcaster_id", value: targetBroadcasterID),
                 URLQueryItem(name: "moderator_id", value: moderatorID),
+            ]
+        )
+    }
+
+    /// Gets the currently pinned chat message for a broadcaster.
+    public func fetchPinnedChatMessage(broadcasterID: String, moderatorID: String) async throws -> PinnedChatMessage? {
+        let response: HelixResponse<PinnedChatMessage> = try await request(
+            endpoint: "chat/pins",
+            queryItems: [
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "moderator_id", value: moderatorID),
+            ]
+        )
+        return response.data.first
+    }
+
+    /// Pins a chat message.
+    public func pinChatMessage(
+        broadcasterID: String,
+        moderatorID: String,
+        messageID: String,
+        durationSeconds: Int? = nil
+    ) async throws {
+        try validatePinDuration(durationSeconds)
+        var queryItems = [
+            URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+            URLQueryItem(name: "moderator_id", value: moderatorID),
+            URLQueryItem(name: "message_id", value: messageID),
+        ]
+        HelixQuery.append(HelixQuery.item("duration_seconds", durationSeconds.map(String.init)), to: &queryItems)
+        try await requestNoContent(endpoint: "chat/pins", method: "PUT", queryItems: queryItems)
+    }
+
+    /// Updates the duration of a pinned chat message.
+    public func updatePinnedChatMessage(
+        broadcasterID: String,
+        moderatorID: String,
+        messageID: String,
+        durationSeconds: Int? = nil
+    ) async throws {
+        try validatePinDuration(durationSeconds)
+        var queryItems = [
+            URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+            URLQueryItem(name: "moderator_id", value: moderatorID),
+            URLQueryItem(name: "message_id", value: messageID),
+        ]
+        HelixQuery.append(HelixQuery.item("duration_seconds", durationSeconds.map(String.init)), to: &queryItems)
+        try await requestNoContent(endpoint: "chat/pins", method: "PATCH", queryItems: queryItems)
+    }
+
+    /// Unpins a chat message.
+    public func unpinChatMessage(broadcasterID: String, moderatorID: String, messageID: String) async throws {
+        try await requestNoContent(
+            endpoint: "chat/pins",
+            method: "DELETE",
+            queryItems: [
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "moderator_id", value: moderatorID),
+                URLQueryItem(name: "message_id", value: messageID),
             ]
         )
     }
@@ -203,6 +263,7 @@ extension HelixClient {
 private struct ChatAnnouncementRequest: Encodable {
     let message: String
     let color: String?
+    let forSourceOnly: Bool?
 }
 
 /// A user connected to a broadcaster's chat session.
@@ -289,4 +350,27 @@ public struct UserChatColor: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let color: String
+}
+
+/// A pinned chat message.
+public struct PinnedChatMessage: Decodable, Sendable, Equatable {
+    public let messageId: String
+    public let broadcasterId: String
+    public let senderUserId: String
+    public let senderUserLogin: String
+    public let senderUserName: String
+    public let pinnedByUserId: String
+    public let pinnedByUserLogin: String
+    public let pinnedByUserName: String
+    public let message: ChatMessage.ChatMessageBody
+    public let startsAt: Date
+    public let endsAt: Date?
+    public let updatedAt: Date
+}
+
+
+private func validatePinDuration(_ duration: Int?) throws {
+    if let duration, !(30...1800).contains(duration) {
+        throw HelixError.badRequest(.fallback(status: 400, message: "Pin duration must be between 30 and 1800 seconds"))
+    }
 }

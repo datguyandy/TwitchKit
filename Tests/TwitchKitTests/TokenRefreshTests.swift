@@ -61,6 +61,73 @@ final class TokenRefreshTests: XCTestCase {
         XCTAssertEqual(accessToken, "old")
     }
 
+    func test_validateTokenLeavesValidTokenUntouched() async throws {
+        // A 200 from /validate means the token is good: exactly one request
+        // (the validation itself) and no refresh.
+        let transport = MockHTTPClient(responses: [
+            .json(statusCode: 200, body: #"{"client_id":"id","login":"user","scopes":[],"user_id":"1","expires_in":3600}"#)
+        ])
+        let store = InMemoryTokenStore(token: Self.seedToken)
+        let provider = makeProvider(store: store, httpClient: transport)
+
+        try await provider.validateToken()
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests.first?.url?.absoluteString, "https://id.twitch.tv/oauth2/validate")
+        let storedToken = try await store.loadToken()
+        XCTAssertEqual(storedToken?.accessToken, "old")
+    }
+
+    func test_validateTokenRefreshesWhenTwitchReportsTokenInvalid() async throws {
+        // Twitch requires periodic /validate calls; a 401 there means the
+        // access token is dead and the provider must refresh through the
+        // stored refresh token.
+        let transport = MockHTTPClient(responses: [
+            .json(statusCode: 401, body: #"{"status":401,"message":"invalid access token"}"#),
+            .json(statusCode: 200, body: Self.refreshedTokenJSON),
+        ])
+        let store = InMemoryTokenStore(token: Self.seedToken)
+        let provider = makeProvider(store: store, httpClient: transport)
+
+        try await provider.validateToken()
+
+        let storedToken = try await store.loadToken()
+        XCTAssertEqual(storedToken?.accessToken, "new")
+        XCTAssertEqual(storedToken?.refreshToken, "r2")
+    }
+
+    func test_validateTokenWithoutStoredTokenIsANoOp() async throws {
+        let transport = MockHTTPClient(responses: [])
+        let store = InMemoryTokenStore(token: nil)
+        let provider = makeProvider(store: store, httpClient: transport)
+
+        try await provider.validateToken()
+
+        let requests = await transport.recordedRequests()
+        XCTAssertTrue(requests.isEmpty)
+    }
+
+    func test_refreshWrapsURLErrorAsHelixTransport() async throws {
+        // The OAuth client must wrap raw URLErrors the same way HelixClient
+        // does, so callers can pattern-match `HelixError.transport` across
+        // the whole SDK instead of special-casing the token endpoints.
+        let transport = MockHTTPClient(responses: [.failure(URLError(.notConnectedToInternet))])
+        let store = InMemoryTokenStore(token: Self.seedToken)
+        let provider = makeProvider(store: store, httpClient: transport)
+
+        do {
+            try await provider.refreshIfNeeded()
+            XCTFail("Expected transport error")
+        } catch HelixError.transport(let urlError) {
+            XCTAssertEqual(urlError.code, .notConnectedToInternet)
+        }
+
+        // Transport failures are transient: the stored token must survive.
+        let storedToken = try await store.loadToken()
+        XCTAssertEqual(storedToken?.refreshToken, "r1")
+    }
+
     func test_refreshLogsOutWhenOAuthServerRejectsRefreshToken() async throws {
         // A 400 with an OAuth error body is the server definitively
         // rejecting the refresh token — the session is dead, so the stored
@@ -88,8 +155,8 @@ final class TokenRefreshTests: XCTestCase {
     }
 
     func test_refreshLogsOutOnParsedOAuthErrorWithoutStatus() async throws {
-        // An OAuth error body without a status field is still a rejection
-        // the server chose to send — treat it as definitive.
+        // Preserve the HTTP 400 even when the JSON omits status; this is
+        // a rejection, unlike a 503 with the same missing JSON field.
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 400, body: #"{"error":"invalid_grant","error_description":"Invalid refresh token"}"#)
         ])
@@ -103,7 +170,7 @@ final class TokenRefreshTests: XCTestCase {
             guard case .oauth(let oauthError) = error else {
                 return XCTFail("Expected oauth error, got \(error)")
             }
-            XCTAssertNil(oauthError.status)
+            XCTAssertEqual(oauthError.status, 400)
         }
 
         let storedToken = try await store.loadToken()

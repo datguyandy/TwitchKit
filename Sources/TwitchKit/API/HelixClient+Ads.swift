@@ -82,6 +82,23 @@ public struct AdSchedule: Decodable, Sendable, Equatable {
 
 public struct AdSnooze: Decodable, Sendable, Equatable {
     public let snoozeCount: Int
-    public let snoozeRefreshAt: Date
-    public let nextAdAt: Date
+    public let snoozeRefreshAt: Date?
+    public let nextAdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case snoozeCount
+        case snoozeRefreshAt
+        case nextAdAt
+    }
+
+    // Same Twitch quirk `AdSchedule` tolerates: date fields can arrive as
+    // empty strings, which must not fail the whole decode.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        snoozeCount = try container.decode(Int.self, forKey: .snoozeCount)
+        snoozeRefreshAt = try container.decodeIfPresent(String.self, forKey: .snoozeRefreshAt)
+            .flatMap(TwitchDateParser.date(from:))
+        nextAdAt = try container.decodeIfPresent(String.self, forKey: .nextAdAt)
+            .flatMap(TwitchDateParser.date(from:))
+    }
 }

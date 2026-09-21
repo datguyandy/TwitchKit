@@ -187,6 +187,11 @@ public struct HelixClient: Sendable {
 
             if retryPolicy.shouldRetryServiceUnavailable, httpResponse.statusCode == 503 {
                 logger.warning("Helix \(endpoint) returned 503; retrying once")
+                // Jittered pause before the retry: an immediate re-request
+                // means every client hammers an already-degraded service
+                // within milliseconds of the first 503, and the jitter keeps
+                // a fleet of clients from retrying in lockstep.
+                try await Task.sleep(for: .milliseconds(Int.random(in: 100...400)))
                 let (retryData, retryResponse) = try await httpClient.data(for: urlRequest)
                 guard let retryHttp = retryResponse as? HTTPURLResponse else {
                     throw HelixError.invalidResponse
@@ -234,7 +239,11 @@ public struct HelixClient: Sendable {
             )
         } catch {
             let rawJSON = String(data: data.prefix(500), encoding: .utf8) ?? "non-utf8"
-            logger.error("Helix decode failed for \(String(describing: type)): \(error); JSON: \(rawJSON)")
+            // The raw body must stay redacted: this catch block sits under
+            // secret-bearing endpoints (stream key, extension secrets, conduit
+            // shard secrets), so an explicit `.private` guards against a
+            // schema drift writing live credentials to the unified log.
+            logger.error("Helix decode failed for \(String(describing: type)): \(error); JSON: \(rawJSON, privacy: .private)")
             throw HelixError.decodingFailed(error.localizedDescription)
         }
     }

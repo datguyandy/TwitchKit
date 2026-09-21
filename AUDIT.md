@@ -1,5 +1,61 @@
 # TwitchKit Code Audit
 
+## Current audit — 2026-09-21
+
+**Starting state:** clean `claude/audit-round-2-fixes` at `2c2a137`, two commits ahead of `main`. Switched to `main` and fetched/pulled successfully; upstream remains `72b0666`. Last tagged release is `0.3.4`; the larger July audit is merged but unreleased. The old branch is preserved. Its two commits' changes were reviewed and incorporated into the working tree, without moving `main` or rewriting history.
+
+**Method:** reviewed authentication/token lifecycle, HTTP requests and errors, EventSub lifecycle/cleanup, webhook verification, endpoint routes, recent payload changes, tests, smoke example, CI, and documentation. Compared every literal Helix route against the live API reference and inspected affected request/response contracts. This is a targeted correctness and API-compatibility audit, not a claim of exhaustive field-by-field coverage of every Twitch endpoint.
+
+### Findings addressed
+
+| Priority | Finding | Resolution |
+| --- | --- | --- |
+| High | Earlier audit incorrectly removed real pinned-chat endpoints | Restored GET/PUT/PATCH/DELETE `chat/pins`, response model, and send-message `pin`; validated duration and incompatible parameters. |
+| High | Custom Power-up endpoint and models did not match Twitch | Corrected route to `bits/custom_power_ups`, ID filters, `bits`/reward settings, EventSub v1, and redemption payload. |
+| High | User authorization endpoint and model could not work | Corrected route to `authorization/users`, added batch lookup and `has_authorized`, stopped requiring nonexistent `client_id`. |
+| High | Late refresh success/rejection could undo logout or affect a new login | Added token revision checks across refresh, validation, and initial storage loads. |
+| High | OAuth outage could trigger refresh or delete credentials | Only validation 401 is invalid-token; preserve actual HTTP status even when an OAuth error body omits status. |
+| Medium | Reward image and limit settings failed or silently lost values | Incorporated unmerged image-key and endpoint-specific limit fixes. |
+| Medium | Unsubscribe during resubscribe could resurrect a subscription | Incorporated the reentrancy fix and retained failed cleanup deletions for reconnect retries. |
+| Medium | Transport/cancellation and WebSocket close behavior | Unified typed transport errors, preserved OAuth cancellation, stopped sending reserved WebSocket close code 1006. |
+| Medium | Current EventSub fields were silently discarded | Added GIF fragments, offline stream IDs, blocked-link/AutoMod details, watch streaks, modiversary fields, and source-only metadata. |
+| Medium | Missing documented request options/limits | Added clip title/duration, source-only announcements, and 1–100 conduit shard validation. |
+| Medium | Concurrent subscription deletion aborted bulk cleanup | Treat already-deleted subscriptions as absent and continue draining. |
+| Low | Sensitive payload prefixes could enter diagnostics | Private logging for Helix response bodies and EventSub message prefixes. |
+| Low | Webhook examples selected signature-only overload | Explicit `maxAge` now selects signature plus freshness checking in README/DocC. |
+
+### Twitch changes checked
+
+- [Documentation changelog](https://dev.twitch.tv/docs/change-log/): September 16 blocked-link reason, July 16 GIF fragments, June offline IDs/modiversary/goal types/conduit batch limit, May pinned-chat general availability and custom Power-up v1, and earlier 2026 clip/announcement/authorization changes.
+- [API reference](https://dev.twitch.tv/docs/api/reference/): pinned chat, custom Power-ups, authorization by user, clip creation, announcements, ads, and conduit updates.
+- [EventSub reference](https://dev.twitch.tv/docs/eventsub/eventsub-reference/): notification payloads and custom Power-up redemptions.
+- [EventSub subscription types](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/): version/condition checks.
+
+Goal types already use strings, team image fields are already optional, Hype Train builders already use v2, and subscription filtering already supports conduit IDs. Extensions CSP and IRC-only changes do not affect this package's transport implementation.
+
+### Compatibility and remaining limits
+
+- Correcting previously unusable Power-up models removes nonexistent `sku`, redemption `type`, and redemption `message` fields; `cost` remains a deprecated alias. See CHANGELOG migration notes. New fields are optional where older valid payloads can omit them.
+- Verified with local mocked HTTP/WebSocket tests, not authenticated Twitch calls. No live messages, subscriptions, clips, or channel settings were changed. iOS device/runtime and signed Keychain behavior were not exercised.
+- Existing deferred work remains: cancellation responsiveness of callers awaiting shared connect/refresh tasks, full fidelity for other EventSub variants, public model construction APIs, and optional test/style modernization. Timestamp formatters remain unchanged to avoid an unrelated parsing regression.
+- Custom asynchronous token stores still own the ordering/durability of their save/delete operations; revision guards protect stale network/load results, not arbitrary storage implementations.
+- Signature-only webhook verification remains available for compatibility; use the explicit freshness overload and deduplicate message IDs in the host webhook handler.
+- CodeRabbit's first review raised cleanup retry and cancellation findings; both were addressed. Its second review identified webhook deduplication guidance and clip-duration precision; both were addressed and the compatibility tests rerun. Final verification results are recorded below.
+
+
+### Verification
+
+- `swift test --enable-code-coverage`: **192 tests passed, zero failures**, on Apple Swift 6.4 / macOS.
+- After the final clip-duration precision change, all 14 compatibility regression tests passed again.
+- DocC generation for `TwitchKit`: **passed without documentation warnings**.
+- `git diff --check`: passed.
+- The smoke-test executable compiles with the corrected Power-up fields. Authenticated smoke execution was not performed.
+
+## Historical audit — July 2026
+
+> The report below is historical. Its claim that pinned-chat endpoints do not exist is incorrect and is superseded by the current audit above.
+
+
 **Date:** 2026-07-09 · **Commit audited:** `35d7b63` · **Scope:** all of `Sources/`, `Tests/`, `Examples/`, package manifest, CI, and docs (~10,300 lines of Swift).
 
 > **Status update (2026-07-09):** the P0, P1, and P2 items below have been fixed on this branch — see CHANGELOG.md's Unreleased section for the full list. Findings text is left as originally written for the record. Still open, deliberately deferred pending a local `swift test` run (this environment has no Swift toolchain): the Swift Testing migration, the `Date.ISO8601FormatStyle` swap (§4.2 — must not regress nanosecond-timestamp parsing), `connect()` cancellation-responsiveness (§2), the model-fidelity items in §2 (EventSub payload variants, missing broadcaster identity on follow/subscribe events, memberwise initializers), and a lint config.

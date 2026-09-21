@@ -507,7 +507,7 @@ public struct EventSubSubscription: Sendable, Hashable {
         public static func customPowerUpRedemptionAdd(broadcasterID: String, rewardID: String? = nil) -> EventSubSubscription {
             var condition = ["broadcaster_user_id": broadcasterID]
             condition["reward_id"] = rewardID
-            return EventSubSubscription(type: "channel.custom_power_up_redemption.add", version: "beta", condition: condition)
+            return EventSubSubscription(type: "channel.custom_power_up_redemption.add", version: "1", condition: condition)
         }
 
         public static func customRewardAdd(broadcasterID: String) -> EventSubSubscription {

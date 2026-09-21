@@ -123,7 +123,7 @@ final class APIDesignTests: XCTestCase {
         XCTAssertEqual(conduit.condition["client_id"], "client")
         XCTAssertEqual(conduit.condition["conduit_id"], "conduit")
         XCTAssertEqual(EventSubSubscription.Extension.bitsTransactionCreate(extensionClientID: "extension").condition["extension_client_id"], "extension")
-        XCTAssertEqual(EventSubSubscription.ChannelPoints.customPowerUpRedemptionAdd(broadcasterID: "broadcaster").version, "beta")
+        XCTAssertEqual(EventSubSubscription.ChannelPoints.customPowerUpRedemptionAdd(broadcasterID: "broadcaster").version, "1")
     }
 
     func test_eventSubFactoriesCoverCurrentTwitchSubscriptionTypes() {
@@ -264,7 +264,7 @@ final class APIDesignTests: XCTestCase {
             "channel.channel_points_custom_reward.remove#1",
             "channel.channel_points_custom_reward_redemption.add#1",
             "channel.channel_points_custom_reward_redemption.update#1",
-            "channel.custom_power_up_redemption.add#beta",
+            "channel.custom_power_up_redemption.add#1",
             "channel.poll.begin#1",
             "channel.poll.progress#1",
             "channel.poll.end#1",

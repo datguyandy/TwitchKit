@@ -50,6 +50,7 @@ public enum ChatFragmentType: Codable, RawRepresentable, Sendable, Equatable {
     case cheermote
     case emote
     case mention
+    case gif
     case unknown(String)
 
     public var rawValue: String {
@@ -58,6 +59,7 @@ public enum ChatFragmentType: Codable, RawRepresentable, Sendable, Equatable {
         case .cheermote: "cheermote"
         case .emote: "emote"
         case .mention: "mention"
+        case .gif: "gif"
         case .unknown(let value): value
         }
     }
@@ -68,6 +70,7 @@ public enum ChatFragmentType: Codable, RawRepresentable, Sendable, Equatable {
         case "cheermote": .cheermote
         case "emote": .emote
         case "mention": .mention
+        case "gif": .gif
         default: .unknown(rawValue)
         }
     }

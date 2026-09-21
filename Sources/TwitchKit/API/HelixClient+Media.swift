@@ -1,8 +1,11 @@
 import Foundation
 
 extension HelixClient {
-    public func createClip(broadcasterID: String, hasDelay: Bool? = nil) async throws -> ClipCreate {
+    public func createClip(broadcasterID: String, hasDelay: Bool? = nil, title: String? = nil, duration: Double? = nil) async throws -> ClipCreate {
+        try validateClipDuration(duration)
         var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
+        HelixQuery.append(HelixQuery.item("title", title), to: &queryItems)
+        HelixQuery.append(duration.map { URLQueryItem(name: "duration", value: String($0)) }, to: &queryItems)
         HelixQuery.append(hasDelay.map { URLQueryItem(name: "has_delay", value: String($0)) }, to: &queryItems)
 
         let response: HelixResponse<ClipCreate> = try await request(
@@ -22,6 +25,7 @@ extension HelixClient {
         title: String,
         duration: Double? = nil
     ) async throws -> ClipCreate {
+        try validateClipDuration(duration)
         var queryItems = [
             URLQueryItem(name: "broadcaster_id", value: broadcasterID),
             URLQueryItem(name: "editor_id", value: editorID),
@@ -282,4 +286,13 @@ public struct MutedVideoSegment: Decodable, Sendable, Equatable {
 
 private struct DeletedVideo: Decodable, Sendable {
     let id: String
+}
+
+private func validateClipDuration(_ duration: Double?) throws {
+    guard let duration else { return }
+    // Allow floating-point representation noise, but not sub-tenth precision.
+    guard duration.isFinite, (5...60).contains(duration),
+          abs(duration * 10 - (duration * 10).rounded()) < 1e-8 else {
+        throw HelixError.badRequest(.fallback(status: 400, message: "Clip duration must be 5–60 seconds in 0.1-second increments"))
+    }
 }

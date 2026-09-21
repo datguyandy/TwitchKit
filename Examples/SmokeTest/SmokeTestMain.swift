@@ -301,7 +301,7 @@ struct TwitchKitSmokeTestCLI {
         case .charityCampaignStop(let campaign):
             "charity campaign stopped: \(campaign.charityName)"
         case .customPowerUpRedemptionAdd(let redemption):
-            "custom power-up redemption: \(redemption.type)"
+            "custom power-up redemption: \(redemption.customPowerUp.title)"
         case .suspiciousUserMessage(let event):
             "suspicious user message from \(event.userName)"
         case .suspiciousUserUpdate(let event):

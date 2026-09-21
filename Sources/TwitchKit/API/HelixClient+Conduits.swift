@@ -89,6 +89,9 @@ extension HelixClient {
         conduitID: String,
         shards: [EventSubConduitShardUpdate]
     ) async throws -> ConduitShardUpdateResult {
+        guard (1...100).contains(shards.count) else {
+            throw HelixError.badRequest(.fallback(status: 400, message: "Between 1 and 100 conduit shards are required"))
+        }
         let data = try await requestRawData(
             endpoint: "eventsub/conduits/shards",
             method: "PATCH",

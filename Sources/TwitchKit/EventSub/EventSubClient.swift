@@ -33,7 +33,7 @@ public actor EventSubClient {
     ///
     /// Single-consumer (like ``events``): exactly one iterator consumes this stream,
     /// and there is no value replay for late subscribers. Begin iterating
-    /// *before/around* ``connect()`` so you observe the initial
+    /// *before/around* ``connect(timeout:)`` so you observe the initial
     /// `.connecting`/`.connected` transitions.
     public nonisolated let connectionState: AsyncStream<ConnectionState>
     private let connectionStateContinuation: AsyncStream<ConnectionState>.Continuation
@@ -46,8 +46,13 @@ public actor EventSubClient {
     private var isNetworkAvailable = true   // optimistic until told otherwise
 
     private let socketFactory: @Sendable (URL) -> any EventSubWebSocket
+    // JSONDecoder is not Sendable, but actor isolation serializes all access;
+    // caching one here avoids two decoder allocations per received message
+    // (the envelope pass in handleMessage and the typed notification pass).
+    private let messageDecoder = JSONDecoder.twitch()
     private var webSocketTask: (any EventSubWebSocket)?
     private var sessionId: String?
+    private var pendingSubscriptionDeletes: Set<String> = []
     private var receiveTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var keepaliveTask: Task<Void, Never>?
     private var reconnectTask: Task<Void, Never>?
@@ -315,6 +320,7 @@ public actor EventSubClient {
         webSocketTask = nil
         sessionId = nil
         activeSubscriptionsById.removeAll()
+        pendingSubscriptionDeletes.removeAll()
         clearSeenMessageIds()
         welcomeContinuation?.resume(throwing: HelixError.networkError("EventSub disconnected"))
         welcomeContinuation = nil
@@ -427,9 +433,11 @@ public actor EventSubClient {
 
         let envelope: EventSubEnvelope
         do {
-            envelope = try JSONDecoder.twitch().decode(EventSubEnvelope.self, from: data)
+            envelope = try messageDecoder.decode(EventSubEnvelope.self, from: data)
         } catch {
-            logger.warning("⚠️ EventSub: failed to decode message: \(eventSubDecodingErrorDescription(error), privacy: .public); JSON prefix: \(text.prefix(200), privacy: .public)")
+            // Error description is key paths only (safe to force public); the
+            // raw payload prefix can carry user chat content, so keep it redacted.
+            logger.warning("⚠️ EventSub: failed to decode message: \(eventSubDecodingErrorDescription(error), privacy: .public); JSON prefix: \(text.prefix(200), privacy: .private)")
             return
         }
 
@@ -464,7 +472,12 @@ public actor EventSubClient {
                let newUrl = envelope.payload.session?.reconnectUrl,
                let url = URL(string: newUrl) {
                 reconnectTask?.cancel()
-                reconnectTask = Task { await reconnectTo(url, replacing: task) }
+                // [weak self] like every other stored task: a strong capture here
+                // would pin the client between task creation and completion even
+                // after the last external reference is dropped.
+                reconnectTask = Task { [weak self] in
+                    await self?.reconnectTo(url, replacing: task)
+                }
             }
 
         case "revocation":
@@ -478,7 +491,7 @@ public actor EventSubClient {
     }
 
     private func parseNotificationEvent(type: String, envelopeData: Data) -> EventSubEvent {
-        EventSubEvent.decodeNotification(type: type, envelope: envelopeData)
+        EventSubEvent.decodeNotification(type: type, envelope: envelopeData, decoder: messageDecoder)
     }
 
     // MARK: - Keepalive
@@ -562,7 +575,7 @@ public actor EventSubClient {
             oldTask.cancel(with: .normalClosure, reason: nil)
             cancelReceiveTask(for: oldTask)
         } catch {
-            newTask.cancel(with: .abnormalClosure, reason: nil)
+            newTask.cancel(with: .goingAway, reason: nil)
             cancelReceiveTask(for: newTask)
             if webSocketTask === newTask {
                 webSocketTask = oldTask
@@ -577,10 +590,11 @@ public actor EventSubClient {
         keepaliveTask?.cancel()
         keepaliveTask = nil
         keepaliveDeadline = nil
-        webSocketTask?.cancel(with: .abnormalClosure, reason: nil)
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         sessionId = nil
         activeSubscriptionsById.removeAll()
+        pendingSubscriptionDeletes.removeAll()
         // Deliberately NOT clearing seenMessageIds: Twitch replays
         // notifications across reconnects within its redelivery window, and
         // wiping the cache here would let every replay through as a duplicate
@@ -737,7 +751,7 @@ public actor EventSubClient {
         keepaliveTask?.cancel()
         keepaliveTask = nil
         keepaliveDeadline = nil
-        task.cancel(with: .abnormalClosure, reason: nil)
+        task.cancel(with: .goingAway, reason: nil)
         if webSocketTask === task {
             webSocketTask = nil
         }
@@ -779,6 +793,7 @@ public actor EventSubClient {
     /// holds only subscriptions created on THIS session (`handleDisconnect()`
     /// cleared everything belonging to the dead one).
     private func resubscribeAll() async throws {
+        try await retryPendingSubscriptionDeletes()
         // Skip anything already active: `createSubscription` records each
         // success immediately, so entries present here were created on the
         // current session by an earlier pass of this loop. Wiping the map and
@@ -788,6 +803,16 @@ public actor EventSubClient {
         for subscription in desiredSubscriptions where !activeSubscriptionsById.values.contains(subscription) {
             do {
                 let record = try await createSubscription(subscription)
+                // Reentrancy check: unsubscribe() may have run while the
+                // create above was in flight (the actor suspends at every
+                // await). Writing the record back would resurrect the
+                // subscription locally and leak it live on Twitch's side —
+                // undo the create instead of recording it.
+                guard desiredSubscriptions.contains(subscription) else {
+                    pendingSubscriptionDeletes.insert(record.id)
+                    try await retryPendingSubscriptionDeletes()
+                    continue
+                }
                 // Record ids are per-creation: drop the dead session's id(s)
                 // for this subscription before inserting the fresh one, or the
                 // map accumulates stale ids across every reconnect.
@@ -801,6 +826,19 @@ public actor EventSubClient {
                 // already-subscribed rather than failing the whole round.
                 logger.warning("⚠️ EventSub: \(subscription.type) already subscribed on this session (409) — continuing")
             }
+        }
+    }
+
+    /// Keep failed deletions addressable and retry them on the reconnect ladder.
+    private func retryPendingSubscriptionDeletes() async throws {
+        for id in pendingSubscriptionDeletes {
+            do {
+                try await api.deleteEventSubSubscription(id: id)
+            } catch HelixError.notFound {
+                // Twitch has already removed it.
+            }
+            pendingSubscriptionDeletes.remove(id)
+            activeSubscriptionsById.removeValue(forKey: id)
         }
     }
 
