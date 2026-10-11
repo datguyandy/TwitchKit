@@ -62,7 +62,11 @@ public actor EventSubClient {
     private var shouldReconnect = false
     private var isConnecting = false
     private var desiredSubscriptions: Set<EventSubSubscription> = []
+    /// The record id `subscribe()` returned for each desired subscription.
+    /// Kept across reconnects, even though re-creating a subscription gives it
+    /// a new id, so callers can always unsubscribe with the id they were given.
     private var desiredSubscriptionsById: [String: EventSubSubscription] = [:]
+    /// Record ids of subscriptions created on the current session.
     private var activeSubscriptionsById: [String: EventSubSubscription] = [:]
     private var seenMessageIds: Set<String> = []
     private var seenMessageIdOrder: [String] = []
@@ -339,33 +343,89 @@ public actor EventSubClient {
         try await subscribe(EventSubSubscription(type: type, version: version, condition: condition))
     }
 
+    /// Deletes a subscription by id.
+    ///
+    /// Accepts the id `subscribe()` returned, even after reconnects have
+    /// re-created the subscription under a new id: the client resolves it and
+    /// deletes the live subscription. Ids the client doesn't know (for
+    /// example from `fetchEventSubSubscriptionsPage`) are deleted as given.
     public func unsubscribe(id: String) async throws {
-        let localSubscription = activeSubscriptionsById[id] ?? desiredSubscriptionsById[id]
-
-        do {
+        guard let subscription = activeSubscriptionsById[id] ?? desiredSubscriptionsById[id] else {
             try await api.deleteEventSubSubscription(id: id)
-        } catch HelixError.notFound where localSubscription != nil {
-            // The remote subscription can already be gone after a lost WebSocket.
+            return
         }
-
-        activeSubscriptionsById.removeValue(forKey: id)
-        desiredSubscriptionsById.removeValue(forKey: id)
-        if let localSubscription {
-            desiredSubscriptions.remove(localSubscription)
-            desiredSubscriptionsById = desiredSubscriptionsById.filter { $0.value != localSubscription }
-            activeSubscriptionsById = activeSubscriptionsById.filter { $0.value != localSubscription }
-        }
+        try await removeSubscription(subscription, alsoDeleting: id)
     }
 
     public func unsubscribe(_ subscription: EventSubSubscription) async throws {
-        if let id = activeSubscriptionsById.first(where: { $0.value == subscription })?.key
-            ?? desiredSubscriptionsById.first(where: { $0.value == subscription })?.key {
-            try await unsubscribe(id: id)
-            return
+        try await removeSubscription(subscription, alsoDeleting: nil)
+    }
+
+    /// Stops wanting `subscription` and deletes its live record(s).
+    ///
+    /// The subscription is forgotten before the first await, so a resubscribe
+    /// round in flight deletes what it creates instead of recording it. If a
+    /// delete fails, the state for the records still live on Twitch is
+    /// restored so the caller can retry.
+    private func removeSubscription(_ subscription: EventSubSubscription, alsoDeleting extraID: String?) async throws {
+        let wasDesired = desiredSubscriptions.contains(subscription)
+        let subscribedIDs = desiredSubscriptionsById.filter { $0.value == subscription }.map(\.key)
+        let activeIDs = Set(activeSubscriptionsById.filter { $0.value == subscription }.map(\.key))
+        forget(subscription)
+
+        var idsToDelete = activeIDs
+        if let extraID {
+            idsToDelete.insert(extraID)
         }
 
+        var failedIDs: [String] = []
+        var firstError: (any Error)?
+        for id in idsToDelete.sorted() {
+            do {
+                try await api.deleteEventSubSubscription(id: id)
+            } catch HelixError.notFound {
+                // Already gone, e.g. its session ended.
+            } catch {
+                failedIDs.append(id)
+                firstError = firstError ?? error
+            }
+        }
+
+        if let firstError {
+            if wasDesired {
+                desiredSubscriptions.insert(subscription)
+            }
+            for id in subscribedIDs {
+                desiredSubscriptionsById[id] = subscription
+            }
+            for id in failedIDs where activeIDs.contains(id) {
+                activeSubscriptionsById[id] = subscription
+            }
+            throw firstError
+        }
+    }
+
+    /// Removes every local record of `subscription`, so reconnects no longer
+    /// re-create it.
+    private func forget(_ subscription: EventSubSubscription) {
         desiredSubscriptions.remove(subscription)
         desiredSubscriptionsById = desiredSubscriptionsById.filter { $0.value != subscription }
+        activeSubscriptionsById = activeSubscriptionsById.filter { $0.value != subscription }
+    }
+
+    /// Twitch has already deleted a revoked subscription, and the reasons it
+    /// revokes one (authorization revoked, user removed, version removed, …)
+    /// mean re-creating it would only fail. Forget it so reconnects don't try.
+    private func forgetRevokedSubscription(_ revocation: EventSubRevocation) {
+        let subscription = activeSubscriptionsById[revocation.id]
+            ?? desiredSubscriptionsById[revocation.id]
+            ?? desiredSubscriptions.first {
+                $0.type == revocation.type && $0.version == revocation.version && $0.condition == revocation.condition
+            }
+        activeSubscriptionsById.removeValue(forKey: revocation.id)
+        if let subscription {
+            forget(subscription)
+        }
     }
 
     private func createSubscription(_ subscription: EventSubSubscription) async throws -> EventSubSubscriptionRecord {
@@ -482,6 +542,7 @@ public actor EventSubClient {
 
         case "revocation":
             if let revocation = envelope.payload.subscription {
+                forgetRevokedSubscription(revocation)
                 eventsContinuation.yield(.revocation(revocation))
             }
 
@@ -651,6 +712,13 @@ public actor EventSubClient {
         switch decision.action {
         case .attempt(let delay):
             return delay
+        case .park(.attemptsExhausted) where sessionId != nil:
+            // Connected, but re-creating subscriptions kept failing
+            // transiently. The socket still works, so stop retrying without
+            // reporting a disconnect that didn't happen; the subscriptions
+            // that are still missing are re-created on the next reconnect.
+            logger.warning("⚠️ EventSub: giving up re-creating subscriptions on this session")
+            return nil
         case .park(.attemptsExhausted):
             // Terminal-state contract: the ladder is giving up, so the
             // connectionState stream must not end on a stale `.reconnecting`
@@ -792,6 +860,13 @@ public actor EventSubClient {
     /// has succeeded — so `sessionId` is set and `activeSubscriptionsById`
     /// holds only subscriptions created on THIS session (`handleDisconnect()`
     /// cleared everything belonging to the dead one).
+    ///
+    /// A subscription Twitch rejects outright (see
+    /// `isPermanentSubscriptionFailure`) is dropped and reported as
+    /// `.subscriptionFailed`, and the round continues with the rest. Failures
+    /// that affect every subscription alike (transport, 5xx, rate limits, an
+    /// invalid token, the session ending) abort the round so the ladder
+    /// retries it.
     private func resubscribeAll() async throws {
         try await retryPendingSubscriptionDeletes()
         // Skip anything already active: `createSubscription` records each
@@ -801,23 +876,14 @@ public actor EventSubClient {
         // retried already-created subscriptions next round — Twitch answers
         // those duplicates with 409s, wedging the ladder forever.
         for subscription in desiredSubscriptions where !activeSubscriptionsById.values.contains(subscription) {
+            // The socket can drop mid-round; don't let createSubscription's
+            // "no session" error read as a rejection of this subscription.
+            guard let session = sessionId else {
+                throw HelixError.networkError("EventSub session ended during resubscribe")
+            }
+            let record: EventSubSubscriptionRecord
             do {
-                let record = try await createSubscription(subscription)
-                // Reentrancy check: unsubscribe() may have run while the
-                // create above was in flight (the actor suspends at every
-                // await). Writing the record back would resurrect the
-                // subscription locally and leak it live on Twitch's side —
-                // undo the create instead of recording it.
-                guard desiredSubscriptions.contains(subscription) else {
-                    pendingSubscriptionDeletes.insert(record.id)
-                    try await retryPendingSubscriptionDeletes()
-                    continue
-                }
-                // Record ids are per-creation: drop the dead session's id(s)
-                // for this subscription before inserting the fresh one, or the
-                // map accumulates stale ids across every reconnect.
-                desiredSubscriptionsById = desiredSubscriptionsById.filter { $0.value != subscription }
-                desiredSubscriptionsById[record.id] = subscription
+                record = try await createSubscription(subscription)
             } catch HelixError.conflict {
                 // 409 conflict: the subscription already exists on this
                 // session (e.g. a previous pass created it but we lost the
@@ -825,7 +891,46 @@ public actor EventSubClient {
                 // record id, so there is nothing to store — treat it as
                 // already-subscribed rather than failing the whole round.
                 logger.warning("⚠️ EventSub: \(subscription.type) already subscribed on this session (409) — continuing")
+                continue
+            } catch let error as HelixError where Self.isPermanentSubscriptionFailure(error) {
+                // A rejection that raced a session change may be about the old
+                // session, not this subscription: let the ladder retry it.
+                guard sessionId == session else { throw error }
+                // Unsubscribed while the create was in flight: nothing to report.
+                guard desiredSubscriptions.contains(subscription) else { continue }
+                logger.error("❌ EventSub: Twitch rejected \(subscription.type) on resubscribe; dropping it: \(error.localizedDescription)")
+                forget(subscription)
+                eventsContinuation.yield(.subscriptionFailed(subscription, error))
+                continue
             }
+            // Reentrancy check: unsubscribe() may have run while the
+            // create above was in flight (the actor suspends at every
+            // await). Writing the record back would resurrect the
+            // subscription locally and leak it live on Twitch's side —
+            // undo the create instead of recording it.
+            guard desiredSubscriptions.contains(subscription) else {
+                pendingSubscriptionDeletes.insert(record.id)
+                try await retryPendingSubscriptionDeletes()
+                continue
+            }
+        }
+    }
+
+    /// Whether Twitch rejected one subscription in a way retrying can't fix:
+    /// an invalid or retired type, version, or condition (400/422), a missing
+    /// scope or authorization for it (401/403), or a user that no longer
+    /// exists (404). An invalid-token 401 and a 400 about the WebSocket
+    /// session concern every subscription, so the ladder retries those.
+    static func isPermanentSubscriptionFailure(_ error: HelixError) -> Bool {
+        switch error {
+        case .badRequest(let apiError):
+            !apiError.message.lowercased().contains("session")
+        case .forbidden, .notFound, .unprocessable:
+            true
+        case .unauthorized(let apiError):
+            !HelixClient.isTokenRejection(apiError)
+        default:
+            false
         }
     }
 

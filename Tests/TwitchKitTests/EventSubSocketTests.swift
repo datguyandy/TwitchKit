@@ -468,6 +468,224 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 8. A revoked subscription is not re-created after reconnecting
+
+    func test_revokedSubscriptionIsNotRecreatedAfterReconnect() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+
+        // HTTP script: only the initial create. A re-create after the
+        // reconnect would drain the queue and show up as an extra request.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+            ]
+        )
+
+        let collector = Task { () -> EventSubRevocation? in
+            var seen: EventSubRevocation?
+            for await event in client.events {
+                if case .revocation(let revocation) = event { seen = revocation }
+                if case .unknown(let type, _) = event, type == "test.event.sentinel" { break }
+            }
+            return seen
+        }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        socketA.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
+        socketA.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        let revocation = await collector.value
+        XCTAssertEqual(revocation?.id, "sub-1")
+
+        socketA.failReceive(with: HelixError.networkError("socket dropped"))
+        let parked = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(parked, "the ladder should dial socketB and wait for its welcome")
+        guard parked else {
+            await client.disconnect()
+            return
+        }
+        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        // Settle window: a client that still wanted the revoked subscription
+        // would POST it again on the new session.
+        try await Task.sleep(for: .milliseconds(300))
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 1, "a revoked subscription must not be re-created on reconnect")
+
+        await client.disconnect()
+    }
+
+    // MARK: - 9. A rejected re-create is dropped instead of wedging the ladder
+
+    func test_permanentResubscribeFailureIsReportedAndDoesNotBlockOthers() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+
+        // HTTP script: two initial creates on session-1, then the reconnect
+        // round on session-2 where the first re-create is rejected with a 403
+        // and the second succeeds. Set order decides which subscription draws
+        // the 403, so assertions read it back from the recorded request. A
+        // ladder that retries the rejected create drains the queue and shows
+        // up as request-count drift.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.subscribe", sessionId: "session-1")),
+                .json(statusCode: 403, body: #"{"error":"Forbidden","status":403,"message":"subscription missing proper authorization"}"#),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionId: "session-2")),
+            ]
+        )
+
+        let collector = Task { () -> [(EventSubSubscription, HelixError)] in
+            var failures: [(EventSubSubscription, HelixError)] = []
+            for await event in client.events {
+                if case .subscriptionFailed(let subscription, let error) = event {
+                    failures.append((subscription, error))
+                }
+                if case .unknown(let type, _) = event, type == "test.event.sentinel" { break }
+            }
+            return failures
+        }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        try await client.subscribe(
+            type: "channel.subscribe",
+            version: "1",
+            condition: ["broadcaster_user_id": "b"]
+        )
+
+        socketA.failReceive(with: HelixError.networkError("socket dropped"))
+        let parked = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(parked, "the ladder should dial socketB and wait for its welcome")
+        guard parked else {
+            await client.disconnect()
+            return
+        }
+        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        var attempts = 0
+        while await transport.recordedRequests().count < 4, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        // Settle window: a ladder that treats the 403 as retryable keeps
+        // POSTing the rejected subscription.
+        try await Task.sleep(for: .milliseconds(300))
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 4, "the rejected subscription must not be retried, and the other must still be re-created")
+
+        socketB.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        let failures = await collector.value
+        XCTAssertEqual(failures.count, 1)
+        let rejectedBody = try XCTUnwrap(requests[2].httpBody)
+        let rejectedObject = try XCTUnwrap(JSONSerialization.jsonObject(with: rejectedBody) as? [String: Any])
+        XCTAssertEqual(failures.first?.0.type, rejectedObject["type"] as? String)
+        guard case .forbidden(let apiError)? = failures.first?.1 else {
+            return XCTFail("Expected forbidden, got \(String(describing: failures.first?.1))")
+        }
+        XCTAssertEqual(apiError.message, "subscription missing proper authorization")
+
+        await client.disconnect()
+    }
+
+    func test_permanentSubscriptionFailureClassification() {
+        func apiError(_ status: Int, _ message: String) -> TwitchAPIError {
+            TwitchAPIError(error: "Error", status: status, message: message)
+        }
+
+        XCTAssertTrue(EventSubClient.isPermanentSubscriptionFailure(.forbidden(apiError(403, "subscription missing proper authorization"))))
+        XCTAssertTrue(EventSubClient.isPermanentSubscriptionFailure(.badRequest(apiError(400, "invalid version"))))
+        XCTAssertTrue(EventSubClient.isPermanentSubscriptionFailure(.unauthorized(apiError(401, "Missing scope: moderator:read:followers"))))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.badRequest(apiError(400, "websocket transport session does not exist or has already disconnected"))))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.unauthorized(apiError(401, "Invalid OAuth token"))))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.unauthorized(nil)))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.serverError(status: 500)))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.rateLimited(HelixRateLimit())))
+        XCTAssertFalse(EventSubClient.isPermanentSubscriptionFailure(.networkError("offline")))
+    }
+
+    // MARK: - 10. unsubscribe(id:) with the id subscribe() returned, after a reconnect
+
+    func test_unsubscribeWithOriginalIDAfterReconnectDeletesLiveRecord() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+
+        // HTTP script: initial create (sub-1) on session-1, the re-create
+        // (sub-3) on session-2, then the unsubscribe's DELETEs: the original
+        // id is already gone (404) and the live re-created record is deleted.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 404, body: #"{"error":"Not Found","status":404,"message":"subscription not found"}"#),
+                .json(statusCode: 204, body: ""),
+            ]
+        )
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        let record = try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        XCTAssertEqual(record.id, "sub-1")
+
+        socketA.failReceive(with: HelixError.networkError("socket dropped"))
+        let parked = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(parked, "the ladder should dial socketB and wait for its welcome")
+        guard parked else {
+            await client.disconnect()
+            return
+        }
+        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        var attempts = 0
+        while await transport.recordedRequests().count < 2, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try await Task.sleep(for: .milliseconds(100))
+
+        try await client.unsubscribe(id: record.id)
+
+        let requests = await transport.recordedRequests()
+        let deletes = requests.filter { $0.httpMethod == "DELETE" }
+        XCTAssertEqual(
+            deletes.compactMap { $0.url?.query() }.sorted(),
+            ["id=sub-1", "id=sub-3"],
+            "unsubscribing with the original id must delete the subscription's live re-created record"
+        )
+
+        await client.disconnect()
+    }
 }
 
 // MARK: - Fakes

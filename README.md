@@ -195,7 +195,7 @@ let twitch = TwitchClient(
 )
 ```
 
-`subscribe(_:)` returns the `EventSubSubscriptionRecord` created by Twitch, including the subscription ID. Keep that ID if you want to remove the subscription later:
+`subscribe(_:)` returns the `EventSubSubscriptionRecord` created by Twitch, including the subscription ID. Keep that ID if you want to remove the subscription later; it keeps working after reconnects re-create the subscription:
 
 ```swift
 let record = try await twitch.eventSub.subscribe(

@@ -105,6 +105,11 @@ public enum EventSubEvent: Sendable {
     case userUpdate(EventSubUserUpdate)
     case userWhisperMessage(EventSubWhisperMessage)
     case revocation(EventSubRevocation)
+    /// Twitch rejected re-creating a subscription after a reconnect, for a
+    /// reason retrying can't fix (for example a missing scope, or a type or
+    /// version Twitch no longer supports). The client has stopped tracking
+    /// the subscription; subscribe again once the cause is fixed.
+    case subscriptionFailed(EventSubSubscription, HelixError)
     case known(EventSubKnownEvent)
     case unknown(type: String, payload: Data)
 

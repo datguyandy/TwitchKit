@@ -20,13 +20,13 @@ let record = try await eventSub.subscribe(
 print("Created subscription:", record.id)
 ```
 
-Keep the returned subscription ID when your app needs to remove the subscription later:
+Keep the returned subscription ID when your app needs to remove the subscription later. The ID keeps working after reconnects, even though Twitch assigns the re-created subscription a new ID:
 
 ```swift
 try await eventSub.unsubscribe(id: record.id)
 ```
 
-TwitchKit reconnects automatically after disconnects and re-creates the subscriptions you requested through ``TwitchKit/EventSubClient/subscribe(_:)``. Duplicate EventSub messages are ignored by message ID. Duplicate tracking is bounded, and EventSub notifications use `.bufferingNewest(1_000)` by default so a slow consumer cannot grow memory without limit.
+TwitchKit reconnects automatically after disconnects and re-creates the subscriptions you requested through ``TwitchKit/EventSubClient/subscribe(_:)``. A subscription Twitch revokes (`.revocation`) is no longer re-created. If Twitch rejects re-creating a subscription for a reason retrying can't fix, such as a missing scope, the client drops it, reports `.subscriptionFailed`, and continues with the rest. Duplicate EventSub messages are ignored by message ID. Duplicate tracking is bounded, and EventSub notifications use `.bufferingNewest(1_000)` by default so a slow consumer cannot grow memory without limit.
 
 Configure the buffering policy on ``TwitchKit/TwitchClient`` when your app needs a different tradeoff:
 
@@ -48,6 +48,8 @@ for await event in eventSub.events {
         print("Banned:", ban.userName)
     case .revocation(let revocation):
         print("Subscription revoked:", revocation.status.rawValue)
+    case .subscriptionFailed(let subscription, let error):
+        print("Could not re-create \(subscription.type):", error.localizedDescription)
     case .known(let event):
         print("Known EventSub payload:", event.type.rawValue)
     case .unknown(let type, _):

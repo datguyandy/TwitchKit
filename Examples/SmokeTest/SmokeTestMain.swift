@@ -342,6 +342,8 @@ struct TwitchKitSmokeTestCLI {
             "whisper from \(whisper.fromUserName)"
         case .revocation(let revocation):
             "revocation: \(revocation.type) [\(revocation.status.rawValue)]"
+        case .subscriptionFailed(let subscription, let error):
+            "subscription failed: \(subscription.type) (\(error.localizedDescription))"
         case .known(let event):
             "known EventSub event: \(event.type.rawValue)"
         case .unknown(let type, _):

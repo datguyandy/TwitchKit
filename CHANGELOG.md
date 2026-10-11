@@ -16,6 +16,9 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - Helix: extension and game analytics reports decode Twitch's uppercase `URL` key, which `.convertFromSnakeCase` never mapped to `url`, so every analytics call failed to decode. `AnalyticsReportType.overviewV2` sends `overview_v2`, the only report type Twitch accepts.
 - Helix: an empty pagination cursor (`"cursor": ""`) is treated as the last page, and paged sequences stop if Twitch returns the cursor that was just requested, instead of looping forever.
 - Helix: a 401 for a missing scope or a broadcaster/user/client ID that doesn't match the token no longer triggers a token refresh and retry. Twitch's message now reaches the caller on `HelixError.unauthorized` instead of being discarded.
+- EventSub: a revoked subscription is no longer re-created on every reconnect. The client forgets it when the `revocation` message arrives, instead of retrying a create Twitch will reject.
+- EventSub: one subscription Twitch rejects during a post-reconnect resubscribe (a 400/401/403/404/422 that isn't about the token or the session) no longer stalls the reconnect ladder or blocks the remaining subscriptions. The client drops it, yields the new `EventSubEvent.subscriptionFailed(subscription, error)`, and continues. A ladder that gives up while the socket is still connected no longer emits `.disconnected`.
+- EventSub: `unsubscribe(id:)` accepts the id `subscribe()` returned after reconnects have re-created the subscription under a new id, and deletes the live record. `unsubscribe` also forgets the subscription before its first await, so an in-flight resubscribe can't leave it live, and restores its state if the delete fails.
 - Helix/Auth: when several requests are rejected with the same expired token, only the first refreshes; later ones retry with the token it produced instead of rotating the refresh token again. A 401 with no refresh token available now reports Twitch's rejection rather than the provider's generic error.
 
 ### Migration notes
@@ -25,6 +28,7 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - `BitsLeaderboard.dateRange` is now `BitsLeaderboard.DateRange` with optional dates.
 - `AnalyticsReportType.overview` is deprecated; use `.overviewV2`.
 - `HelixError.unauthorized` now carries `TwitchAPIError?` (Twitch's 401 body). Patterns like `catch HelixError.unauthorized` still match; code that constructs the error writes `.unauthorized(nil)`.
+- `EventSubEvent` gains `.subscriptionFailed(EventSubSubscription, HelixError)`; exhaustive `switch` statements over `EventSubEvent` need a case for it.
 - `TwitchAccessTokenProvider` gains `refreshIfNeeded(rejectedAccessToken:)`. A default implementation calls `refreshIfNeeded()`, so existing custom providers keep compiling; implement it to skip refreshes for tokens you've already replaced.
 
 ## [0.4.0] - 2026-09-21
