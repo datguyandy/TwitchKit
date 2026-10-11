@@ -3,7 +3,11 @@ import Foundation
 /// Errors returned by TwitchKit's Helix and OAuth helpers.
 public enum HelixError: Error, Sendable, LocalizedError {
     // Auth
-    case unauthorized
+    /// HTTP 401. Carries Twitch's error body when one was returned — its
+    /// message distinguishes an invalid token from a missing scope or an ID
+    /// that doesn't match the token. `nil` when no token could be refreshed
+    /// or Twitch's body couldn't be parsed.
+    case unauthorized(TwitchAPIError?)
     case forbidden(TwitchAPIError)
 
     // Client errors
@@ -31,7 +35,12 @@ public enum HelixError: Error, Sendable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .unauthorized: "Unauthorized — token invalid or expired"
+        case .unauthorized(let error):
+            if let error {
+                "Unauthorized: \(error.message)"
+            } else {
+                "Unauthorized — token invalid or expired"
+            }
         case .forbidden(let error): "Forbidden: \(error.message)"
         case .badRequest(let error): "Bad request: \(error.message)"
         case .notFound: "Not found"

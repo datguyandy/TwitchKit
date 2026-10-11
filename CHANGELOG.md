@@ -15,6 +15,8 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - Helix: `fetchBitsLeaderboard` tolerates the empty-string dates Twitch returns when `started_at` is omitted (including the default no-argument call), and reports decode failures as `HelixError.decodingFailed` instead of a raw `DecodingError`.
 - Helix: extension and game analytics reports decode Twitch's uppercase `URL` key, which `.convertFromSnakeCase` never mapped to `url`, so every analytics call failed to decode. `AnalyticsReportType.overviewV2` sends `overview_v2`, the only report type Twitch accepts.
 - Helix: an empty pagination cursor (`"cursor": ""`) is treated as the last page, and paged sequences stop if Twitch returns the cursor that was just requested, instead of looping forever.
+- Helix: a 401 for a missing scope or a broadcaster/user/client ID that doesn't match the token no longer triggers a token refresh and retry. Twitch's message now reaches the caller on `HelixError.unauthorized` instead of being discarded.
+- Helix/Auth: when several requests are rejected with the same expired token, only the first refreshes; later ones retry with the token it produced instead of rotating the refresh token again. A 401 with no refresh token available now reports Twitch's rejection rather than the provider's generic error.
 
 ### Migration notes
 
@@ -22,6 +24,8 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - `banUser` returns `BanUserResponse` (`endTime` is `nil` for permanent bans). Use `fetchBannedUsersPage`/`bannedUsers` for login names and the ban reason.
 - `BitsLeaderboard.dateRange` is now `BitsLeaderboard.DateRange` with optional dates.
 - `AnalyticsReportType.overview` is deprecated; use `.overviewV2`.
+- `HelixError.unauthorized` now carries `TwitchAPIError?` (Twitch's 401 body). Patterns like `catch HelixError.unauthorized` still match; code that constructs the error writes `.unauthorized(nil)`.
+- `TwitchAccessTokenProvider` gains `refreshIfNeeded(rejectedAccessToken:)`. A default implementation calls `refreshIfNeeded()`, so existing custom providers keep compiling; implement it to skip refreshes for tokens you've already replaced.
 
 ## [0.4.0] - 2026-09-21
 

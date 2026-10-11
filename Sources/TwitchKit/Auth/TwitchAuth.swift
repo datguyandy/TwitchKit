@@ -392,6 +392,10 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
         try await tokenProvider.refreshIfNeeded()
     }
 
+    public func refreshIfNeeded(rejectedAccessToken: String) async throws {
+        try await tokenProvider.refreshIfNeeded(rejectedAccessToken: rejectedAccessToken)
+    }
+
     public func validateToken() async throws {
         try await tokenProvider.validateToken()
     }

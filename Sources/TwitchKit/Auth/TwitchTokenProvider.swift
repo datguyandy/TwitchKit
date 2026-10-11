@@ -10,6 +10,20 @@ public protocol TwitchAccessTokenProvider: Sendable {
 
     /// Refreshes the current token when a refresh token is available.
     func refreshIfNeeded() async throws
+
+    /// Refreshes the token after Twitch rejected `rejectedAccessToken`,
+    /// unless the provider has already replaced that token.
+    ///
+    /// When several requests fail with the same expired token, only the
+    /// first needs a refresh; the rest should retry with the token it
+    /// produced. The default implementation calls ``refreshIfNeeded()``.
+    func refreshIfNeeded(rejectedAccessToken: String) async throws
+}
+
+extension TwitchAccessTokenProvider {
+    public func refreshIfNeeded(rejectedAccessToken: String) async throws {
+        try await refreshIfNeeded()
+    }
 }
 
 /// Loads, stores, validates, and refreshes OAuth tokens.
@@ -116,13 +130,28 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         try await attempt.value
     }
 
+    public func refreshIfNeeded(rejectedAccessToken: String) async throws {
+        // A refresh already in flight will replace the rejected token: share it.
+        if let inFlightRefresh {
+            try await inFlightRefresh.value
+            return
+        }
+        // The rejected token was already replaced (another request refreshed
+        // it after this one was sent). Refreshing again would rotate the
+        // refresh token for nothing; the caller retries with the current one.
+        if let current = try await currentToken(), current.accessToken != rejectedAccessToken {
+            return
+        }
+        try await refreshIfNeeded()
+    }
+
     private func performRefresh() async throws {
         // Read the refresh token here, inside the attempt, so it reflects
         // the token that is current at the moment the network call is made.
         let token = try await token()
         guard let refreshToken = token.refreshToken else {
             tokenProviderLogger.warning("Token refresh requested but no refresh token is available")
-            throw HelixError.unauthorized
+            throw HelixError.unauthorized(nil)
         }
 
         let revision = tokenRevision

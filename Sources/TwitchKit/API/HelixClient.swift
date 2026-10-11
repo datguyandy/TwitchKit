@@ -174,8 +174,21 @@ public struct HelixClient: Sendable {
             }
 
             if httpResponse.statusCode == 401 {
+                let unauthorizedError = decodedAPIError(from: data)
+                guard Self.isTokenRejection(unauthorizedError) else {
+                    // A new token can't fix a missing scope or an ID
+                    // mismatch; surface Twitch's message instead.
+                    logger.warning("Helix \(endpoint) returned 401 that a token refresh can't fix")
+                    throw HelixError.unauthorized(unauthorizedError)
+                }
                 logger.warning("Helix \(endpoint) returned 401; refreshing token and retrying")
-                try await tokenProvider.refreshIfNeeded()
+                do {
+                    try await tokenProvider.refreshIfNeeded(rejectedAccessToken: token)
+                } catch HelixError.unauthorized(.none) {
+                    // No refresh token, so nothing can renew it. Report
+                    // Twitch's rejection rather than the provider's.
+                    throw HelixError.unauthorized(unauthorizedError)
+                }
                 let newToken = try await tokenProvider.accessToken()
                 urlRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
                 let (retryData, retryResponse) = try await httpClient.data(for: urlRequest)
@@ -268,7 +281,7 @@ public struct HelixClient: Sendable {
         case 400:
             throw HelixError.badRequest(apiError(from: data, status: response.statusCode, fallbackMessage: fallbackMessage))
         case 401:
-            throw HelixError.unauthorized
+            throw HelixError.unauthorized(decodedAPIError(from: data))
         case 403:
             throw HelixError.forbidden(apiError(from: data, status: response.statusCode, fallbackMessage: fallbackMessage))
         case 404:
@@ -285,8 +298,27 @@ public struct HelixClient: Sendable {
     }
 
     private func apiError(from data: Data, status: Int, fallbackMessage: String) -> TwitchAPIError {
-        (try? JSONDecoder.twitch().decode(TwitchAPIError.self, from: data))
-            ?? TwitchAPIError.fallback(status: status, message: fallbackMessage)
+        decodedAPIError(from: data) ?? TwitchAPIError.fallback(status: status, message: fallbackMessage)
+    }
+
+    private func decodedAPIError(from data: Data) -> TwitchAPIError? {
+        try? JSONDecoder.twitch().decode(TwitchAPIError.self, from: data)
+    }
+
+    /// Whether a 401 means the access token itself was rejected, so a
+    /// refresh and retry can succeed.
+    ///
+    /// Twitch also answers 401 for problems a new token can't fix: a missing
+    /// scope, or a broadcaster/user/client ID that doesn't match the token.
+    /// Refreshing for those rotates the refresh token and retries for
+    /// nothing. Anything else, including a missing or unparseable body, is
+    /// treated as an invalid or expired token.
+    static func isTokenRejection(_ error: TwitchAPIError?) -> Bool {
+        guard let message = error?.message.lowercased() else {
+            return true
+        }
+        let nonTokenProblems = ["missing scope", "must match", "do not match", "does not match"]
+        return !nonTokenProblems.contains { message.contains($0) }
     }
 
     private func rateLimit(from response: HTTPURLResponse) -> HelixRateLimit {
