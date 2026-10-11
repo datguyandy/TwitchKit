@@ -6,6 +6,23 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+### Fixed
+
+- Helix: `checkUserSubscription` decodes Twitch's Check User Subscription response. It previously reused the EventSub `channel.subscribe` model, which requires subscriber fields this endpoint never returns, so every successful call threw `.decodingFailed`.
+- Helix: `banUser` decodes Twitch's Ban User response (`broadcaster_id`, `moderator_id`, `user_id`, `created_at`, `end_time`). It previously expected the Get Banned Users shape, so the ban was applied and the call then threw `.decodingFailed`.
+- Helix: `deleteVideos` decodes the plain string array Twitch returns; successful deletes previously threw `.decodingFailed`.
+- Helix and OAuth: `+` in query values is now percent-encoded. Twitch reads a literal `+` as a space, which altered values such as `utc_offset=+05:30`, the `Etc/GMT+5` timezone, searches for `C++`, pagination cursors, and OAuth `state` values.
+- Helix: `fetchBitsLeaderboard` tolerates the empty-string dates Twitch returns when `started_at` is omitted (including the default no-argument call), and reports decode failures as `HelixError.decodingFailed` instead of a raw `DecodingError`.
+- Helix: extension and game analytics reports decode Twitch's uppercase `URL` key, which `.convertFromSnakeCase` never mapped to `url`, so every analytics call failed to decode. `AnalyticsReportType.overviewV2` sends `overview_v2`, the only report type Twitch accepts.
+- Helix: an empty pagination cursor (`"cursor": ""`) is treated as the last page, and paged sequences stop if Twitch returns the cursor that was just requested, instead of looping forever.
+
+### Migration notes
+
+- `checkUserSubscription` returns `UserSubscription?` (broadcaster and gifter details, tier) and returns `nil` when the user doesn't subscribe, instead of throwing `.notFound`.
+- `banUser` returns `BanUserResponse` (`endTime` is `nil` for permanent bans). Use `fetchBannedUsersPage`/`bannedUsers` for login names and the ban reason.
+- `BitsLeaderboard.dateRange` is now `BitsLeaderboard.DateRange` with optional dates.
+- `AnalyticsReportType.overview` is deprecated; use `.overviewV2`.
+
 ## [0.4.0] - 2026-09-21
 
 ### Added

@@ -28,15 +28,59 @@ extension HelixClient {
         return pagedRequest(endpoint: "subscriptions", queryItems: queryItems, pageSize: pageSize)
     }
 
-    public func checkUserSubscription(broadcasterID: String, userID: String) async throws -> TwitchSubscription {
-        let response: HelixResponse<TwitchSubscription> = try await request(
-            endpoint: "subscriptions/user",
-            queryItems: [
-                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
-                URLQueryItem(name: "user_id", value: userID)
-            ]
-        )
-        guard let subscription = response.data.first else { throw HelixError.notFound }
-        return subscription
+    /// Checks whether a user subscribes to a broadcaster's channel.
+    ///
+    /// Requires a user access token with the `user:read:subscriptions` scope
+    /// for the user in `userID`.
+    ///
+    /// - Parameters:
+    ///   - broadcasterID: The broadcaster's user ID.
+    ///   - userID: The user ID to check. Must match the user in the access token.
+    /// - Returns: The user's subscription, or `nil` when the user doesn't
+    ///   subscribe to the broadcaster (Twitch answers that case with a 404).
+    /// - SeeAlso: [Check User Subscription](https://dev.twitch.tv/docs/api/reference/#check-user-subscription)
+    public func checkUserSubscription(broadcasterID: String, userID: String) async throws -> UserSubscription? {
+        do {
+            let response: HelixResponse<UserSubscription> = try await request(
+                endpoint: "subscriptions/user",
+                queryItems: [
+                    URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                    URLQueryItem(name: "user_id", value: userID)
+                ]
+            )
+            return response.data.first
+        } catch HelixError.notFound {
+            return nil
+        }
     }
+}
+
+/// A user's subscription to a broadcaster, returned by Check User Subscription.
+///
+/// Unlike the broadcaster-side subscription list, this response describes the
+/// broadcaster being subscribed to rather than the subscribing user.
+public struct UserSubscription: Decodable, Sendable, Equatable {
+    /// The broadcaster's user ID.
+    public let broadcasterId: String
+
+    /// The broadcaster's login name.
+    public let broadcasterLogin: String
+
+    /// The broadcaster's display name.
+    public let broadcasterName: String
+
+    /// Whether the subscription was gifted.
+    public let isGift: Bool
+
+    /// The gifter's user ID. Present only when `isGift` is `true`.
+    public let gifterId: String?
+
+    /// The gifter's login name. Present only when `isGift` is `true`.
+    public let gifterLogin: String?
+
+    /// The gifter's display name. Present only when `isGift` is `true`.
+    public let gifterName: String?
+
+    /// The subscription tier.
+    public let tier: SubscriptionTier
 }

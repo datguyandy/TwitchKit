@@ -43,3 +43,17 @@ enum HelixQuery {
         }
     }
 }
+
+extension URLComponents {
+    /// Sets `queryItems`, additionally percent-encoding `+` in names and values.
+    ///
+    /// `URLComponents` leaves `+` literal because RFC 3986 allows it in a
+    /// query, but form-style decoders (Twitch's included) read a literal `+`
+    /// as a space. Without this, values such as `utc_offset=+05:30`, the
+    /// timezone `Etc/GMT+5`, a search for `C++`, or a pagination cursor
+    /// containing `+` reach Twitch altered.
+    mutating func setFormSafeQueryItems(_ queryItems: [URLQueryItem]?) {
+        self.queryItems = queryItems
+        percentEncodedQuery = percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+    }
+}

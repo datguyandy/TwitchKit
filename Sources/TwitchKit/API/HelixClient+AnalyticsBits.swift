@@ -64,7 +64,13 @@ extension HelixClient {
             endpoint: "bits/leaderboard",
             queryItems: queryItems.isEmpty ? nil : queryItems
         )
-        return try JSONDecoder.twitch().decode(BitsLeaderboard.self, from: data)
+        // Bits Leaderboard has no paginated `data` envelope of its own, so it
+        // bypasses `request(...)`; keep decode failures inside `HelixError`.
+        do {
+            return try JSONDecoder.twitch().decode(BitsLeaderboard.self, from: data)
+        } catch {
+            throw HelixError.decodingFailed(String(describing: error))
+        }
     }
 
     /// Gets Cheermotes that users can use to cheer Bits.
@@ -125,6 +131,11 @@ extension HelixClient {
 }
 
 public enum AnalyticsReportType: String, Sendable, Equatable {
+    /// The overview report. Twitch documents this as the only valid report type.
+    case overviewV2 = "overview_v2"
+
+    /// The retired v1 overview report; Twitch rejects this value.
+    @available(*, deprecated, renamed: "overviewV2", message: "Twitch only accepts overview_v2")
     case overview
 }
 
@@ -139,6 +150,25 @@ public struct AnalyticsReport: Decodable, Sendable, Equatable {
         public let startedAt: Date
         public let endedAt: Date
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case extensionId, gameId, type, dateRange
+        // Twitch sends the download link as uppercase `URL`, which
+        // `.convertFromSnakeCase` leaves untouched, so a synthesized `url`
+        // key never matches. Accept a lowercase `url` as well.
+        case uppercaseURL = "URL"
+        case url
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        extensionId = try container.decodeIfPresent(String.self, forKey: .extensionId)
+        gameId = try container.decodeIfPresent(String.self, forKey: .gameId)
+        url = try container.decodeIfPresent(String.self, forKey: .uppercaseURL)
+            ?? container.decode(String.self, forKey: .url)
+        type = try container.decode(String.self, forKey: .type)
+        dateRange = try container.decode(DateRange.self, forKey: .dateRange)
+    }
 }
 
 public enum BitsLeaderboardPeriod: String, Sendable, Equatable {
@@ -151,8 +181,30 @@ public enum BitsLeaderboardPeriod: String, Sendable, Equatable {
 
 public struct BitsLeaderboard: Decodable, Sendable, Equatable {
     public let data: [Entry]
-    public let dateRange: AnalyticsReport.DateRange
+    public let dateRange: DateRange
     public let total: Int
+
+    /// The leaderboard's reporting window.
+    ///
+    /// Twitch sends empty strings for both dates when the request omits
+    /// `started_at` (for example `period: .all`, or no arguments at all), so
+    /// both dates are optional.
+    public struct DateRange: Decodable, Sendable, Equatable {
+        public let startedAt: Date?
+        public let endedAt: Date?
+
+        private enum CodingKeys: String, CodingKey {
+            case startedAt, endedAt
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            startedAt = try container.decodeIfPresent(String.self, forKey: .startedAt)
+                .flatMap(TwitchDateParser.date(from:))
+            endedAt = try container.decodeIfPresent(String.self, forKey: .endedAt)
+                .flatMap(TwitchDateParser.date(from:))
+        }
+    }
 
     public struct Entry: Decodable, Sendable, Equatable {
         public let userId: String

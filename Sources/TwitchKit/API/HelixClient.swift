@@ -151,7 +151,7 @@ public struct HelixClient: Sendable {
         body: Data? = nil
     ) async throws -> HelixHTTPResponse {
         var components = URLComponents(string: Self.baseURL + endpoint)!
-        components.queryItems = queryItems
+        components.setFormSafeQueryItems(queryItems)
 
         var urlRequest = URLRequest(url: components.url!)
         urlRequest.httpMethod = method

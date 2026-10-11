@@ -218,12 +218,14 @@ extension HelixClient {
             )
         }
 
-        let response: HelixResponse<DeletedVideo> = try await request(
+        // Twitch returns the deleted IDs as a plain string array
+        // (`"data": ["1234", "9876"]`), not as objects.
+        let response: HelixResponse<String> = try await request(
             endpoint: "videos",
             method: "DELETE",
             queryItems: HelixQuery.items("id", values: ids)
         )
-        return response.data.map(\.id)
+        return response.data
     }
 
 }
@@ -282,10 +284,6 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
 public struct MutedVideoSegment: Decodable, Sendable, Equatable {
     public let duration: Int
     public let offset: Int
-}
-
-private struct DeletedVideo: Decodable, Sendable {
-    let id: String
 }
 
 private func validateClipDuration(_ duration: Double?) throws {

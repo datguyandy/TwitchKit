@@ -329,7 +329,7 @@ public struct TwitchOAuthClient: Sendable {
         }
 
         var components = URLComponents(string: "https://id.twitch.tv/oauth2/authorize")!
-        components.queryItems = queryItems
+        components.setFormSafeQueryItems(queryItems)
         return components.url!
     }
 

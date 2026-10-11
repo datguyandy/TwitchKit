@@ -231,14 +231,26 @@ public struct HelixResponse<T: Decodable & Sendable>: Decodable, Sendable {
 
 /// Cursor pagination returned by Twitch Helix endpoints.
 public struct Pagination: Decodable, Sendable, Equatable {
-    /// Cursor used to request the next page.
+    /// Cursor used to request the next page, or `nil` on the last page.
     public let cursor: String?
 
     /// Creates pagination metadata.
     ///
-    /// - Parameter cursor: Cursor used to request the next page.
+    /// - Parameter cursor: Cursor used to request the next page. An empty
+    ///   string is treated as `nil` (no more pages).
     public init(cursor: String?) {
-        self.cursor = cursor
+        self.cursor = cursor?.isEmpty == true ? nil : cursor
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case cursor
+    }
+
+    /// Normalizes `"cursor": ""` to `nil`. Sending an empty cursor back as
+    /// `after=` restarts at the first page, so a paged sequence would loop.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(cursor: try container.decodeIfPresent(String.self, forKey: .cursor))
     }
 }
 
@@ -319,11 +331,14 @@ public struct HelixPagedSequence<Element: Sendable>: AsyncSequence, Sendable {
                     return nil
                 }
 
-                let page = try await fetchPage(nextCursor)
+                let requestedCursor = nextCursor
+                let page = try await fetchPage(requestedCursor)
                 buffer = page.data
                 bufferIndex = 0
                 nextCursor = page.nextCursor
-                shouldFetchPage = page.nextCursor != nil
+                // Stop when Twitch hands back the cursor that was just
+                // requested: following it would fetch the same page forever.
+                shouldFetchPage = page.nextCursor != nil && page.nextCursor != requestedCursor
 
                 if buffer.isEmpty, !shouldFetchPage {
                     return nil

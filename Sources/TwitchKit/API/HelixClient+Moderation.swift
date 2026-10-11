@@ -103,8 +103,8 @@ extension HelixClient {
         userID: String,
         duration: Int? = nil,
         reason: String? = nil
-    ) async throws -> BannedUser {
-        let response: HelixResponse<BannedUser> = try await request(
+    ) async throws -> BanUserResponse {
+        let response: HelixResponse<BanUserResponse> = try await request(
             endpoint: "moderation/bans",
             method: "POST",
             queryItems: [
@@ -117,8 +117,8 @@ extension HelixClient {
                 reason: reason
             )))
         )
-        guard let bannedUser = response.data.first else { throw HelixError.notFound }
-        return bannedUser
+        guard let ban = response.data.first else { throw HelixError.notFound }
+        return ban
     }
 
     /// Removes a ban or timeout from a user.
@@ -651,6 +651,46 @@ public struct BannedUser: Decodable, Sendable, Equatable {
     public let moderatorId: String
     public let moderatorLogin: String
     public let moderatorName: String
+}
+
+/// The ban or timeout applied by Ban User.
+///
+/// Twitch's Ban User response carries only IDs and timestamps; use
+/// Get Banned Users when you need login names, display names, or the reason.
+public struct BanUserResponse: Decodable, Sendable, Equatable {
+    /// The broadcaster whose chat the user was banned from.
+    public let broadcasterId: String
+
+    /// The moderator that applied the ban or timeout.
+    public let moderatorId: String
+
+    /// The user that was banned or timed out.
+    public let userId: String
+
+    /// When the ban or timeout was applied.
+    public let createdAt: Date
+
+    /// When the timeout ends, or `nil` for a permanent ban.
+    public let endTime: Date?
+
+    /// Whether this is a timeout rather than a permanent ban.
+    public var isTimeout: Bool { endTime != nil }
+
+    private enum CodingKeys: String, CodingKey {
+        case broadcasterId, moderatorId, userId, createdAt, endTime
+    }
+
+    /// Custom decoding solely for `endTime`: Twitch sends `null` for a
+    /// permanent ban. Decoding the raw string also tolerates an empty string.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        broadcasterId = try container.decode(String.self, forKey: .broadcasterId)
+        moderatorId = try container.decode(String.self, forKey: .moderatorId)
+        userId = try container.decode(String.self, forKey: .userId)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        endTime = try container.decodeIfPresent(String.self, forKey: .endTime)
+            .flatMap(TwitchDateParser.date(from:))
+    }
 }
 
 /// Filter status for unban requests.

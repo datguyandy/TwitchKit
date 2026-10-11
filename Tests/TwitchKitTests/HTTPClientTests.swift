@@ -464,15 +464,11 @@ final class HTTPClientTests: XCTestCase {
             {
               "data": [
                 {
-                  "user_id": "target",
-                  "user_login": "targetlogin",
-                  "user_name": "Target",
-                  "expires_at": "2026-01-01T00:00:00Z",
-                  "created_at": "2025-01-01T00:00:00Z",
-                  "reason": "test",
+                  "broadcaster_id": "broadcaster",
                   "moderator_id": "moderator",
-                  "moderator_login": "modlogin",
-                  "moderator_name": "Mod"
+                  "user_id": "target",
+                  "created_at": "2025-01-01T00:00:00Z",
+                  "end_time": "2025-01-01T00:01:00Z"
                 }
               ]
             }
