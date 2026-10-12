@@ -687,7 +687,8 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        // Retries disabled: this test checks how the 429 is surfaced.
+        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport, retryPolicy: .never)
 
         do {
             _ = try await api.fetchUser()
@@ -716,7 +717,8 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        // Retries disabled: this test checks how the 429 is surfaced.
+        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport, retryPolicy: .never)
 
         do {
             _ = try await api.fetchUser()

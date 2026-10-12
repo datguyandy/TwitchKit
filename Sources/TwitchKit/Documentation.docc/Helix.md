@@ -175,6 +175,22 @@ for try await follower in client.api.channelFollowers(
 }
 ```
 
+## Retries And Rate Limits
+
+``TwitchKit/HelixRetryPolicy`` controls automatic retries. By default:
+
+- A rate-limited request (HTTP 429) is retried once, after waiting for `Retry-After` or Twitch's `Ratelimit-Reset`, up to 60 seconds. Twitch doesn't process a rate-limited request, so this applies to every method. A longer wait, or a 429 that leaves points in the bucket (such as EventSub's subscription limits), throws ``TwitchKit/HelixError/rateLimited(_:)`` immediately.
+- A 503 is retried once for GET, HEAD, PUT, and DELETE. POST and PATCH aren't retried, because a 503 doesn't prove Twitch didn't act on the request.
+
+```swift
+let client = TwitchClient(
+    clientId: "<#Client ID#>",
+    retryPolicy: HelixRetryPolicy(rateLimitRetries: 3, maxRateLimitDelay: .seconds(30))
+)
+```
+
+Pass `.never` to handle every 429 and 503 yourself.
+
 ## Coverage
 
 TwitchKit includes typed helpers for the public Helix families in Twitch's API reference, including chat, moderation, EventSub management, conduits, channel points, clips/videos, schedules, subscriptions, ads, analytics, Bits, Drops entitlements, extensions, Guest Star, tags, teams, users, and whispers.
