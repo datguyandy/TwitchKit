@@ -6,6 +6,10 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+### Added
+
+- Public memberwise initializers for all 222 response and EventSub event models (for example `TwitchUser(id:login:displayName:…)`), so apps can build fixtures for tests and SwiftUI previews without decoding JSON. Parameters follow each model's property order; optional properties default to `nil`.
+
 ### Changed
 
 - API naming: every argument label now spells acronyms uniformly (`broadcasterID`, `userID`, `clientID`, `redirectURI`), and the `for` prefix most endpoints never used is gone (`fetchChannelInfo(broadcasterID:)`, not `fetchChannelInfo(forBroadcasterID:)`). Model properties keep Twitch's field names (`broadcasterId`), since they mirror the JSON. The previous spellings remain as deprecated forwarders with fix-its and will be removed before 1.0.
