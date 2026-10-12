@@ -24,7 +24,7 @@ extension HelixClient {
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)],
             body: try JSONEncoder.twitch().encode(create)
         )
-        guard let reward = response.data.first else { throw HelixError.notFound }
+        guard let reward = response.data.first else { throw HelixError.emptyResponse }
         return reward
     }
 
@@ -42,7 +42,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(update)
         )
-        guard let reward = response.data.first else { throw HelixError.notFound }
+        guard let reward = response.data.first else { throw HelixError.emptyResponse }
         return reward
     }
 

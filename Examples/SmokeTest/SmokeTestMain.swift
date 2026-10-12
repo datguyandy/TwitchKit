@@ -74,7 +74,10 @@ struct TwitchKitSmokeTestCLI {
 
     private static func fetchChannel(_ context: SmokeContext) async throws {
         let broadcasterID = try context.required("TWITCH_BROADCASTER_ID")
-        let channel = try await context.client.api.fetchChannelInfo(broadcasterID: broadcasterID)
+        guard let channel = try await context.client.api.fetchChannelInfo(broadcasterID: broadcasterID) else {
+            print("Channel: no broadcaster with ID \(broadcasterID)")
+            return
+        }
         print("Channel: \(channel.broadcasterName) playing \(channel.gameName) - \(channel.title)")
     }
 

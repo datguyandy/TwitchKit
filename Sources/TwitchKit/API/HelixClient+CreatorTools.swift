@@ -18,7 +18,7 @@ extension HelixClient {
                 URLQueryItem(name: "to_broadcaster_id", value: toBroadcasterId)
             ]
         )
-        guard let raid = response.data.first else { throw HelixError.notFound }
+        guard let raid = response.data.first else { throw HelixError.emptyResponse }
         return raid
     }
 
@@ -36,7 +36,7 @@ extension HelixClient {
             method: "POST",
             body: try JSONEncoder.twitch().encode(StreamMarkerCreateRequest(userId: userID, description: description))
         )
-        guard let marker = response.data.first else { throw HelixError.notFound }
+        guard let marker = response.data.first else { throw HelixError.emptyResponse }
         return marker
     }
 

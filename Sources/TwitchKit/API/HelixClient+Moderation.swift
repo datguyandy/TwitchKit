@@ -41,7 +41,7 @@ extension HelixClient {
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ]
         )
-        guard let settings = response.data.first else { throw HelixError.notFound }
+        guard let settings = response.data.first else { throw HelixError.emptyResponse }
         return settings
     }
 
@@ -60,7 +60,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(update)
         )
-        guard let settings = response.data.first else { throw HelixError.notFound }
+        guard let settings = response.data.first else { throw HelixError.emptyResponse }
         return settings
     }
 
@@ -117,7 +117,7 @@ extension HelixClient {
                 reason: reason
             )))
         )
-        guard let ban = response.data.first else { throw HelixError.notFound }
+        guard let ban = response.data.first else { throw HelixError.emptyResponse }
         return ban
     }
 
@@ -201,7 +201,7 @@ extension HelixClient {
                 URLQueryItem(name: "status", value: status.rawValue),
             ]
         )
-        guard let request = response.data.first else { throw HelixError.notFound }
+        guard let request = response.data.first else { throw HelixError.emptyResponse }
         return request
     }
 
@@ -258,7 +258,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(BlockedTermRequest(text: text))
         )
-        guard let term = response.data.first else { throw HelixError.notFound }
+        guard let term = response.data.first else { throw HelixError.emptyResponse }
         return term
     }
 
@@ -439,7 +439,7 @@ extension HelixClient {
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ]
         )
-        guard let status = response.data.first else { throw HelixError.notFound }
+        guard let status = response.data.first else { throw HelixError.emptyResponse }
         return status
     }
 
@@ -458,7 +458,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(ShieldModeStatusRequest(isActive: isActive))
         )
-        guard let status = response.data.first else { throw HelixError.notFound }
+        guard let status = response.data.first else { throw HelixError.emptyResponse }
         return status
     }
 
@@ -481,7 +481,7 @@ extension HelixClient {
                 reason: reason
             )))
         )
-        guard let warning = response.data.first else { throw HelixError.notFound }
+        guard let warning = response.data.first else { throw HelixError.emptyResponse }
         return warning
     }
 
@@ -501,7 +501,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(SuspiciousUserStatusRequest(userId: userID, status: status.rawValue))
         )
-        guard let action = response.data.first else { throw HelixError.notFound }
+        guard let action = response.data.first else { throw HelixError.emptyResponse }
         return action
     }
 
@@ -520,7 +520,7 @@ extension HelixClient {
                 URLQueryItem(name: "user_id", value: userID),
             ]
         )
-        guard let action = response.data.first else { throw HelixError.notFound }
+        guard let action = response.data.first else { throw HelixError.emptyResponse }
         return action
     }
 }

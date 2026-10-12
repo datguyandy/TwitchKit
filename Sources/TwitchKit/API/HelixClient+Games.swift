@@ -35,25 +35,19 @@ extension HelixClient {
     /// Gets one game/category by Twitch ID.
     ///
     /// - Parameter id: The Twitch game/category ID.
-    /// - Returns: The matching game/category.
-    /// - Throws: `HelixError.notFound` if Twitch returns no matching game.
+    /// - Returns: The matching game/category, or `nil` if no category has this ID.
     /// - SeeAlso: [Get Games](https://dev.twitch.tv/docs/api/reference/#get-games)
-    public func fetchGame(id: String) async throws -> TwitchGame {
-        let games = try await fetchGames(ids: [id])
-        guard let game = games.first else { throw HelixError.notFound }
-        return game
+    public func fetchGame(id: String) async throws -> TwitchGame? {
+        try await fetchGames(ids: [id]).first
     }
 
     /// Gets one game/category by name.
     ///
     /// - Parameter name: The game/category name.
-    /// - Returns: The matching game/category.
-    /// - Throws: `HelixError.notFound` if Twitch returns no matching game.
+    /// - Returns: The matching game/category, or `nil` if no category has this name.
     /// - SeeAlso: [Get Games](https://dev.twitch.tv/docs/api/reference/#get-games)
-    public func fetchGame(name: String) async throws -> TwitchGame {
-        let games = try await fetchGames(names: [name])
-        guard let game = games.first else { throw HelixError.notFound }
-        return game
+    public func fetchGame(name: String) async throws -> TwitchGame? {
+        try await fetchGames(names: [name]).first
     }
 
     /// Gets one page of top Twitch games/categories.

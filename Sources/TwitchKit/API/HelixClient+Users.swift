@@ -7,11 +7,11 @@ extension HelixClient {
     /// Requires `user:read:email` scope for the `email` field.
     ///
     /// - Returns: The authenticated user's profile.
-    /// - Throws: `HelixError.notFound` if no user data returned.
+    /// - Throws: `HelixError.emptyResponse` if Twitch returns no user for the token.
     /// - SeeAlso: [Get Users](https://dev.twitch.tv/docs/api/reference/#get-users)
     public func fetchUser() async throws -> TwitchUser {
         let response: HelixResponse<TwitchUser> = try await request(endpoint: "users")
-        guard let user = response.data.first else { throw HelixError.notFound }
+        guard let user = response.data.first else { throw HelixError.emptyResponse }
         return user
     }
 
@@ -45,24 +45,19 @@ extension HelixClient {
     /// Gets one user by Twitch user ID.
     ///
     /// - Parameter id: The user ID to fetch.
-    /// - Returns: The matching user.
-    /// - Throws: `HelixError.notFound` if Twitch returns no matching user.
+    /// - Returns: The matching user, or `nil` if no user has this ID (for
+    ///   example a deleted or suspended account).
     /// - SeeAlso: [Get Users](https://dev.twitch.tv/docs/api/reference/#get-users)
-    public func fetchUser(id: String) async throws -> TwitchUser {
-        let users = try await fetchUsers(ids: [id])
-        guard let user = users.first else { throw HelixError.notFound }
-        return user
+    public func fetchUser(id: String) async throws -> TwitchUser? {
+        try await fetchUsers(ids: [id]).first
     }
 
     /// Gets one user by Twitch login name.
     ///
     /// - Parameter login: The user login to fetch.
-    /// - Returns: The matching user.
-    /// - Throws: `HelixError.notFound` if Twitch returns no matching user.
+    /// - Returns: The matching user, or `nil` if no user has this login.
     /// - SeeAlso: [Get Users](https://dev.twitch.tv/docs/api/reference/#get-users)
-    public func fetchUser(login: String) async throws -> TwitchUser {
-        let users = try await fetchUsers(logins: [login])
-        guard let user = users.first else { throw HelixError.notFound }
-        return user
+    public func fetchUser(login: String) async throws -> TwitchUser? {
+        try await fetchUsers(logins: [login]).first
     }
 }

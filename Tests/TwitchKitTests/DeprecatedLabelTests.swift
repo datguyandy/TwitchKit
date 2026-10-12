@@ -35,6 +35,7 @@ final class DeprecatedLabelTests: XCTestCase {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 200, body: #"{"data":[{"message_id":"m1","is_sent":true}]}"#),
             .json(statusCode: 200, body: #"{"data":[]}"#),
+            .json(statusCode: 200, body: #"{"data":[]}"#),
         ])
         let api = HelixClient(
             tokenProvider: TwitchTokenProvider(
@@ -47,11 +48,18 @@ final class DeprecatedLabelTests: XCTestCase {
 
         let sent = try await api.sendChatMessage(broadcasterId: "b", senderId: "s", message: "hi")
         let stream = try await api.fetchStream(forUserID: "u")
+        // The old spelling keeps its original contract: a missing channel throws.
+        do {
+            _ = try await api.fetchChannelInfo(forBroadcasterID: "deleted")
+            XCTFail("Expected notFound")
+        } catch HelixError.notFound {
+            // Expected.
+        }
 
         XCTAssertTrue(sent.isSent)
         XCTAssertNil(stream)
         let requests = await transport.recordedRequests()
-        XCTAssertEqual(requests.map { $0.value(forHTTPHeaderField: "Client-Id") }, ["client", "client"])
-        XCTAssertEqual(requests.last?.url?.absoluteString, "https://api.twitch.tv/helix/streams?user_id=u&first=1")
+        XCTAssertEqual(requests.map { $0.value(forHTTPHeaderField: "Client-Id") }, ["client", "client", "client"])
+        XCTAssertEqual(requests[1].url?.absoluteString, "https://api.twitch.tv/helix/streams?user_id=u&first=1")
     }
 }

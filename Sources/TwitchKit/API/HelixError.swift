@@ -12,6 +12,8 @@ public enum HelixError: Error, Sendable, LocalizedError {
 
     // Client errors
     case badRequest(TwitchAPIError)
+    /// HTTP 404. Lookups that can legitimately find nothing (for example
+    /// `fetchUser(id:)` or `fetchStream(userID:)`) return `nil` instead.
     case notFound
     case conflict(TwitchAPIError)
     case unprocessable(TwitchAPIError)
@@ -25,6 +27,9 @@ public enum HelixError: Error, Sendable, LocalizedError {
     case notAuthenticated
     case missingClientSecret
     case invalidResponse
+    /// Twitch answered a request that always returns an item (a write, or a
+    /// read such as `fetchChatSettings`) with a successful but empty `data`.
+    case emptyResponse
     case decodingFailed(String)
     case networkError(String)
 
@@ -57,6 +62,7 @@ public enum HelixError: Error, Sendable, LocalizedError {
         case .notAuthenticated: "Not authenticated — login required"
         case .missingClientSecret: "Client secret required for this OAuth flow"
         case .invalidResponse: "Invalid HTTP response"
+        case .emptyResponse: "Twitch returned a successful response without the expected data"
         case .decodingFailed(let msg): "JSON decode failed: \(msg)"
         case .networkError(let msg): "Network error: \(msg)"
         case .transport(let error): "Network error: \(error.localizedDescription) (URLError code \(error.code.rawValue))"

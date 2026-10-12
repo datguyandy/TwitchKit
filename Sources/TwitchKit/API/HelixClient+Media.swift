@@ -13,7 +13,7 @@ extension HelixClient {
             method: "POST",
             queryItems: queryItems
         )
-        guard let clip = response.data.first else { throw HelixError.notFound }
+        guard let clip = response.data.first else { throw HelixError.emptyResponse }
         return clip
     }
 
@@ -40,7 +40,7 @@ extension HelixClient {
             method: "POST",
             queryItems: queryItems
         )
-        guard let clip = response.data.first else { throw HelixError.notFound }
+        guard let clip = response.data.first else { throw HelixError.emptyResponse }
         return clip
     }
 

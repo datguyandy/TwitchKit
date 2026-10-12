@@ -139,7 +139,7 @@ extension HelixClient {
             method: "POST",
             body: bodyData
         )
-        guard let subscription = response.data.first else { throw HelixError.notFound }
+        guard let subscription = response.data.first else { throw HelixError.emptyResponse }
         return subscription
     }
 

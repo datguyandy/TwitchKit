@@ -18,7 +18,11 @@ extension HelixClient {
     public func fetchChannelInfo(
         forBroadcasterID broadcasterId: String
     ) async throws -> TwitchChannel {
-        return try await fetchChannelInfo(broadcasterID: broadcasterId)
+        // Keeps this spelling's original contract: a missing channel throws.
+        guard let channel = try await fetchChannelInfo(broadcasterID: broadcasterId) else {
+            throw HelixError.notFound
+        }
+        return channel
     }
 
     @available(*, deprecated, renamed: "updateChannelInfo(broadcasterID:with:)")

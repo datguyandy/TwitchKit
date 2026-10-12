@@ -143,7 +143,7 @@ extension HelixClient {
             method: "PUT",
             body: try JSONEncoder.twitch().encode(product)
         )
-        guard let product = response.data.first else { throw HelixError.notFound }
+        guard let product = response.data.first else { throw HelixError.emptyResponse }
         return product
     }
 }

@@ -98,7 +98,7 @@ extension HelixClient {
             method: "POST",
             body: bodyData
         )
-        guard let result = response.data.first else { throw HelixError.notFound }
+        guard let result = response.data.first else { throw HelixError.emptyResponse }
         return result
     }
 }

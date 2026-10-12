@@ -45,7 +45,7 @@ extension HelixClient {
             method: "POST",
             body: try JSONEncoder.twitch().encode(poll)
         )
-        guard let poll = response.data.first else { throw HelixError.notFound }
+        guard let poll = response.data.first else { throw HelixError.emptyResponse }
         return poll
     }
 
@@ -55,7 +55,7 @@ extension HelixClient {
             method: "PATCH",
             body: try JSONEncoder.twitch().encode(PollEndRequest(broadcasterId: broadcasterID, id: pollID, status: status))
         )
-        guard let poll = response.data.first else { throw HelixError.notFound }
+        guard let poll = response.data.first else { throw HelixError.emptyResponse }
         return poll
     }
 
@@ -97,7 +97,7 @@ extension HelixClient {
             method: "POST",
             body: try JSONEncoder.twitch().encode(prediction)
         )
-        guard let prediction = response.data.first else { throw HelixError.notFound }
+        guard let prediction = response.data.first else { throw HelixError.emptyResponse }
         return prediction
     }
 
@@ -119,7 +119,7 @@ extension HelixClient {
                 )
             )
         )
-        guard let prediction = response.data.first else { throw HelixError.notFound }
+        guard let prediction = response.data.first else { throw HelixError.emptyResponse }
         return prediction
     }
 }

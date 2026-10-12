@@ -10,7 +10,7 @@ extension HelixClient {
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ]
         )
-        guard let settings = response.data.first else { throw HelixError.notFound }
+        guard let settings = response.data.first else { throw HelixError.emptyResponse }
         return settings
     }
 
@@ -44,7 +44,7 @@ extension HelixClient {
             method: "POST",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
-        guard let session = response.data.first else { throw HelixError.notFound }
+        guard let session = response.data.first else { throw HelixError.emptyResponse }
         return session
     }
 
@@ -58,7 +58,7 @@ extension HelixClient {
                 URLQueryItem(name: "session_id", value: sessionID),
             ]
         )
-        guard let session = response.data.first else { throw HelixError.notFound }
+        guard let session = response.data.first else { throw HelixError.emptyResponse }
         return session
     }
 

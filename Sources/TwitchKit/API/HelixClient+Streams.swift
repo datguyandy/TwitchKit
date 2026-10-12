@@ -110,7 +110,7 @@ extension HelixClient {
             endpoint: "streams/key",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
         )
-        guard let key = response.data.first?.streamKey else { throw HelixError.notFound }
+        guard let key = response.data.first?.streamKey else { throw HelixError.emptyResponse }
         return key
     }
 

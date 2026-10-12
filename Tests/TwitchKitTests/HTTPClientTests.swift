@@ -137,7 +137,8 @@ final class HTTPClientTests: XCTestCase {
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
-        let user = try await api.fetchUser(login: "twitchdev")
+        let fetchedUser = try await api.fetchUser(login: "twitchdev")
+        let user = try XCTUnwrap(fetchedUser)
 
         XCTAssertEqual(user.id, "1")
 

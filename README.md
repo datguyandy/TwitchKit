@@ -96,6 +96,8 @@ let channel = try await twitch.api.fetchChannelInfo(broadcasterID: user.id)
 let emotes = try await twitch.api.fetchGlobalEmotes()
 ```
 
+Lookups that can legitimately find nothing return an optional: `fetchUser(id:)`, `fetchUser(login:)`, `fetchGame(id:)`, `fetchChannelInfo(broadcasterID:)`, `fetchStream(userID:)` (`nil` while offline), and similar. Reads that always have a result, such as `fetchUser()` for the token's user or `fetchChatSettings`, and every write return their result directly. `HelixError.notFound` always means Twitch answered HTTP 404.
+
 Current Helix coverage includes users, channels, streams, games, chat, moderation, EventSub management, ads, analytics, Bits, conduits, entitlements, extensions, Guest Star, followed channels/streams, channel editors, search, schedules, charity, Hype Train, polls, predictions, raids, stream markers, goals, channel points rewards/redemptions, subscriptions, clips, tags, teams, videos, and whispers.
 
 Paginated endpoints are available as either single pages or lazy async sequences:

@@ -14,7 +14,7 @@ extension HelixClient {
             method: "POST",
             body: try JSONEncoder.twitch().encode(ConduitCreateRequest(shardCount: shardCount))
         )
-        guard let conduit = response.data.first else { throw HelixError.notFound }
+        guard let conduit = response.data.first else { throw HelixError.emptyResponse }
         return conduit
     }
 
@@ -25,7 +25,7 @@ extension HelixClient {
             method: "PATCH",
             body: try JSONEncoder.twitch().encode(ConduitUpdateRequest(id: id, shardCount: shardCount))
         )
-        guard let conduit = response.data.first else { throw HelixError.notFound }
+        guard let conduit = response.data.first else { throw HelixError.emptyResponse }
         return conduit
     }
 

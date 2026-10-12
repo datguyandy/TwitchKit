@@ -34,12 +34,10 @@ extension HelixClient {
     /// and branded content status. The `delay` field requires a user access token and partner status.
     ///
     /// - Parameter broadcasterId: The broadcaster's user ID.
-    /// - Returns: The channel information.
+    /// - Returns: The channel information, or `nil` if no broadcaster has this ID.
     /// - SeeAlso: [Get Channel Information](https://dev.twitch.tv/docs/api/reference/#get-channel-information)
-    public func fetchChannelInfo(broadcasterID broadcasterId: String) async throws -> TwitchChannel {
-        let channels = try await fetchChannelsInfo(broadcasterIDs: [broadcasterId])
-        guard let channel = channels.first else { throw HelixError.notFound }
-        return channel
+    public func fetchChannelInfo(broadcasterID broadcasterId: String) async throws -> TwitchChannel? {
+        try await fetchChannelsInfo(broadcasterIDs: [broadcasterId]).first
     }
     /// Updates a channel's properties.
     ///

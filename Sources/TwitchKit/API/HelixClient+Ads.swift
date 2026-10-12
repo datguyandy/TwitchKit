@@ -11,7 +11,7 @@ extension HelixClient {
                 length: length
             ))
         )
-        guard let commercial = response.data.first else { throw HelixError.notFound }
+        guard let commercial = response.data.first else { throw HelixError.emptyResponse }
         return commercial
     }
 
@@ -21,7 +21,7 @@ extension HelixClient {
             endpoint: "channels/ads",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
-        guard let schedule = response.data.first else { throw HelixError.notFound }
+        guard let schedule = response.data.first else { throw HelixError.emptyResponse }
         return schedule
     }
 
@@ -32,7 +32,7 @@ extension HelixClient {
             method: "POST",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
-        guard let snooze = response.data.first else { throw HelixError.notFound }
+        guard let snooze = response.data.first else { throw HelixError.emptyResponse }
         return snooze
     }
 }

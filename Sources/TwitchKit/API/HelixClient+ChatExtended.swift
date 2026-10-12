@@ -103,7 +103,7 @@ extension HelixClient {
         HelixQuery.append(HelixQuery.item("moderator_id", moderatorID), to: &queryItems)
 
         let response: HelixResponse<ChatSettings> = try await request(endpoint: "chat/settings", queryItems: queryItems)
-        guard let settings = response.data.first else { throw HelixError.notFound }
+        guard let settings = response.data.first else { throw HelixError.emptyResponse }
         return settings
     }
 
@@ -122,7 +122,7 @@ extension HelixClient {
             ],
             body: try JSONEncoder.twitch().encode(update)
         )
-        guard let settings = response.data.first else { throw HelixError.notFound }
+        guard let settings = response.data.first else { throw HelixError.emptyResponse }
         return settings
     }
 

@@ -17,6 +17,7 @@ Use the ``TwitchKit/TwitchClient/api`` property for Helix calls:
 
 ```swift
 let user = try await client.api.fetchUser()
+// `nil` when no broadcaster has this ID.
 let channel = try await client.api.fetchChannelInfo(
     broadcasterID: user.id
 )

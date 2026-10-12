@@ -56,7 +56,7 @@ extension HelixClient {
             method: "PUT",
             queryItems: [URLQueryItem(name: "description", value: description)]
         )
-        guard let user = response.data.first else { throw HelixError.notFound }
+        guard let user = response.data.first else { throw HelixError.emptyResponse }
         return user
     }
 
@@ -64,7 +64,7 @@ extension HelixClient {
     /// Requires an app access token.
     public func fetchAuthorization(userID: String) async throws -> UserAuthorization {
         guard let authorization = try await fetchAuthorizations(userIDs: [userID]).first else {
-            throw HelixError.notFound
+            throw HelixError.emptyResponse
         }
         return authorization
     }

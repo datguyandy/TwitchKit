@@ -12,6 +12,8 @@ let channel = try await client.api.fetchChannelInfo(
 )
 ```
 
+Lookups that can legitimately find nothing return an optional: ``TwitchKit/HelixClient/fetchUser(id:)``, ``TwitchKit/HelixClient/fetchChannelInfo(broadcasterID:)``, ``TwitchKit/HelixClient/fetchStream(userID:)`` (`nil` while offline), and similar. Reads that always have a result, such as ``TwitchKit/HelixClient/fetchUser()``, and every write return their result directly; if Twitch ever answers one of them with empty data, the call throws ``TwitchKit/HelixError/emptyResponse``. ``TwitchKit/HelixError/notFound`` always means Twitch answered HTTP 404.
+
 ## Updating Channel Info
 
 Use ``TwitchKit/ChannelInfoUpdate`` to keep update call sites readable as Twitch adds more optional fields:
