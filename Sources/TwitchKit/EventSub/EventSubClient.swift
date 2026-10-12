@@ -209,6 +209,14 @@ public actor EventSubClient {
     /// and share its outcome instead of erroring.
     private var inFlightConnect: Task<Void, Error>?
 
+    /// Connects to EventSub and waits for the session to be established.
+    ///
+    /// Subscriptions the client still wants, for example after
+    /// ``disconnect()`` or after the reconnect ladder gave up, are re-created
+    /// on the new session before this returns. A subscription Twitch rejects
+    /// outright is reported as ``EventSubEvent/subscriptionFailed(_:_:)``; a
+    /// transient failure doesn't fail the call, and the client keeps retrying
+    /// the missing subscriptions in the background.
     public func connect(timeout: Duration = .seconds(15)) async throws {
         if sessionId != nil {
             return
@@ -231,6 +239,10 @@ public actor EventSubClient {
                 try await connectBodyForTesting()
             } else {
                 try await openConnection(to: Self.websocketURL, resetReconnectAttempts: true, timeout: timeout)
+                // Without this, a manual connect() left the new session with
+                // no subscriptions: Twitch closes an unused socket after ~10s,
+                // and only the reconnect that followed re-created them.
+                await resubscribeAfterConnect()
             }
         }
         inFlightConnect = attempt
@@ -937,6 +949,21 @@ public actor EventSubClient {
                 try await retryPendingSubscriptionDeletes()
                 continue
             }
+        }
+    }
+
+    /// Re-creates desired subscriptions on a session opened by `connect()`.
+    /// A transient failure hands the remaining work to the reconnect ladder,
+    /// which re-runs `resubscribeAll()` against the live session (its
+    /// `openConnection` returns early while a session exists) with backoff.
+    private func resubscribeAfterConnect() async {
+        do {
+            try await resubscribeAll()
+        } catch {
+            guard shouldReconnect, !(error is CancellationError) else { return }
+            logger.warning("⚠️ EventSub: re-creating subscriptions after connect failed (\(error.localizedDescription)); retrying")
+            reconnectTask?.cancel()
+            reconnectTask = makeReconnectTask()
         }
     }
 

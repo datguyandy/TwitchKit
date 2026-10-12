@@ -745,6 +745,107 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 12. connect() re-creates the subscriptions the client still wants
+
+    func test_manualConnectAfterDisconnectRecreatesSubscriptions() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+
+        // HTTP script: the original create on session-1, then the re-create
+        // that connect() must issue on session-2 before returning.
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+            ]
+        )
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+
+        // The app-backgrounded pattern: disconnect, then connect() again later.
+        await client.disconnect()
+        try await connectDeliveringWelcome(
+            client,
+            via: socketB,
+            welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2")
+        )
+
+        // Previously the new session had no subscriptions until Twitch closed
+        // the unused socket (~10s) and the reconnect ladder re-created them.
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 2, "connect() must re-create the desired subscription before returning")
+        let body = try XCTUnwrap(requests.last?.httpBody)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let transportBody = try XCTUnwrap(object["transport"] as? [String: Any])
+        XCTAssertEqual(transportBody["session_id"] as? String, "session-2")
+
+        await client.disconnect()
+    }
+
+    func test_manualConnectRetriesSubscriptionsAfterTransientFailure() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+
+        // HTTP script: original create; the re-create during connect() hits a
+        // server error; the background retry then succeeds.
+        let (client, factory, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 500, body: #"{"error":"Internal Server Error","status":500,"message":"try again"}"#),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+            ]
+        )
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socketA,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        try await client.subscribe(
+            type: "channel.follow",
+            version: "2",
+            condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+        )
+        await client.disconnect()
+
+        // connect() succeeds even though re-creating the subscription failed:
+        // the socket is up, and the retry happens in the background.
+        try await connectDeliveringWelcome(
+            client,
+            via: socketB,
+            welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2")
+        )
+
+        // Bounded wait for the background retry (first ladder step is ~1s).
+        var attempts = 0
+        while await transport.recordedRequests().count < 3, attempts < 1_000 {
+            attempts += 1
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 3, "the failed re-create must be retried on the same session")
+        let body = try XCTUnwrap(requests.last?.httpBody)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let transportBody = try XCTUnwrap(object["transport"] as? [String: Any])
+        XCTAssertEqual(transportBody["session_id"] as? String, "session-2")
+        XCTAssertEqual(factory.requestedURLs.count, 2, "the retry must reuse the live socket, not dial a new one")
+        XCTAssertFalse(socketB.wasCancelled)
+
+        await client.disconnect()
+    }
 }
 
 /// Collects `.unknown` event types until the sentinel arrives or the stream ends.

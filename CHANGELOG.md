@@ -19,6 +19,7 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ### Fixed
 
+- EventSub: `connect()` re-creates the subscriptions the client still wants (for example after `disconnect()`, or after the non-live reconnect ladder gave up) before returning. Previously the new session started empty: Twitch closed the unused socket after about 10 seconds, and chat only came back after the reconnect that followed. A subscription Twitch rejects is reported as `.subscriptionFailed`; a transient failure doesn't fail `connect()`, and the client retries in the background.
 - Helix: `checkUserSubscription` decodes Twitch's Check User Subscription response. It previously reused the EventSub `channel.subscribe` model, which requires subscriber fields this endpoint never returns, so every successful call threw `.decodingFailed`.
 - Helix: `banUser` decodes Twitch's Ban User response (`broadcaster_id`, `moderator_id`, `user_id`, `created_at`, `end_time`). It previously expected the Get Banned Users shape, so the ban was applied and the call then threw `.decodingFailed`.
 - Helix: `deleteVideos` decodes the plain string array Twitch returns; successful deletes previously threw `.decodingFailed`.
