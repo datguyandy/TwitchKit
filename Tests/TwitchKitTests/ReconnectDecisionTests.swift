@@ -7,6 +7,16 @@ import XCTest
 /// verified deterministically, with no sockets, sleeps, or network involved.
 final class ReconnectDecisionTests: XCTestCase {
 
+    func test_clientsKeepReconnectingByDefault() async {
+        let twitch = TwitchClient(clientID: "client-id", tokenStore: InMemoryTokenStore(), pathMonitor: MockNetworkPathMonitor())
+        let twitchKeepsReconnecting = await twitch.eventSub.shouldKeepReconnecting()
+        XCTAssertTrue(twitchKeepsReconnecting)
+
+        let eventSub = EventSubClient(api: twitch.api, pathMonitor: MockNetworkPathMonitor())
+        let eventSubKeepsReconnecting = await eventSub.shouldKeepReconnecting()
+        XCTAssertTrue(eventSubKeepsReconnecting)
+    }
+
     func test_offlineAlwaysParks() {
         let decision = reconnectDecision(
             networkAvailable: false, shouldReconnect: true, shouldKeepReconnecting: true, attempt: 1

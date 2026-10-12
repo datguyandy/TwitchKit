@@ -87,7 +87,7 @@ public actor EventSubClient {
     private var lastEmittedState: ConnectionState?
 
     private let api: HelixClient
-    private let shouldKeepReconnecting: @Sendable () async -> Bool
+    nonisolated let shouldKeepReconnecting: @Sendable () async -> Bool
     private let pathMonitor: NetworkPathMonitoring
     private var pathMonitorTask: Task<Void, Never>?
     private var isNetworkAvailable = true   // optimistic until told otherwise
@@ -149,14 +149,14 @@ public actor EventSubClient {
     ///
     /// - Parameters:
     ///   - api: Helix client used to create (and re-create) subscriptions.
-    ///   - shouldKeepReconnecting: Asked before each reconnect attempt.
-    ///     Return `true` while the app needs the connection (for example while
-    ///     a chat view is open and the app is in the foreground) to retry
-    ///     forever with a short, 5s-capped backoff. **When it returns `false`,
-    ///     the client gives up**: after 5 failed attempts (~31s of cumulative
-    ///     backoff) it emits `.disconnected` and parks, and won't retry until
-    ///     the network path drops and returns (which resets the attempts) or
-    ///     `connect()` is called again.
+    ///   - shouldKeepReconnecting: Asked before each reconnect attempt. While
+    ///     it returns `true` (the default), the client retries forever with a
+    ///     short, 5s-capped backoff. When it returns `false`, the client gives
+    ///     up after 5 failed attempts (~31s of cumulative backoff): it emits
+    ///     `.disconnected` and parks, and won't retry until the network path
+    ///     drops and returns (which resets the attempts) or `connect()` is
+    ///     called again. Return `false` when the app no longer needs the
+    ///     connection, for example when no chat view is open.
     ///   - pathMonitor: Network-path monitor driving path-aware reconnects.
     ///   - socketFactory: Creates the WebSocket for a given URL. Defaults to
     ///     `URLSession.shared.webSocketTask(with:)`; tests inject fakes here.
@@ -164,7 +164,7 @@ public actor EventSubClient {
     ///     for events held while nobody is iterating.
     public init(
         api: HelixClient,
-        shouldKeepReconnecting: @escaping @Sendable () async -> Bool,
+        shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { true },
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)

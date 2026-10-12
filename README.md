@@ -166,7 +166,7 @@ for await event in twitch.eventSub.events {
 
 EventSub reconnects automatically and re-creates desired subscriptions after a full disconnect. Reconnect is network-path aware: while the OS reports no usable network path the retry loop parks instead of burning attempts into a dead connection, and it reconnects immediately — resetting backoff — the moment the path is restored. Duplicate EventSub messages are ignored by message ID. TwitchKit bounds duplicate-message tracking and buffers the newest 1,000 EventSub notifications by default so a slow consumer cannot grow memory without limit.
 
-By default the client gives up after 5 failed reconnect attempts (about 31 seconds) and reports `.disconnected`. Pass `shouldKeepReconnecting` to keep retrying, with a backoff capped at 5 seconds, for as long as your app needs the connection. It's called before each attempt:
+By default the client keeps retrying, with a backoff capped at 5 seconds, until it reconnects or you call `disconnect()`. To stop retrying when your app no longer needs the connection, pass `shouldKeepReconnecting`. It's called before each attempt; once it returns `false`, the client gives up after 5 failed attempts (about 31 seconds) and reports `.disconnected`:
 
 ```swift
 let twitch = TwitchClient(

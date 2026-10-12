@@ -376,7 +376,7 @@ extension TwitchClient {
         retryPolicy: HelixRetryPolicy = .default,
         responseMetadataHandler: (@Sendable (HelixResponseMetadata) -> Void)? = nil,
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
-        isLive: @escaping @Sendable () async -> Bool = { false },
+        isLive: @escaping @Sendable () async -> Bool = { true },
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
     ) {
@@ -405,6 +405,8 @@ extension TwitchClient {
 }
 
 extension EventSubClient {
+    // `isLive` stays required, as before, so a call that omits it matches
+    // only the new initializer.
     @available(*, deprecated, renamed: "init(api:shouldKeepReconnecting:pathMonitor:socketFactory:eventBufferingPolicy:)")
     public init(
         api: HelixClient,
