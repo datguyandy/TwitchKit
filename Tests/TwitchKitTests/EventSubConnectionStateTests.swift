@@ -12,7 +12,7 @@ final class EventSubConnectionStateTests: XCTestCase {
 
     func test_pathTransitionsDriveConnectionStateSequence() async throws {
         let mock = MockNetworkPathMonitor()
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: mock)
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
 
         // Single-consumer: start iterating before driving transitions. The stream
         // buffers, so emissions made before the first `await next` are preserved.
@@ -40,7 +40,7 @@ final class EventSubConnectionStateTests: XCTestCase {
 
     func test_disconnectEmitsDisconnected() async throws {
         let mock = MockNetworkPathMonitor()
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: mock)
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
 
         let collector = Task { () -> [ConnectionState] in
             var observed: [ConnectionState] = []
@@ -60,7 +60,7 @@ final class EventSubConnectionStateTests: XCTestCase {
     }
 
     func test_lateConnectionStateObserverStartsWithCurrentState() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
         XCTAssertEqual(client.currentConnectionState, .disconnected)
 
         let early = client.connectionState
@@ -87,7 +87,7 @@ final class EventSubConnectionStateTests: XCTestCase {
     /// coalesce onto the in-flight attempt and share its outcome, not
     /// throw "EventSub connection already in progress".
     func test_concurrentConnectCoalescesInsteadOfThrowing() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         // Gate the fake connection attempt so the first connect() stays
         // in flight until the test releases it.

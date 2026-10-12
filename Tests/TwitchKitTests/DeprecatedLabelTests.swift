@@ -31,6 +31,42 @@ final class DeprecatedLabelTests: XCTestCase {
     }
 
     @available(*, deprecated)
+    func testOldIsLiveLabelStillBuildsClients() {
+        let api = HelixClient(
+            tokenProvider: TwitchTokenProvider(
+                oauthClient: TwitchOAuthClient(clientID: "client"),
+                tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "token"))
+            ),
+            clientID: "client",
+            httpClient: MockHTTPClient(responses: [])
+        )
+        let eventSub = EventSubClient(api: api, isLive: { true }, pathMonitor: MockNetworkPathMonitor())
+        XCTAssertEqual(eventSub.currentConnectionState, .disconnected)
+
+        let client = TwitchClient(
+            clientID: "client-id",
+            tokenStore: InMemoryTokenStore(),
+            isLive: { true },
+            pathMonitor: MockNetworkPathMonitor()
+        )
+        XCTAssertEqual(client.clientID, "client-id")
+
+        let oldClient = TwitchClient(
+            clientId: "client-id",
+            tokenStore: InMemoryTokenStore(),
+            isLive: { true },
+            pathMonitor: MockNetworkPathMonitor()
+        )
+        XCTAssertEqual(oldClient.clientID, "client-id")
+    }
+
+    func testShouldKeepReconnectingDefaultIsNotAmbiguous() {
+        // Omitting the reconnect closure matches only the new initializer.
+        let client = TwitchClient(clientID: "client-id", tokenStore: InMemoryTokenStore(), pathMonitor: MockNetworkPathMonitor())
+        XCTAssertEqual(client.clientID, "client-id")
+    }
+
+    @available(*, deprecated)
     func testOldMethodLabelsForward() async throws {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 200, body: #"{"data":[{"message_id":"m1","is_sent":true}]}"#),

@@ -1308,7 +1308,7 @@ private func makeClient(
     let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
     let client = EventSubClient(
         api: api,
-        isLive: { false },
+        shouldKeepReconnecting: { false },
         pathMonitor: MockNetworkPathMonitor(),
         socketFactory: { factory.make($0) }
     )

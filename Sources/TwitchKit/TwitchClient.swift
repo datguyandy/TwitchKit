@@ -28,13 +28,13 @@ public final class TwitchClient: Sendable {
     ///   - retryPolicy: Automatic retry behavior for Helix HTTP calls.
     ///   - responseMetadataHandler: Optional callback invoked with metadata from successful Helix responses.
     ///   - eventBufferingPolicy: Buffering policy for EventSub notifications when consumers are slower than Twitch delivery.
-    ///   - isLive: Returns whether the channel is live, used to tune EventSub reconnect behavior.
-    ///     **The default `{ false }` GIVES UP**: after a dropped socket, the non-live reconnect
-    ///     ladder makes 5 attempts (~31s of cumulative backoff), then emits `.disconnected` on
-    ///     `eventSub.connectionState` and parks — it will not retry again until the network path
-    ///     drops and returns, or `connect()` is called again. Supply a closure that returns `true`
-    ///     while the channel is live to get the persistent ladder that retries forever with a
-    ///     short, 5s-capped backoff.
+    ///   - shouldKeepReconnecting: Asked before each EventSub reconnect attempt. Return `true`
+    ///     while the app needs the connection (for example while a chat view is open and the app
+    ///     is in the foreground) to retry forever with a short, 5s-capped backoff.
+    ///     **The default `{ false }` gives up**: after a dropped socket, the client makes 5
+    ///     attempts (~31s of cumulative backoff), then emits `.disconnected` on
+    ///     `eventSub.connectionState` and parks. It won't retry again until the network path
+    ///     drops and returns, or `connect()` is called again.
     ///   - pathMonitor: Network-path monitor driving EventSub's path-aware reconnect. Defaults to a `NWPathMonitor`-backed monitor.
     ///   - eventSubSocketFactory: Creates the EventSub WebSocket for a given URL. Defaults to
     ///     `URLSession.shared.webSocketTask(with:)`; primarily a seam for injecting fake sockets in tests.
@@ -48,7 +48,7 @@ public final class TwitchClient: Sendable {
         retryPolicy: HelixRetryPolicy = .default,
         responseMetadataHandler: (@Sendable (HelixResponseMetadata) -> Void)? = nil,
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
-        isLive: @escaping @Sendable () async -> Bool = { false },
+        shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { false },
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
     ) {
@@ -76,7 +76,7 @@ public final class TwitchClient: Sendable {
         self.api = api
         self.eventSub = EventSubClient(
             api: api,
-            isLive: isLive,
+            shouldKeepReconnecting: shouldKeepReconnecting,
             pathMonitor: pathMonitor,
             socketFactory: eventSubSocketFactory,
             eventBufferingPolicy: eventBufferingPolicy

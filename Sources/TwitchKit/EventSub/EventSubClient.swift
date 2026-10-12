@@ -87,7 +87,7 @@ public actor EventSubClient {
     private var lastEmittedState: ConnectionState?
 
     private let api: HelixClient
-    private let isLive: @Sendable () async -> Bool
+    private let shouldKeepReconnecting: @Sendable () async -> Bool
     private let pathMonitor: NetworkPathMonitoring
     private var pathMonitorTask: Task<Void, Never>?
     private var isNetworkAvailable = true   // optimistic until told otherwise
@@ -149,13 +149,14 @@ public actor EventSubClient {
     ///
     /// - Parameters:
     ///   - api: Helix client used to create (and re-create) subscriptions.
-    ///   - isLive: Tunes the reconnect ladder. **A constant `{ false }` ladder
-    ///     GIVES UP**: after 5 failed attempts (~31s of cumulative backoff) the
-    ///     client emits `.disconnected` and parks — it will not retry again
-    ///     until the network path drops and returns (which resets the ladder)
-    ///     or `connect()` is called again. Supply a closure that returns `true`
-    ///     while the channel is live to get the persistent ladder that retries
-    ///     forever with a short, 5s-capped backoff.
+    ///   - shouldKeepReconnecting: Asked before each reconnect attempt.
+    ///     Return `true` while the app needs the connection (for example while
+    ///     a chat view is open and the app is in the foreground) to retry
+    ///     forever with a short, 5s-capped backoff. **When it returns `false`,
+    ///     the client gives up**: after 5 failed attempts (~31s of cumulative
+    ///     backoff) it emits `.disconnected` and parks, and won't retry until
+    ///     the network path drops and returns (which resets the attempts) or
+    ///     `connect()` is called again.
     ///   - pathMonitor: Network-path monitor driving path-aware reconnects.
     ///   - socketFactory: Creates the WebSocket for a given URL. Defaults to
     ///     `URLSession.shared.webSocketTask(with:)`; tests inject fakes here.
@@ -163,13 +164,13 @@ public actor EventSubClient {
     ///     for events held while nobody is iterating.
     public init(
         api: HelixClient,
-        isLive: @escaping @Sendable () async -> Bool,
+        shouldKeepReconnecting: @escaping @Sendable () async -> Bool,
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)
     ) {
         self.api = api
-        self.isLive = isLive
+        self.shouldKeepReconnecting = shouldKeepReconnecting
         self.pathMonitor = pathMonitor
         self.socketFactory = socketFactory
         eventBroadcaster = AsyncBroadcaster(
@@ -786,12 +787,12 @@ public actor EventSubClient {
         guard shouldReconnect else { return nil }
         guard isNetworkAvailable else { emit(.waitingForNetwork); return nil }  // park
 
-        let live = await isLive()
+        let keepReconnecting = await shouldKeepReconnecting()
         reconnectAttempts += 1
         let decision = reconnectDecision(
             networkAvailable: isNetworkAvailable,
             shouldReconnect: shouldReconnect,
-            isLive: live,
+            shouldKeepReconnecting: keepReconnecting,
             attempt: reconnectAttempts
         )
         switch decision.action {

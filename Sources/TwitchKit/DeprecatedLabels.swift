@@ -365,7 +365,7 @@ extension TwitchClient {
     @available(*, deprecated, renamed: "clientID")
     public var clientId: String { clientID }
 
-    @available(*, deprecated, renamed: "init(clientID:clientSecret:tokenNamespace:tokenStore:httpClient:requestConfiguration:retryPolicy:responseMetadataHandler:eventBufferingPolicy:isLive:pathMonitor:eventSubSocketFactory:)")
+    @available(*, deprecated, renamed: "init(clientID:clientSecret:tokenNamespace:tokenStore:httpClient:requestConfiguration:retryPolicy:responseMetadataHandler:eventBufferingPolicy:shouldKeepReconnecting:pathMonitor:eventSubSocketFactory:)")
     public convenience init(
         clientId: String,
         clientSecret: String? = nil,
@@ -380,6 +380,45 @@ extension TwitchClient {
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
     ) {
-        self.init(clientID: clientId, clientSecret: clientSecret, tokenNamespace: tokenNamespace, tokenStore: tokenStore, httpClient: httpClient, requestConfiguration: requestConfiguration, retryPolicy: retryPolicy, responseMetadataHandler: responseMetadataHandler, eventBufferingPolicy: eventBufferingPolicy, isLive: isLive, pathMonitor: pathMonitor, eventSubSocketFactory: eventSubSocketFactory)
+        self.init(clientID: clientId, clientSecret: clientSecret, tokenNamespace: tokenNamespace, tokenStore: tokenStore, httpClient: httpClient, requestConfiguration: requestConfiguration, retryPolicy: retryPolicy, responseMetadataHandler: responseMetadataHandler, eventBufferingPolicy: eventBufferingPolicy, shouldKeepReconnecting: isLive, pathMonitor: pathMonitor, eventSubSocketFactory: eventSubSocketFactory)
+    }
+
+    // `isLive` is required here (it defaults in the new initializer), so a
+    // call that omits it isn't ambiguous between the two.
+    @available(*, deprecated, renamed: "init(clientID:clientSecret:tokenNamespace:tokenStore:httpClient:requestConfiguration:retryPolicy:responseMetadataHandler:eventBufferingPolicy:shouldKeepReconnecting:pathMonitor:eventSubSocketFactory:)")
+    public convenience init(
+        clientID: String,
+        clientSecret: String? = nil,
+        tokenNamespace: String? = nil,
+        tokenStore: (any TwitchTokenStore)? = nil,
+        httpClient: any HTTPClient = URLSessionHTTPClient(),
+        requestConfiguration: HelixRequestConfiguration = .default,
+        retryPolicy: HelixRetryPolicy = .default,
+        responseMetadataHandler: (@Sendable (HelixResponseMetadata) -> Void)? = nil,
+        eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
+        isLive: @escaping @Sendable () async -> Bool,
+        pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
+        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
+    ) {
+        self.init(clientID: clientID, clientSecret: clientSecret, tokenNamespace: tokenNamespace, tokenStore: tokenStore, httpClient: httpClient, requestConfiguration: requestConfiguration, retryPolicy: retryPolicy, responseMetadataHandler: responseMetadataHandler, eventBufferingPolicy: eventBufferingPolicy, shouldKeepReconnecting: isLive, pathMonitor: pathMonitor, eventSubSocketFactory: eventSubSocketFactory)
+    }
+}
+
+extension EventSubClient {
+    @available(*, deprecated, renamed: "init(api:shouldKeepReconnecting:pathMonitor:socketFactory:eventBufferingPolicy:)")
+    public init(
+        api: HelixClient,
+        isLive: @escaping @Sendable () async -> Bool,
+        pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
+        socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
+        eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)
+    ) {
+        self.init(
+            api: api,
+            shouldKeepReconnecting: isLive,
+            pathMonitor: pathMonitor,
+            socketFactory: socketFactory,
+            eventBufferingPolicy: eventBufferingPolicy
+        )
     }
 }

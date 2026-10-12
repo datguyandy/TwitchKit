@@ -28,6 +28,8 @@ try await eventSub.unsubscribe(id: record.id)
 
 TwitchKit reconnects automatically after disconnects and re-creates the subscriptions you requested through ``TwitchKit/EventSubClient/subscribe(_:)``. A subscription Twitch revokes (`.revocation`) is no longer re-created. If Twitch rejects re-creating a subscription for a reason retrying can't fix, such as a missing scope, the client drops it, reports `.subscriptionFailed`, and continues with the rest. Duplicate EventSub messages are ignored by message ID. Duplicate tracking is bounded, and EventSub notifications use `.bufferingNewest(1_000)` by default so a slow consumer cannot grow memory without limit.
 
+The `shouldKeepReconnecting` closure passed to ``TwitchKit/EventSubClient/init(api:shouldKeepReconnecting:pathMonitor:socketFactory:eventBufferingPolicy:)`` (or `TwitchClient`) decides how hard reconnects try. It's called before each attempt. While it returns `true`, the client retries forever with a backoff capped at 5 seconds. While it returns `false` (the `TwitchClient` default), the client gives up after 5 attempts, about 31 seconds, reports `.disconnected`, and waits for the network path to change or for `connect()`. Return `true` while the app needs live events, for example while a chat view is open and the app is in the foreground.
+
 Configure the buffering policy on ``TwitchKit/TwitchClient`` when your app needs a different tradeoff:
 
 ```swift

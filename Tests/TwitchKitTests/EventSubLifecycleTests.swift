@@ -26,7 +26,7 @@ final class EventSubLifecycleTests: XCTestCase {
 
     func test_clientDeallocatesWhilePathMonitorStreamIsParked() async throws {
         let mock = MockNetworkPathMonitor()
-        var client: EventSubClient? = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: mock)
+        var client: EventSubClient? = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
         weak var weakClient = client
 
         // Spawns the path-monitor task, which parks on the (never-ending)
@@ -65,7 +65,7 @@ final class EventSubLifecycleTests: XCTestCase {
     func test_clientDeallocatesWhileKeepaliveWatchdogIsSleeping() async throws {
         var client: EventSubClient? = EventSubClient(
             api: makeDummyAPI(),
-            isLive: { false },
+            shouldKeepReconnecting: { false },
             pathMonitor: MockNetworkPathMonitor()
         )
         weak var weakClient = client
@@ -90,7 +90,7 @@ final class EventSubLifecycleTests: XCTestCase {
     // MARK: - Cancellation-aware welcome waits
 
     func test_welcomeWaitTimeoutUnblocksPromptly() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let finishedFlag = CompletionFlag()
         let waiter = Task { () -> Result<Void, Error> in
@@ -127,7 +127,7 @@ final class EventSubLifecycleTests: XCTestCase {
     }
 
     func test_welcomeWaitUnblocksWhenCancelled() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let finishedFlag = CompletionFlag()
         let waiter = Task { () -> Result<Void, Error> in
@@ -166,7 +166,7 @@ final class EventSubLifecycleTests: XCTestCase {
     }
 
     func test_welcomeDeliveryResumesWait() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let waiter = Task { try await client.waitForWelcomeForTesting(timeout: .seconds(60)) }
         while await !(client.hasWelcomeWaiterForTesting) {
@@ -187,7 +187,7 @@ final class EventSubLifecycleTests: XCTestCase {
     /// parked wait — the cancellation handler is keyed to its own wait's
     /// identity token.
     func test_cancellingSupersededWaitDoesNotKillActiveWait() async throws {
-        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let first = Task { () -> Result<Void, Error> in
             do {
