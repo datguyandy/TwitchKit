@@ -24,19 +24,35 @@ public protocol EventSubWebSocket: AnyObject, Sendable {
 extension URLSessionWebSocketTask: EventSubWebSocket {}
 
 public actor EventSubClient {
-    /// Stream of parsed events — initialized once, consumers iterate without actor hop.
-    public nonisolated let events: AsyncStream<EventSubEvent>
-    private let eventsContinuation: AsyncStream<EventSubEvent>.Continuation
-
-    /// Stream of connection-state transitions, suitable for driving UI such as a
-    /// "Reconnecting…" indicator.
+    /// A new stream of parsed EventSub events.
     ///
-    /// Single-consumer (like ``events``): exactly one iterator consumes this stream,
-    /// and there is no value replay for late subscribers. Begin iterating
-    /// *before/around* ``connect(timeout:)`` so you observe the initial
-    /// `.connecting`/`.connected` transitions.
-    public nonisolated let connectionState: AsyncStream<ConnectionState>
-    private let connectionStateContinuation: AsyncStream<ConnectionState>.Continuation
+    /// Every access returns an independent stream, so any number of consumers
+    /// can iterate at once and each receives every event. Cancelling one
+    /// consumer (for example a SwiftUI `.task` whose view disappears) ends only
+    /// that stream; accessing `events` again starts a fresh one. Events that
+    /// arrive while nobody is iterating are buffered (per the client's
+    /// buffering policy) and delivered to the next consumer.
+    public nonisolated var events: AsyncStream<EventSubEvent> {
+        eventBroadcaster.makeStream()
+    }
+    private let eventBroadcaster: AsyncBroadcaster<EventSubEvent>
+
+    /// A new stream of connection-state transitions, suitable for driving UI
+    /// such as a "Reconnecting…" indicator.
+    ///
+    /// Every access returns an independent stream that starts with the
+    /// current state (once there is one) and then receives each transition,
+    /// so observers that start late still learn where the client is.
+    public nonisolated var connectionState: AsyncStream<ConnectionState> {
+        connectionStateBroadcaster.makeStream()
+    }
+    private let connectionStateBroadcaster: AsyncBroadcaster<ConnectionState>
+
+    /// The most recent connection state, or `.disconnected` before the first
+    /// ``connect(timeout:)``.
+    public nonisolated var currentConnectionState: ConnectionState {
+        connectionStateBroadcaster.latestValue ?? .disconnected
+    }
     private var lastEmittedState: ConnectionState?
 
     private let api: HelixClient
@@ -94,7 +110,8 @@ public actor EventSubClient {
     ///   - pathMonitor: Network-path monitor driving path-aware reconnects.
     ///   - socketFactory: Creates the WebSocket for a given URL. Defaults to
     ///     `URLSession.shared.webSocketTask(with:)`; tests inject fakes here.
-    ///   - eventBufferingPolicy: Buffering policy for the ``events`` stream.
+    ///   - eventBufferingPolicy: Buffering policy for each ``events`` stream, and
+    ///     for events held while nobody is iterating.
     public init(
         api: HelixClient,
         isLive: @escaping @Sendable () async -> Bool,
@@ -106,11 +123,18 @@ public actor EventSubClient {
         self.isLive = isLive
         self.pathMonitor = pathMonitor
         self.socketFactory = socketFactory
-        (events, eventsContinuation) = AsyncStream.makeStream(
-            of: EventSubEvent.self,
-            bufferingPolicy: eventBufferingPolicy
+        eventBroadcaster = AsyncBroadcaster(
+            bufferingPolicy: eventBufferingPolicy,
+            backlogPolicy: eventBufferingPolicy,
+            replaysLatest: false
         )
-        (connectionState, connectionStateContinuation) = AsyncStream.makeStream(of: ConnectionState.self)
+        // Transitions are few, but an app that never observes them must not
+        // accumulate them forever: keep only the newest while nobody listens.
+        connectionStateBroadcaster = AsyncBroadcaster(
+            bufferingPolicy: .unbounded,
+            backlogPolicy: .bufferingNewest(32),
+            replaysLatest: true
+        )
     }
 
     deinit {
@@ -123,8 +147,8 @@ public actor EventSubClient {
         keepaliveTask?.cancel()
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         welcomeContinuation?.resume(throwing: HelixError.networkError("EventSub client deallocated"))
-        eventsContinuation.finish()
-        connectionStateContinuation.finish()
+        eventBroadcaster.finish()
+        connectionStateBroadcaster.finish()
     }
 
     // MARK: - Public
@@ -232,7 +256,7 @@ public actor EventSubClient {
     private func emit(_ state: ConnectionState) {
         guard state != lastEmittedState else { return }
         lastEmittedState = state
-        connectionStateContinuation.yield(state)
+        connectionStateBroadcaster.yield(state)
     }
 
     // MARK: - Network Path Monitoring
@@ -525,7 +549,7 @@ public actor EventSubClient {
             let subType = envelope.metadata.subscriptionType ?? "unknown"
             logger.debug("EventSub notification: \(subType)")
             let event = parseNotificationEvent(type: subType, envelopeData: data)
-            eventsContinuation.yield(event)
+            eventBroadcaster.yield(event)
 
         case "session_reconnect":
             if webSocketTask === task,
@@ -543,7 +567,7 @@ public actor EventSubClient {
         case "revocation":
             if let revocation = envelope.payload.subscription {
                 forgetRevokedSubscription(revocation)
-                eventsContinuation.yield(.revocation(revocation))
+                eventBroadcaster.yield(.revocation(revocation))
             }
 
         default:
@@ -900,7 +924,7 @@ public actor EventSubClient {
                 guard desiredSubscriptions.contains(subscription) else { continue }
                 logger.error("❌ EventSub: Twitch rejected \(subscription.type) on resubscribe; dropping it: \(error.localizedDescription)")
                 forget(subscription)
-                eventsContinuation.yield(.subscriptionFailed(subscription, error))
+                eventBroadcaster.yield(.subscriptionFailed(subscription, error))
                 continue
             }
             // Reentrancy check: unsubscribe() may have run while the

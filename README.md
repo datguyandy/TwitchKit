@@ -164,9 +164,11 @@ for await event in twitch.eventSub.events {
 
 EventSub reconnects automatically and re-creates desired subscriptions after a full disconnect. Reconnect is network-path aware: while the OS reports no usable network path the retry loop parks instead of burning attempts into a dead connection, and it reconnects immediately — resetting backoff — the moment the path is restored. Duplicate EventSub messages are ignored by message ID. TwitchKit bounds duplicate-message tracking and buffers the newest 1,000 EventSub notifications by default so a slow consumer cannot grow memory without limit.
 
+Each access to `eventSub.events` returns its own stream, so several parts of an app (for example a chat view and a moderation panel) can iterate at the same time and each receives every event. Cancelling one loop, such as a SwiftUI `.task` whose view disappears, ends only that stream; iterate `events` again to resume. Events that arrive while nothing is iterating are buffered for the next consumer.
+
 ### Observing connection state
 
-`eventSub.connectionState` is an `AsyncStream<ConnectionState>` you can observe to drive UI such as a "Reconnecting…" indicator. Like `events`, it is single-consumer with no value replay, so begin iterating before/around `connect()`:
+`eventSub.connectionState` is an `AsyncStream<ConnectionState>` you can observe to drive UI such as a "Reconnecting…" indicator. Like `events`, each access returns an independent stream; it starts with the current state, so an observer that starts late still learns where the client is. `eventSub.currentConnectionState` reads the latest state synchronously.
 
 ```swift
 Task {

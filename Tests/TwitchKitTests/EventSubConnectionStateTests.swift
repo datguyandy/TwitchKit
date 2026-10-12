@@ -59,6 +59,27 @@ final class EventSubConnectionStateTests: XCTestCase {
         XCTAssertTrue(mock.didCancel)
     }
 
+    func test_lateConnectionStateObserverStartsWithCurrentState() async throws {
+        let client = EventSubClient(api: makeDummyAPI(), isLive: { false }, pathMonitor: MockNetworkPathMonitor())
+        XCTAssertEqual(client.currentConnectionState, .disconnected)
+
+        let early = client.connectionState
+        await client.startConnectionLifecycle()  // → .connecting
+
+        // Subscribing after the transition still reports where the client is.
+        let late = client.connectionState
+        var earlyIterator = early.makeAsyncIterator()
+        var lateIterator = late.makeAsyncIterator()
+        let earlyFirst = await earlyIterator.next()
+        let lateFirst = await lateIterator.next()
+        XCTAssertEqual(earlyFirst, .connecting)
+        XCTAssertEqual(lateFirst, .connecting)
+        XCTAssertEqual(client.currentConnectionState, .connecting)
+
+        await client.disconnect()
+        XCTAssertEqual(client.currentConnectionState, .disconnected)
+    }
+
     /// One EventSubClient is shared by every consumer on an account (one
     /// chat session per open channel) — so two consumers calling
     /// `connect()` near-simultaneously is NORMAL operation (e.g. swiping

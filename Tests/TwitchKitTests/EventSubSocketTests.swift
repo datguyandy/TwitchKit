@@ -686,6 +686,76 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 11. events supports multiple, restartable consumers
+
+    func test_everyEventsConsumerReceivesEveryEvent() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+
+        // Two consumers, e.g. a chat view and a moderation view. With a
+        // single shared stream they would split the events between them.
+        let first = client.events
+        let second = client.events
+        let firstCollector = Task { await collectEventTypes(from: first) }
+        let secondCollector = Task { await collectEventTypes(from: second) }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        socket.push(text: notificationJSON(messageId: "event-1", type: "test.event.one"))
+        socket.push(text: notificationJSON(messageId: "event-2", type: "test.event.two"))
+        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+
+        let firstTypes = await firstCollector.value
+        let secondTypes = await secondCollector.value
+        XCTAssertEqual(firstTypes, ["test.event.one", "test.event.two", "test.event.sentinel"])
+        XCTAssertEqual(secondTypes, ["test.event.one", "test.event.two", "test.event.sentinel"])
+
+        await client.disconnect()
+    }
+
+    func test_cancellingAnEventsConsumerDoesNotEndDelivery() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+
+        // A SwiftUI `.task` whose view went away: its loop is cancelled.
+        // That used to finish the one shared stream for good.
+        let abandoned = Task {
+            for await _ in client.events {}
+        }
+        abandoned.cancel()
+        await abandoned.value
+
+        let stream = client.events
+        let collector = Task { await collectEventTypes(from: stream) }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        socket.push(text: notificationJSON(messageId: "event-1", type: "test.event.one"))
+        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+
+        let types = await collector.value
+        XCTAssertEqual(types, ["test.event.one", "test.event.sentinel"])
+
+        await client.disconnect()
+    }
+}
+
+/// Collects `.unknown` event types until the sentinel arrives or the stream ends.
+private func collectEventTypes(from stream: AsyncStream<EventSubEvent>) async -> [String] {
+    var types: [String] = []
+    for await event in stream {
+        guard case .unknown(let type, _) = event else { continue }
+        types.append(type)
+        if type == "test.event.sentinel" { break }
+    }
+    return types
 }
 
 // MARK: - Fakes
