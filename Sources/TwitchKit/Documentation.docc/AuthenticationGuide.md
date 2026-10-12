@@ -42,6 +42,24 @@ let token = try await auth.pollDeviceCode(authorization)
 
 TwitchKit can store tokens through ``TwitchKit/TwitchTokenStore``. Apps that already have secure credential storage or a backend token exchange service can keep ownership of token persistence and pass access tokens into ``TwitchKit/TwitchClient`` with ``TwitchKit/InMemoryTokenStore`` or a custom store.
 
+## App Access Tokens
+
+Some Helix calls need an app access token instead of a user token, such as creating EventSub webhook or conduit subscriptions and managing conduits. Create the client with your client secret and use ``TwitchKit/TwitchClient/appAPI``:
+
+```swift
+let twitch = TwitchClient(clientID: "<#Client ID#>", clientSecret: "<#Client Secret#>")
+let conduits = try await twitch.appAPI!.fetchConduits()
+```
+
+``TwitchKit/TwitchAppTokenProvider`` behind it requests a token with the client credentials flow on first use, keeps it in memory, requests a new one shortly before it expires or when Twitch rejects it, and shares one request between concurrent callers. You can also use it directly with any `HelixClient`:
+
+```swift
+let appTokens = TwitchAppTokenProvider(clientID: "<#Client ID#>", clientSecret: "<#Client Secret#>")
+let appAPI = HelixClient(tokenProvider: appTokens, clientID: "<#Client ID#>")
+```
+
+The client credentials flow needs your client secret, so use it only where the secret stays private, such as on a server.
+
 ## Validating Tokens
 
 Twitch requires apps to validate tokens when they start and hourly after that, and to stop using a token it rejects. ``TwitchKit/TwitchAuth/validations(every:)`` validates now and then every hour for as long as you iterate it, refreshing a rejected token when it can:

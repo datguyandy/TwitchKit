@@ -10,8 +10,16 @@ public final class TwitchClient: Sendable {
     /// OAuth and token-management helper.
     public let auth: TwitchAuth
 
-    /// Helix HTTP API client.
+    /// Helix HTTP API client, authorized with the signed-in user's token.
     public let api: HelixClient
+
+    /// Helix client authorized with an app access token, for endpoints that
+    /// need one (EventSub webhook and conduit subscriptions, conduits).
+    /// `nil` unless the client was created with a `clientSecret`.
+    ///
+    /// The token comes from a ``TwitchAppTokenProvider``: requested on first
+    /// use, kept in memory, and renewed before it expires.
+    public let appAPI: HelixClient?
 
     /// EventSub WebSocket client.
     public let eventSub: EventSubClient
@@ -21,6 +29,7 @@ public final class TwitchClient: Sendable {
     /// - Parameters:
     ///   - clientId: Twitch application client ID.
     ///   - clientSecret: Optional Twitch application client secret for flows that require it.
+    ///     When set, ``appAPI`` makes app-token Helix calls. Keep secrets out of shipped apps.
     ///   - tokenNamespace: Optional namespace for the default keychain token store.
     ///   - tokenStore: Optional custom token store. Use this when a host app owns persistence.
     ///   - httpClient: HTTP transport used for OAuth and Helix requests.
@@ -73,6 +82,16 @@ public final class TwitchClient: Sendable {
         )
         self.auth = auth
         self.api = api
+        self.appAPI = clientSecret.map { _ in
+            HelixClient(
+                tokenProvider: TwitchAppTokenProvider(oauthClient: oauthClient),
+                clientID: clientId,
+                httpClient: httpClient,
+                requestConfiguration: requestConfiguration,
+                retryPolicy: retryPolicy,
+                responseMetadataHandler: responseMetadataHandler
+            )
+        }
         self.eventSub = EventSubClient(
             api: api,
             shouldKeepReconnecting: shouldKeepReconnecting,

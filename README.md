@@ -343,6 +343,14 @@ OAuth is split into composable pieces:
 - `InMemoryTokenStore` is useful for tests, previews, and backend-owned OAuth.
 - `TwitchTokenProvider` loads, validates, refreshes, and supplies access tokens.
 - `TwitchAuth` is a convenience facade that composes the pieces above.
+- `TwitchAppTokenProvider` supplies app access tokens from the client credentials flow, renewing them before they expire.
+
+Some endpoints need an app access token, such as EventSub webhook and conduit subscriptions. Pass your client secret (on a server, never in a shipped app) and use `twitch.appAPI` for those calls; `twitch.api` keeps using the user's token:
+
+```swift
+let twitch = TwitchClient(clientID: "<client id>", clientSecret: "<client secret>")
+let conduits = try await twitch.appAPI!.fetchConduits()
+```
 
 Twitch requires apps to validate tokens at startup and hourly. Iterate `twitch.auth.validations()` (for example in a SwiftUI `.task`) to validate now and every hour; it refreshes a rejected token when it can and yields `.invalid` when the user needs to sign in again. `validateToken()` validates once and returns a `TwitchTokenInfo` with the user ID, login, scopes and expiry.
 

@@ -125,10 +125,10 @@ Pass `nil` only when you intentionally want to delete all EventSub subscriptions
 
 ## Webhook And Conduit Transports
 
-``TwitchKit/EventSubClient`` is for WebSocket delivery. For webhook and conduit delivery, call Helix directly with an explicit transport:
+``TwitchKit/EventSubClient`` is for WebSocket delivery. For webhook and conduit delivery, call Helix directly with an explicit transport. Twitch requires an app access token for these, so use ``TwitchKit/TwitchClient/appAPI`` (available when the client has a client secret) or a `HelixClient` built on ``TwitchKit/TwitchAppTokenProvider``:
 
 ```swift
-let record = try await client.api.createEventSubSubscription(
+let record = try await client.appAPI!.createEventSubSubscription(
     type: "channel.update",
     version: "2",
     condition: ["broadcaster_user_id": "<#Broadcaster ID#>"],
@@ -144,7 +144,7 @@ print(record.id)
 Conduit subscriptions use the conduit ID returned by Twitch's conduit APIs:
 
 ```swift
-try await client.api.createEventSubSubscription(
+try await client.appAPI!.createEventSubSubscription(
     type: "channel.update",
     version: "2",
     condition: ["broadcaster_user_id": "<#Broadcaster ID#>"],
