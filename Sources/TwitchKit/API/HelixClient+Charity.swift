@@ -6,7 +6,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: The active charity campaign, or `nil` if no campaign is active.
     /// - SeeAlso: [Get Charity Campaign](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign)
-    public func fetchCharityCampaign(forBroadcasterID broadcasterId: String) async throws -> CharityCampaign? {
+    public func fetchCharityCampaign(broadcasterID broadcasterId: String) async throws -> CharityCampaign? {
         let response: HelixResponse<CharityCampaign> = try await request(
             endpoint: "charity/campaigns",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -23,7 +23,7 @@ extension HelixClient {
     /// - Returns: A page of donations.
     /// - SeeAlso: [Get Charity Campaign Donations](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign-donations)
     public func fetchCharityCampaignDonationsPage(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         first: Int? = nil,
         after cursor: String? = nil
     ) async throws -> HelixPage<CharityDonation> {
@@ -45,7 +45,7 @@ extension HelixClient {
     /// - Returns: A lazy async sequence that requests the next page as needed.
     /// - SeeAlso: [Get Charity Campaign Donations](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign-donations)
     public func charityCampaignDonations(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         pageSize: Int? = nil
     ) -> HelixPagedSequence<CharityDonation> {
         pagedRequest(

@@ -10,7 +10,7 @@ final class APIDesignTests: XCTestCase {
     }
 
     func test_authURLsAcceptTypedScopes() {
-        let auth = TwitchAuth(clientId: "client-id")
+        let auth = TwitchAuth(clientID: "client-id")
 
         let url = auth.implicitGrantURL(scopes: [.userReadEmail, .userReadChat])
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
@@ -20,7 +20,7 @@ final class APIDesignTests: XCTestCase {
     }
 
     func test_rawScopeEscapeHatchAllowsFutureTwitchScopes() {
-        let auth = TwitchAuth(clientId: "client-id")
+        let auth = TwitchAuth(clientID: "client-id")
 
         let url = auth.implicitGrantURL(rawScopes: ["future:scope"])
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
@@ -318,7 +318,7 @@ final class APIDesignTests: XCTestCase {
 
     func test_twitchClientAcceptsEventSubBufferingPolicy() {
         let client = TwitchClient(
-            clientId: "client-id",
+            clientID: "client-id",
             tokenStore: InMemoryTokenStore(),
             eventBufferingPolicy: .bufferingNewest(10)
         )

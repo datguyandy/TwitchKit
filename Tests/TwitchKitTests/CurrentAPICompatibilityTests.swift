@@ -5,9 +5,9 @@ import XCTest
 final class CurrentAPICompatibilityTests: XCTestCase {
     private func api(_ transport: MockHTTPClient) -> HelixClient {
         HelixClient(tokenProvider: TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client"),
+            oauthClient: TwitchOAuthClient(clientID: "client"),
             tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "test-token"))
-        ), clientId: "client", httpClient: transport)
+        ), clientID: "client", httpClient: transport)
     }
 
     func testGIFAndLegacyFragmentsDecode() throws {
@@ -204,7 +204,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
             .json(statusCode: 202, body: #"{"data":[{"id":"clip","edit_url":"https://example.com"}]}"#)
         ])
         let client = api(transport)
-        _ = try await client.sendChatMessage(broadcasterId: "b", senderId: "s", message: "hello", pin: true)
+        _ = try await client.sendChatMessage(broadcasterID: "b", senderID: "s", message: "hello", pin: true)
         try await client.sendChatAnnouncement(broadcasterID: "b", moderatorID: "m", message: "hello", forSourceOnly: true)
         _ = try await client.createClip(broadcasterID: "b", title: "A clip", duration: 5.5)
         let requests = await transport.recordedRequests()
@@ -223,7 +223,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
             XCTFail("Expected invalid duration")
         } catch HelixError.badRequest { }
         do {
-            _ = try await client.sendChatMessage(broadcasterId: "b", senderId: "s", message: "hello", forSourceOnly: false, pin: true)
+            _ = try await client.sendChatMessage(broadcasterID: "b", senderID: "s", message: "hello", forSourceOnly: false, pin: true)
             XCTFail("Expected incompatible parameters")
         } catch HelixError.badRequest { }
         for duration in [Double.nan, .infinity, 4.9, 60.1, 5.55] {
@@ -255,7 +255,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
     func testValidationOutageDoesNotRefreshOrDeleteToken() async throws {
         let transport = MockHTTPClient(responses: [.json(statusCode: 503, body: "")])
         let store = InMemoryTokenStore(token: OAuthToken(accessToken: "old", refreshToken: "refresh"))
-        let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientId: "client", httpClient: transport), tokenStore: store)
+        let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientID: "client", httpClient: transport), tokenStore: store)
         do {
             try await provider.validateToken()
             XCTFail("Expected server error")
@@ -268,7 +268,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
 
     func testOAuthTransportCancellationRemainsCancellation() async throws {
         let transport = MockHTTPClient(responses: [.failure(URLError(.cancelled))])
-        let oauth = TwitchOAuthClient(clientId: "client", httpClient: transport)
+        let oauth = TwitchOAuthClient(clientID: "client", httpClient: transport)
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
             return try await oauth.validateAccessToken("token")
@@ -282,7 +282,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
     func testRefreshServerErrorWithoutJSONStatusPreservesToken() async throws {
         let transport = MockHTTPClient(responses: [.json(statusCode: 503, body: #"{"error":"temporarily_unavailable"}"#)])
         let store = InMemoryTokenStore(token: OAuthToken(accessToken: "old", refreshToken: "refresh"))
-        let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientId: "client", httpClient: transport), tokenStore: store)
+        let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientID: "client", httpClient: transport), tokenStore: store)
         do {
             try await provider.refreshIfNeeded()
             XCTFail("Expected OAuth error")
@@ -297,7 +297,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
                 let gate = ResponseGate()
                 let transport = MockHTTPClient(responses: [.gatedJSON(gate: gate, statusCode: status, body: status == 200 ? #"{"access_token":"stale-refresh","refresh_token":"r2"}"# : #"{"status":401,"message":"invalid refresh token"}"#)])
                 let store = InMemoryTokenStore(token: OAuthToken(accessToken: "old", refreshToken: "r1"))
-                let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientId: "client", httpClient: transport), tokenStore: store)
+                let provider = TwitchTokenProvider(oauthClient: TwitchOAuthClient(clientID: "client", httpClient: transport), tokenStore: store)
                 let refresh = Task { try await provider.refreshIfNeeded() }
                 for _ in 0..<1000 {
                     if !(await transport.recordedRequests()).isEmpty { break }

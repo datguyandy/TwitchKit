@@ -464,7 +464,7 @@ public actor EventSubClient {
             type: subscription.type,
             version: subscription.version,
             condition: subscription.condition,
-            sessionId: sessionId,
+            sessionID: sessionId,
             isBatchingEnabled: subscription.isBatchingEnabled
         )
         activeSubscriptionsById[record.id] = subscription

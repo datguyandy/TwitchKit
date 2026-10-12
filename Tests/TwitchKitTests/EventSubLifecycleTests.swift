@@ -250,9 +250,9 @@ private actor CompletionFlag {
 private func makeDummyAPI() -> HelixClient {
     HelixClient(
         auth: TwitchAuth(
-            oauthClient: TwitchOAuthClient(clientId: "client-id", clientSecret: nil, httpClient: URLSessionHTTPClient()),
+            oauthClient: TwitchOAuthClient(clientID: "client-id", clientSecret: nil, httpClient: URLSessionHTTPClient()),
             tokenStore: InMemoryTokenStore()
         ),
-        clientId: "client-id"
+        clientID: "client-id"
     )
 }

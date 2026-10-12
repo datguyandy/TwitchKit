@@ -925,11 +925,11 @@ private func makeClient(
     let factory = FakeSocketFactory(sockets: sockets)
     let transport = MockHTTPClient(responses: responses)
     let auth = TwitchAuth(
-        oauthClient: TwitchOAuthClient(clientId: "client-id", clientSecret: nil, httpClient: transport),
+        oauthClient: TwitchOAuthClient(clientID: "client-id", clientSecret: nil, httpClient: transport),
         tokenStore: InMemoryTokenStore()
     )
     try await auth.setToken(OAuthToken(accessToken: "access-token"))
-    let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+    let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
     let client = EventSubClient(
         api: api,
         isLive: { false },

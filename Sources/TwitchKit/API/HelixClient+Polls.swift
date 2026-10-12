@@ -166,7 +166,7 @@ public struct PollCreateRequest: Encodable, Sendable, Equatable {
     public let duration: Int
 
     public init(
-        broadcasterId: String,
+        broadcasterID broadcasterId: String,
         title: String,
         choices: [PollChoice],
         channelPointsVotingEnabled: Bool? = nil,
@@ -247,7 +247,7 @@ public struct PredictionCreateRequest: Encodable, Sendable, Equatable {
     public let outcomes: [PredictionOutcome]
     public let predictionWindow: Int
 
-    public init(broadcasterId: String, title: String, outcomes: [PredictionOutcome], predictionWindow: Int) {
+    public init(broadcasterID broadcasterId: String, title: String, outcomes: [PredictionOutcome], predictionWindow: Int) {
         self.broadcasterId = broadcasterId
         self.title = title
         self.outcomes = outcomes

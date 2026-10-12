@@ -161,7 +161,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     public nonisolated let tokenProvider: TwitchTokenProvider
 
     /// Redirect URI — Twitch requires the value to match one of the redirect URLs registered for the app.
-    public static let redirectUri = TwitchOAuthClient.defaultRedirectURI
+    public static let redirectURI = TwitchOAuthClient.defaultRedirectURI
 
     /// Every scope known to this package.
     public static let allScopeCases = TwitchScope.allCases
@@ -184,22 +184,22 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     public static let defaultScopes = defaultScopeCases.map(\.rawValue)
 
     public init(
-        clientId: String,
+        clientID clientId: String,
         clientSecret: String? = nil,
-        redirectUri: String = TwitchAuth.redirectUri,
+        redirectURI redirectUri: String = TwitchAuth.redirectURI,
         tokenNamespace: String? = nil,
         httpClient: any HTTPClient = URLSessionHTTPClient()
     ) {
         let oauthClient = TwitchOAuthClient(
-            clientId: clientId,
+            clientID: clientId,
             clientSecret: clientSecret,
-            redirectUri: redirectUri,
+            redirectURI: redirectUri,
             httpClient: httpClient
         )
         self.oauthClient = oauthClient
         self.tokenProvider = TwitchTokenProvider(
             oauthClient: oauthClient,
-            tokenStore: KeychainTokenStore(clientId: clientId, namespace: tokenNamespace)
+            tokenStore: KeychainTokenStore(clientID: clientId, namespace: tokenNamespace)
         )
     }
 

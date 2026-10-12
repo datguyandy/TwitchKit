@@ -13,7 +13,7 @@ extension HelixClient {
     /// - Returns: A schedule page.
     /// - SeeAlso: [Get Channel Stream Schedule](https://dev.twitch.tv/docs/api/reference/#get-channel-stream-schedule)
     public func fetchChannelStreamSchedulePage(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         segmentIDs: [String] = [],
         startTime: Date? = nil,
         utcOffset: String? = nil,
@@ -43,7 +43,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: Raw iCalendar text.
     /// - SeeAlso: [Get Channel iCalendar](https://dev.twitch.tv/docs/api/reference/#get-channel-icalendar)
-    public func fetchChannelICalendar(forBroadcasterID broadcasterId: String) async throws -> String {
+    public func fetchChannelICalendar(broadcasterID broadcasterId: String) async throws -> String {
         let data = try await requestRawData(
             endpoint: "schedule/icalendar",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -61,7 +61,7 @@ extension HelixClient {
     ///   - settings: Schedule settings to update.
     /// - SeeAlso: [Update Channel Stream Schedule](https://dev.twitch.tv/docs/api/reference/#update-channel-stream-schedule)
     public func updateChannelStreamSchedule(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         with settings: ChannelStreamScheduleSettingsUpdate
     ) async throws {
         var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -94,7 +94,7 @@ extension HelixClient {
     /// - Returns: The created schedule.
     /// - SeeAlso: [Create Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#create-channel-stream-schedule-segment)
     public func createChannelStreamScheduleSegment(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         segment: ChannelStreamScheduleSegmentCreate
     ) async throws -> ChannelStreamSchedule {
         let data = try await requestRawData(
@@ -115,7 +115,7 @@ extension HelixClient {
     /// - Returns: The updated schedule.
     /// - SeeAlso: [Update Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#update-channel-stream-schedule-segment)
     public func updateChannelStreamScheduleSegment(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         segmentID segmentId: String,
         with update: ChannelStreamScheduleSegmentUpdate
     ) async throws -> ChannelStreamSchedule {
@@ -138,7 +138,7 @@ extension HelixClient {
     ///   - segmentId: The schedule segment ID.
     /// - SeeAlso: [Delete Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#delete-channel-stream-schedule-segment)
     public func deleteChannelStreamScheduleSegment(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         segmentID segmentId: String
     ) async throws {
         try await requestNoContent(
@@ -237,7 +237,7 @@ public struct ChannelStreamScheduleSegmentCreate: Encodable, Sendable, Equatable
         timezone: String,
         isRecurring: Bool,
         duration: String? = nil,
-        categoryId: String? = nil,
+        categoryID categoryId: String? = nil,
         title: String? = nil
     ) {
         self.startTime = startTime
@@ -260,7 +260,7 @@ public struct ChannelStreamScheduleSegmentUpdate: Encodable, Sendable, Equatable
     public init(
         startTime: Date? = nil,
         duration: String? = nil,
-        categoryId: String? = nil,
+        categoryID categoryId: String? = nil,
         title: String? = nil,
         isCanceled: Bool? = nil,
         timezone: String? = nil

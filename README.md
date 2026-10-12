@@ -36,7 +36,7 @@ Then add the product to your target:
 import TwitchKit
 
 let twitch = TwitchClient(
-    clientId: "<your client id>",
+    clientID: "<your client id>",
     tokenNamespace: "primary-account"
 )
 
@@ -54,7 +54,7 @@ For server-backed apps that can protect a client secret:
 
 ```swift
 let twitch = TwitchClient(
-    clientId: "<your client id>",
+    clientID: "<your client id>",
     clientSecret: "<your client secret>",
     tokenNamespace: "primary-account"
 )
@@ -92,7 +92,7 @@ try await twitch.auth.setToken(
 
 ```swift
 let user = try await twitch.api.fetchUser()
-let channel = try await twitch.api.fetchChannelInfo(forBroadcasterID: user.id)
+let channel = try await twitch.api.fetchChannelInfo(broadcasterID: user.id)
 let emotes = try await twitch.api.fetchGlobalEmotes()
 ```
 
@@ -102,11 +102,11 @@ Paginated endpoints are available as either single pages or lazy async sequences
 
 ```swift
 let firstPage = try await twitch.api.fetchChannelFollowersPage(
-    forBroadcasterID: user.id,
+    broadcasterID: user.id,
     first: 100
 )
 
-for try await follower in twitch.api.channelFollowers(forBroadcasterID: user.id) {
+for try await follower in twitch.api.channelFollowers(broadcasterID: user.id) {
     print("Follower:", follower.userName)
 }
 ```
@@ -115,8 +115,8 @@ Sending a chat message:
 
 ```swift
 let result = try await twitch.api.sendChatMessage(
-    broadcasterId: "<broadcaster id>",
-    senderId: "<sender id>",
+    broadcasterID: "<broadcaster id>",
+    senderID: "<sender id>",
     message: "Hello from TwitchKit"
 )
 
@@ -192,7 +192,7 @@ If your app needs a different EventSub buffering tradeoff, configure the client 
 
 ```swift
 let twitch = TwitchClient(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     eventBufferingPolicy: .bufferingNewest(5_000)
 )
 ```
@@ -301,7 +301,7 @@ Apps that already receive tokens from a backend can bypass Keychain storage enti
 
 ```swift
 let twitch = TwitchClient(
-    clientId: "<your client id>",
+    clientID: "<your client id>",
     tokenStore: InMemoryTokenStore(
         token: OAuthToken(accessToken: "<backend issued access token>")
     )

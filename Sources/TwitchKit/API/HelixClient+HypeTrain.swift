@@ -6,7 +6,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: Hype Train status, or `nil` if no status is returned.
     /// - SeeAlso: [Get Hype Train Status](https://dev.twitch.tv/docs/api/reference/#get-hype-train-status)
-    public func fetchHypeTrainStatus(forBroadcasterID broadcasterId: String) async throws -> HypeTrainStatus? {
+    public func fetchHypeTrainStatus(broadcasterID broadcasterId: String) async throws -> HypeTrainStatus? {
         let response: HelixResponse<HypeTrainStatus> = try await request(
             endpoint: "hypetrain/status",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]

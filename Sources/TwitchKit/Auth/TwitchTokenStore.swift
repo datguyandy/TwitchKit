@@ -17,7 +17,7 @@ public actor KeychainTokenStore: TwitchTokenStore {
     private let tokenKey: String
 
     /// Creates a Keychain token store scoped to a Twitch app and optional account namespace.
-    public init(clientId: String, namespace: String? = nil) {
+    public init(clientID clientId: String, namespace: String? = nil) {
         tokenKey = "com.twitchkit.\(clientId).\(namespace ?? "default").oauthToken"
     }
 

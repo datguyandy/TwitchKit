@@ -140,9 +140,9 @@ final class MockNetworkPathMonitor: NetworkPathMonitoring, @unchecked Sendable {
 private func makeDummyAPI() -> HelixClient {
     HelixClient(
         auth: TwitchAuth(
-            oauthClient: TwitchOAuthClient(clientId: "client-id", clientSecret: nil, httpClient: URLSessionHTTPClient()),
+            oauthClient: TwitchOAuthClient(clientID: "client-id", clientSecret: nil, httpClient: URLSessionHTTPClient()),
             tokenStore: InMemoryTokenStore()
         ),
-        clientId: "client-id"
+        clientID: "client-id"
     )
 }

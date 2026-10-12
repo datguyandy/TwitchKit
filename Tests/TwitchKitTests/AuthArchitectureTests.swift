@@ -5,7 +5,7 @@ final class AuthArchitectureTests: XCTestCase {
     func test_tokenProviderStoresExternallyManagedToken() async throws {
         let store = InMemoryTokenStore()
         let provider = TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client-id"),
+            oauthClient: TwitchOAuthClient(clientID: "client-id"),
             tokenStore: store
         )
 
@@ -28,7 +28,7 @@ final class AuthArchitectureTests: XCTestCase {
             nilLoads: 1
         )
         let provider = TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client-id"),
+            oauthClient: TwitchOAuthClient(clientID: "client-id"),
             tokenStore: store
         )
 
@@ -48,7 +48,7 @@ final class AuthArchitectureTests: XCTestCase {
         // not regress this.
         let store = InMemoryTokenStore(token: OAuthToken(accessToken: "stale"))
         let provider = TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client-id"),
+            oauthClient: TwitchOAuthClient(clientID: "client-id"),
             tokenStore: store
         )
         try await provider.logout()
@@ -78,7 +78,7 @@ final class AuthArchitectureTests: XCTestCase {
         ])
         let api = HelixClient(
             tokenProvider: StaticTokenProvider(accessToken: "backend-issued-token"),
-            clientId: "client-id",
+            clientID: "client-id",
             httpClient: transport
         )
 

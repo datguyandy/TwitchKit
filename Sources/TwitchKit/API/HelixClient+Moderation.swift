@@ -572,7 +572,7 @@ public struct AutoModMessage: Encodable, Sendable, Equatable {
     public let msgId: String
     public let msgText: String
 
-    public init(msgId: String, msgText: String) {
+    public init(msgID msgId: String, msgText: String) {
         self.msgId = msgId
         self.msgText = msgText
     }

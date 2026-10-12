@@ -10,7 +10,7 @@ Use ``TwitchKit/TwitchClient`` as the main entry point:
 
 ```swift
 let client = TwitchClient(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     tokenStore: InMemoryTokenStore(
         token: OAuthToken(accessToken: "<#Access Token#>")
     )
@@ -18,7 +18,7 @@ let client = TwitchClient(
 
 let user = try await client.api.fetchUser()
 let channel = try await client.api.fetchChannelInfo(
-    forBroadcasterID: user.id
+    broadcasterID: user.id
 )
 ```
 

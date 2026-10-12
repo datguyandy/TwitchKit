@@ -163,7 +163,7 @@ extension HelixClient {
         type: String,
         version: String,
         condition: [String: String],
-        sessionId: String,
+        sessionID sessionId: String,
         isBatchingEnabled: Bool? = nil
     ) async throws -> EventSubSubscriptionRecord {
         guard !sessionId.isEmpty else {

@@ -8,7 +8,7 @@ Use ``TwitchKit/HelixClient`` for Twitch REST API calls. The client handles auth
 let user = try await client.api.fetchUser()
 
 let channel = try await client.api.fetchChannelInfo(
-    forBroadcasterID: user.id
+    broadcasterID: user.id
 )
 ```
 
@@ -18,12 +18,12 @@ Use ``TwitchKit/ChannelInfoUpdate`` to keep update call sites readable as Twitch
 
 ```swift
 let update = ChannelInfoUpdate(
-    gameId: "509658",
+    gameID: "509658",
     title: "Building a Swift Twitch SDK"
 )
 
 try await client.api.updateChannelInfo(
-    forBroadcasterID: user.id,
+    broadcasterID: user.id,
     with: update
 )
 ```
@@ -32,8 +32,8 @@ try await client.api.updateChannelInfo(
 
 ```swift
 let response = try await client.api.sendChatMessage(
-    broadcasterId: "<#Broadcaster ID#>",
-    senderId: "<#Sender ID#>",
+    broadcasterID: "<#Broadcaster ID#>",
+    senderID: "<#Sender ID#>",
     message: "Hello from TwitchKit"
 )
 
@@ -46,7 +46,7 @@ Read chat metadata and current chatters:
 
 ```swift
 let badges = try await client.api.fetchGlobalBadges()
-let emotes = try await client.api.fetchChannelEmotes(forBroadcasterID: "<#Broadcaster ID#>")
+let emotes = try await client.api.fetchChannelEmotes(broadcasterID: "<#Broadcaster ID#>")
 let chatters = try await client.api.fetchChattersPage(
     broadcasterID: "<#Broadcaster ID#>",
     moderatorID: "<#Moderator ID#>"
@@ -102,7 +102,7 @@ let videos = try await client.api.fetchVideosPage(
 ```swift
 let poll = try await client.api.createPoll(
     PollCreateRequest(
-        broadcasterId: "<#Broadcaster ID#>",
+        broadcasterID: "<#Broadcaster ID#>",
         title: "Which feature next?",
         choices: [
             PollChoice(title: "OAuth"),
@@ -115,7 +115,7 @@ let poll = try await client.api.createPoll(
 
 let prediction = try await client.api.createPrediction(
     PredictionCreateRequest(
-        broadcasterId: "<#Broadcaster ID#>",
+        broadcasterID: "<#Broadcaster ID#>",
         title: "Will the build pass?",
         outcomes: [
             PredictionOutcome(title: "Yes"),
@@ -138,7 +138,7 @@ let record = try await client.api.createEventSubSubscription(
         "broadcaster_user_id": "<#Broadcaster ID#>",
         "user_id": "<#User ID#>"
     ],
-    sessionId: "<#WebSocket Session ID#>"
+    sessionID: "<#WebSocket Session ID#>"
 )
 
 try await client.api.deleteEventSubSubscription(id: record.id)
@@ -169,7 +169,7 @@ Sequence helpers request additional pages lazily as you iterate:
 
 ```swift
 for try await follower in client.api.channelFollowers(
-    forBroadcasterID: "<#Broadcaster ID#>"
+    broadcasterID: "<#Broadcaster ID#>"
 ) {
     print(follower.userName)
 }
@@ -184,7 +184,7 @@ for try await follower in client.api.channelFollowers(
 
 ```swift
 let client = TwitchClient(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     retryPolicy: HelixRetryPolicy(rateLimitRetries: 3, maxRateLimitDelay: .seconds(30))
 )
 ```

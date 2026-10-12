@@ -11,9 +11,9 @@ public struct TwitchOAuthClient: Sendable {
     public static let defaultRedirectURI = "https://localhost"
 
     public init(
-        clientId: String,
+        clientID clientId: String,
         clientSecret: String? = nil,
-        redirectUri: String = TwitchOAuthClient.defaultRedirectURI,
+        redirectURI redirectUri: String = TwitchOAuthClient.defaultRedirectURI,
         httpClient: any HTTPClient = URLSessionHTTPClient()
     ) {
         self.clientId = clientId

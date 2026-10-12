@@ -7,7 +7,7 @@ final class TokenRefreshTests: XCTestCase {
 
     private func makeProvider(store: InMemoryTokenStore, httpClient: any HTTPClient) -> TwitchTokenProvider {
         TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "id", clientSecret: "secret", httpClient: httpClient),
+            oauthClient: TwitchOAuthClient(clientID: "id", clientSecret: "secret", httpClient: httpClient),
             tokenStore: store
         )
     }

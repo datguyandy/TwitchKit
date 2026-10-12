@@ -13,10 +13,10 @@ final class RetryPolicyTests: XCTestCase {
     private func api(_ transport: MockHTTPClient, retryPolicy: HelixRetryPolicy = .default) -> HelixClient {
         HelixClient(
             tokenProvider: TwitchTokenProvider(
-                oauthClient: TwitchOAuthClient(clientId: "client"),
+                oauthClient: TwitchOAuthClient(clientID: "client"),
                 tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "test-token"))
             ),
-            clientId: "client",
+            clientID: "client",
             httpClient: transport,
             retryPolicy: retryPolicy
         )
@@ -43,7 +43,7 @@ final class RetryPolicyTests: XCTestCase {
             .json(statusCode: 200, body: Self.chatSentJSON),
         ])
 
-        let result = try await api(transport).sendChatMessage(broadcasterId: "b", senderId: "s", message: "hello")
+        let result = try await api(transport).sendChatMessage(broadcasterID: "b", senderID: "s", message: "hello")
 
         XCTAssertTrue(result.isSent)
         let requests = await transport.recordedRequests()
@@ -170,7 +170,7 @@ final class RetryPolicyTests: XCTestCase {
         ])
 
         do {
-            _ = try await api(transport).sendChatMessage(broadcasterId: "b", senderId: "s", message: "hello")
+            _ = try await api(transport).sendChatMessage(broadcasterID: "b", senderID: "s", message: "hello")
             XCTFail("Expected server error")
         } catch HelixError.serverError(let status) {
             XCTAssertEqual(status, 503)
@@ -187,7 +187,7 @@ final class RetryPolicyTests: XCTestCase {
         ])
         let policy = HelixRetryPolicy(retriesNonIdempotentRequests: true)
 
-        let result = try await api(transport, retryPolicy: policy).sendChatMessage(broadcasterId: "b", senderId: "s", message: "hello")
+        let result = try await api(transport, retryPolicy: policy).sendChatMessage(broadcasterID: "b", senderID: "s", message: "hello")
 
         XCTAssertTrue(result.isSent)
         let requests = await transport.recordedRequests()

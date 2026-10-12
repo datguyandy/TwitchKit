@@ -1,7 +1,7 @@
 import Foundation
 
 extension HelixClient {
-    public func fetchCreatorGoals(forBroadcasterID broadcasterId: String) async throws -> [CreatorGoal] {
+    public func fetchCreatorGoals(broadcasterID broadcasterId: String) async throws -> [CreatorGoal] {
         let response: HelixResponse<CreatorGoal> = try await request(
             endpoint: "goals",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]

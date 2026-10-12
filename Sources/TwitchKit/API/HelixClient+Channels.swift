@@ -9,7 +9,7 @@ extension HelixClient {
     /// - Parameter broadcasterIds: Broadcaster user IDs. Twitch currently allows up to 100.
     /// - Returns: Channel information for the requested broadcasters.
     /// - SeeAlso: [Get Channel Information](https://dev.twitch.tv/docs/api/reference/#get-channel-information)
-    public func fetchChannelsInfo(forBroadcasterIDs broadcasterIds: [String]) async throws -> [TwitchChannel] {
+    public func fetchChannelsInfo(broadcasterIDs broadcasterIds: [String]) async throws -> [TwitchChannel] {
         guard !broadcasterIds.isEmpty else {
             throw HelixError.badRequest(
                 TwitchAPIError.fallback(status: 400, message: "At least one broadcaster ID is required")
@@ -36,8 +36,8 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: The channel information.
     /// - SeeAlso: [Get Channel Information](https://dev.twitch.tv/docs/api/reference/#get-channel-information)
-    public func fetchChannelInfo(forBroadcasterID broadcasterId: String) async throws -> TwitchChannel {
-        let channels = try await fetchChannelsInfo(forBroadcasterIDs: [broadcasterId])
+    public func fetchChannelInfo(broadcasterID broadcasterId: String) async throws -> TwitchChannel {
+        let channels = try await fetchChannelsInfo(broadcasterIDs: [broadcasterId])
         guard let channel = channels.first else { throw HelixError.notFound }
         return channel
     }
@@ -58,7 +58,7 @@ extension HelixClient {
     ///   `HelixError.forbidden` for age/region-restricted CCL changes.
     ///
     /// - SeeAlso: [Modify Channel Information](https://dev.twitch.tv/docs/api/reference/#modify-channel-information)
-    public func updateChannelInfo(forBroadcasterID broadcasterId: String, with update: ChannelInfoUpdate) async throws {
+    public func updateChannelInfo(broadcasterID broadcasterId: String, with update: ChannelInfoUpdate) async throws {
         let bodyData = try JSONEncoder.twitch().encode(update)
 
         try await requestNoContent(
@@ -80,7 +80,7 @@ extension HelixClient {
     /// - Returns: A page of followers and the next pagination cursor, if any.
     /// - SeeAlso: [Get Channel Followers](https://dev.twitch.tv/docs/api/reference/#get-channel-followers)
     public func fetchChannelFollowersPage(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         userID userId: String? = nil,
         first: Int? = nil,
         after cursor: String? = nil
@@ -107,7 +107,7 @@ extension HelixClient {
     /// - Returns: A lazy async sequence that requests the next page as needed.
     /// - SeeAlso: [Get Channel Followers](https://dev.twitch.tv/docs/api/reference/#get-channel-followers)
     public func channelFollowers(
-        forBroadcasterID broadcasterId: String,
+        broadcasterID broadcasterId: String,
         userID userId: String? = nil,
         pageSize: Int? = nil
     ) -> HelixPagedSequence<TwitchFollow> {
@@ -131,7 +131,7 @@ extension HelixClient {
     /// - Returns: A page of followed channels.
     /// - SeeAlso: [Get Followed Channels](https://dev.twitch.tv/docs/api/reference/#get-followed-channels)
     public func fetchFollowedChannelsPage(
-        forUserID userId: String,
+        userID userId: String,
         broadcasterID broadcasterId: String? = nil,
         first: Int? = nil,
         after cursor: String? = nil
@@ -156,7 +156,7 @@ extension HelixClient {
     /// - Returns: A lazy async sequence that requests the next page as needed.
     /// - SeeAlso: [Get Followed Channels](https://dev.twitch.tv/docs/api/reference/#get-followed-channels)
     public func followedChannels(
-        forUserID userId: String,
+        userID userId: String,
         broadcasterID broadcasterId: String? = nil,
         pageSize: Int? = nil
     ) -> HelixPagedSequence<FollowedChannel> {
@@ -175,7 +175,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: Channel editors.
     /// - SeeAlso: [Get Channel Editors](https://dev.twitch.tv/docs/api/reference/#get-channel-editors)
-    public func fetchChannelEditors(forBroadcasterID broadcasterId: String) async throws -> [ChannelEditor] {
+    public func fetchChannelEditors(broadcasterID broadcasterId: String) async throws -> [ChannelEditor] {
         let response: HelixResponse<ChannelEditor> = try await request(
             endpoint: "channels/editors",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -247,7 +247,7 @@ public struct ChannelInfoUpdate: Encodable, Sendable, Equatable {
 
     public init(
         title: String? = nil,
-        gameId: String? = nil,
+        gameID gameId: String? = nil,
         broadcasterLanguage: String? = nil,
         delay: Int? = nil,
         tags: [String]? = nil,

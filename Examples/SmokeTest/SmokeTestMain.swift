@@ -74,7 +74,7 @@ struct TwitchKitSmokeTestCLI {
 
     private static func fetchChannel(_ context: SmokeContext) async throws {
         let broadcasterID = try context.required("TWITCH_BROADCASTER_ID")
-        let channel = try await context.client.api.fetchChannelInfo(forBroadcasterID: broadcasterID)
+        let channel = try await context.client.api.fetchChannelInfo(broadcasterID: broadcasterID)
         print("Channel: \(channel.broadcasterName) playing \(channel.gameName) - \(channel.title)")
     }
 
@@ -170,8 +170,8 @@ struct TwitchKitSmokeTestCLI {
         let message = context.chatMessage ?? "TwitchKit smoke test"
 
         let response = try await context.client.api.sendChatMessage(
-            broadcasterId: broadcasterID,
-            senderId: senderID,
+            broadcasterID: broadcasterID,
+            senderID: senderID,
             message: message
         )
         print("Chat message sent: \(response.isSent), id: \(response.messageId)")
@@ -403,7 +403,7 @@ private struct SmokeContext {
 
         let token = OAuthToken(accessToken: accessToken, refreshToken: refreshToken)
         let tokenStore = InMemoryTokenStore(token: token)
-        client = TwitchClient(clientId: clientID, clientSecret: clientSecret, tokenStore: tokenStore)
+        client = TwitchClient(clientID: clientID, clientSecret: clientSecret, tokenStore: tokenStore)
 
         broadcasterID = Self.value("TWITCH_BROADCASTER_ID", in: environment)
         senderID = Self.value("TWITCH_SENDER_ID", in: environment)

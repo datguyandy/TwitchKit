@@ -6,7 +6,7 @@ Create a Twitch application, request the scopes your app needs, and initialize a
 
 ```swift
 let client = TwitchClient(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     tokenStore: InMemoryTokenStore(
         token: OAuthToken(accessToken: "<#Access Token#>")
     )
@@ -18,7 +18,7 @@ Use the ``TwitchKit/TwitchClient/api`` property for Helix calls:
 ```swift
 let user = try await client.api.fetchUser()
 let channel = try await client.api.fetchChannelInfo(
-    forBroadcasterID: user.id
+    broadcasterID: user.id
 )
 ```
 

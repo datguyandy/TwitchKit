@@ -8,9 +8,9 @@ import XCTest
 final class ResponseShapeTests: XCTestCase {
     private func api(_ transport: MockHTTPClient) -> HelixClient {
         HelixClient(tokenProvider: TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client"),
+            oauthClient: TwitchOAuthClient(clientID: "client"),
             tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "test-token"))
-        ), clientId: "client", httpClient: transport)
+        ), clientID: "client", httpClient: transport)
     }
 
     // MARK: - Check User Subscription
@@ -173,7 +173,7 @@ final class ResponseShapeTests: XCTestCase {
     func testPositiveUTCOffsetIsPercentEncoded() async throws {
         let transport = MockHTTPClient(responses: [.failure(MockError())])
 
-        _ = try? await api(transport).fetchChannelStreamSchedulePage(forBroadcasterID: "1", utcOffset: "+05:30")
+        _ = try? await api(transport).fetchChannelStreamSchedulePage(broadcasterID: "1", utcOffset: "+05:30")
 
         let request = try await firstRequest(transport)
         let url = try XCTUnwrap(request.url)
@@ -181,7 +181,7 @@ final class ResponseShapeTests: XCTestCase {
     }
 
     func testAuthorizationURLPercentEncodesPlusInState() throws {
-        let client = TwitchOAuthClient(clientId: "client")
+        let client = TwitchOAuthClient(clientID: "client")
 
         let url = client.implicitGrantURL(scopes: [.userReadChat], state: "a+b")
 

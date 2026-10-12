@@ -21,7 +21,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: Array of channel-specific emotes. Empty if none exist.
     /// - SeeAlso: [Get Channel Emotes](https://dev.twitch.tv/docs/api/reference/#get-channel-emotes)
-    public func fetchChannelEmotes(forBroadcasterID broadcasterId: String) async throws -> [TwitchEmote] {
+    public func fetchChannelEmotes(broadcasterID broadcasterId: String) async throws -> [TwitchEmote] {
         let response: HelixResponse<TwitchEmote> = try await request(
             endpoint: "chat/emotes",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -50,7 +50,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: Array of channel-specific badge sets.
     /// - SeeAlso: [Get Channel Chat Badges](https://dev.twitch.tv/docs/api/reference/#get-channel-chat-badges)
-    public func fetchChannelBadges(forBroadcasterID broadcasterId: String) async throws -> [TwitchBadgeSet] {
+    public func fetchChannelBadges(broadcasterID broadcasterId: String) async throws -> [TwitchBadgeSet] {
         let response: HelixResponse<TwitchBadgeSet> = try await request(
             endpoint: "chat/badges",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
@@ -74,10 +74,10 @@ extension HelixClient {
     /// - Throws: `HelixError.forbidden` if the user is banned or lacks permissions.
     /// - SeeAlso: [Send Chat Message](https://dev.twitch.tv/docs/api/reference/#send-chat-message)
     public func sendChatMessage(
-        broadcasterId: String,
-        senderId: String,
+        broadcasterID broadcasterId: String,
+        senderID senderId: String,
         message: String,
-        replyParentMessageId: String? = nil,
+        replyParentMessageID replyParentMessageId: String? = nil,
         forSourceOnly: Bool? = nil,
         pin: Bool? = nil
     ) async throws -> SendChatMessageResponse {

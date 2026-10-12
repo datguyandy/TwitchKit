@@ -5,7 +5,7 @@ import Foundation
 /// `TwitchClient` wires together OAuth/token storage, Helix HTTP APIs, and EventSub WebSocket APIs.
 public final class TwitchClient: Sendable {
     /// Twitch application client ID used for Helix and OAuth requests.
-    public let clientId: String
+    public let clientID: String
 
     /// OAuth and token-management helper.
     public let auth: TwitchAuth
@@ -39,7 +39,7 @@ public final class TwitchClient: Sendable {
     ///   - eventSubSocketFactory: Creates the EventSub WebSocket for a given URL. Defaults to
     ///     `URLSession.shared.webSocketTask(with:)`; primarily a seam for injecting fake sockets in tests.
     public init(
-        clientId: String,
+        clientID clientId: String,
         clientSecret: String? = nil,
         tokenNamespace: String? = nil,
         tokenStore: (any TwitchTokenStore)? = nil,
@@ -52,13 +52,13 @@ public final class TwitchClient: Sendable {
         pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
     ) {
-        self.clientId = clientId
-        let oauthClient = TwitchOAuthClient(clientId: clientId, clientSecret: clientSecret, httpClient: httpClient)
+        self.clientID = clientId
+        let oauthClient = TwitchOAuthClient(clientID: clientId, clientSecret: clientSecret, httpClient: httpClient)
         let auth = if let tokenStore {
             TwitchAuth(oauthClient: oauthClient, tokenStore: tokenStore)
         } else {
             TwitchAuth(
-                clientId: clientId,
+                clientID: clientId,
                 clientSecret: clientSecret,
                 tokenNamespace: tokenNamespace,
                 httpClient: httpClient
@@ -66,7 +66,7 @@ public final class TwitchClient: Sendable {
         }
         let api = HelixClient(
             auth: auth,
-            clientId: clientId,
+            clientID: clientId,
             httpClient: httpClient,
             requestConfiguration: requestConfiguration,
             retryPolicy: retryPolicy,

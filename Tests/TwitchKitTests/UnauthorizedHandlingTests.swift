@@ -13,7 +13,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
 
     private func makeAuth(httpClient: any HTTPClient, token: OAuthToken) async throws -> TwitchAuth {
         let auth = TwitchAuth(
-            oauthClient: TwitchOAuthClient(clientId: "client", clientSecret: "secret", httpClient: httpClient),
+            oauthClient: TwitchOAuthClient(clientID: "client", clientSecret: "secret", httpClient: httpClient),
             tokenStore: InMemoryTokenStore()
         )
         try await auth.setToken(token)
@@ -22,7 +22,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
 
     private func makeProvider(httpClient: any HTTPClient, token: OAuthToken) -> TwitchTokenProvider {
         TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientId: "client", clientSecret: "secret", httpClient: httpClient),
+            oauthClient: TwitchOAuthClient(clientID: "client", clientSecret: "secret", httpClient: httpClient),
             tokenStore: InMemoryTokenStore(token: token)
         )
     }
@@ -32,7 +32,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
     func testMissingScopeDoesNotRefreshAndKeepsTwitchMessage() async throws {
         let transport = MockHTTPClient(responses: [.json(statusCode: 401, body: Self.missingScopeBody)])
         let auth = try await makeAuth(httpClient: transport, token: OAuthToken(accessToken: "old", refreshToken: "r1"))
-        let api = HelixClient(auth: auth, clientId: "client", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -52,7 +52,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
         {"error":"Unauthorized","status":401,"message":"The ID in broadcaster_id must match the user ID found in the request's OAuth token."}
         """)])
         let auth = try await makeAuth(httpClient: transport, token: OAuthToken(accessToken: "old", refreshToken: "r1"))
-        let api = HelixClient(auth: auth, clientId: "client", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -72,7 +72,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
             .json(statusCode: 200, body: Self.usersJSON),
         ])
         let auth = try await makeAuth(httpClient: transport, token: OAuthToken(accessToken: "old", refreshToken: "r1"))
-        let api = HelixClient(auth: auth, clientId: "client", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client", httpClient: transport)
 
         let user = try await api.fetchUser()
 
@@ -86,7 +86,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
     func testInvalidTokenWithoutRefreshTokenSurfacesTwitchMessage() async throws {
         let transport = MockHTTPClient(responses: [.json(statusCode: 401, body: Self.invalidTokenBody)])
         let auth = try await makeAuth(httpClient: transport, token: OAuthToken(accessToken: "old"))
-        let api = HelixClient(auth: auth, clientId: "client", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -106,7 +106,7 @@ final class UnauthorizedHandlingTests: XCTestCase {
             .json(statusCode: 401, body: Self.invalidTokenBody),
         ])
         let auth = try await makeAuth(httpClient: transport, token: OAuthToken(accessToken: "old", refreshToken: "r1"))
-        let api = HelixClient(auth: auth, clientId: "client", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()

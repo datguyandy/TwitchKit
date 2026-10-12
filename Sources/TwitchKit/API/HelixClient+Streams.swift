@@ -93,7 +93,7 @@ extension HelixClient {
     /// - Parameter userId: The broadcaster's user ID.
     /// - Returns: The live stream or `nil` when the user is offline.
     /// - SeeAlso: [Get Streams](https://dev.twitch.tv/docs/api/reference/#get-streams)
-    public func fetchStream(forUserID userId: String) async throws -> TwitchStream? {
+    public func fetchStream(userID userId: String) async throws -> TwitchStream? {
         try await fetchStreamsPage(userIDs: [userId], first: 1).data.first
     }
 
@@ -105,7 +105,7 @@ extension HelixClient {
     /// - Parameter broadcasterId: The broadcaster's user ID.
     /// - Returns: The stream key string.
     /// - SeeAlso: [Get Stream Key](https://dev.twitch.tv/docs/api/reference/#get-stream-key)
-    public func fetchStreamKey(forBroadcasterID broadcasterId: String) async throws -> String {
+    public func fetchStreamKey(broadcasterID broadcasterId: String) async throws -> String {
         let response: HelixResponse<StreamKeyResponse> = try await request(
             endpoint: "streams/key",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]

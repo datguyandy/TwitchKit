@@ -6,6 +6,10 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+### Changed
+
+- API naming: every argument label now spells acronyms uniformly (`broadcasterID`, `userID`, `clientID`, `redirectURI`), and the `for` prefix most endpoints never used is gone (`fetchChannelInfo(broadcasterID:)`, not `fetchChannelInfo(forBroadcasterID:)`). Model properties keep Twitch's field names (`broadcasterId`), since they mirror the JSON. The previous spellings remain as deprecated forwarders with fix-its and will be removed before 1.0.
+
 ### Fixed
 
 - Helix: `checkUserSubscription` decodes Twitch's Check User Subscription response. It previously reused the EventSub `channel.subscribe` model, which requires subscriber fields this endpoint never returns, so every successful call threw `.decodingFailed`.
@@ -32,6 +36,7 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 - `AnalyticsReportType.overview` is deprecated; use `.overviewV2`.
 - `HelixError.unauthorized` now carries `TwitchAPIError?` (Twitch's 401 body). Patterns like `catch HelixError.unauthorized` still match; code that constructs the error writes `.unauthorized(nil)`.
 - `EventSubClient.events` and `connectionState` are now computed properties that return a new stream on each access. Iterate the property directly (`for await event in client.events`) or keep the stream you were given; code that stored one stream and iterated it from several tasks should give each task its own.
+- Renamed argument labels (deprecated forwarders keep the old ones compiling; apply Xcode's fix-its): `clientId:` → `clientID:` and `redirectUri:` → `redirectURI:` on `TwitchClient`, `TwitchAuth`, `TwitchOAuthClient`, `HelixClient` and `KeychainTokenStore`; `forBroadcasterID:`/`forBroadcasterIDs:`/`forUserID:` → `broadcasterID:`/`broadcasterIDs:`/`userID:` on 23 Helix methods; `sendChatMessage(broadcasterID:senderID:message:replyParentMessageID:)`; `createEventSubSubscription(…sessionID:)`; and the `broadcasterID:`, `gameID:`, `categoryID:` and `msgID:` labels on `PollCreateRequest`, `PredictionCreateRequest`, `ChannelInfoUpdate`, `ChannelStreamScheduleSegmentCreate`/`Update` and `AutoModMessage`. `TwitchClient.clientId` → `clientID` and `TwitchAuth.redirectUri` → `redirectURI`.
 - `HelixRetryPolicy.default` now retries a 429 once after waiting up to 60 seconds, and no longer retries a 503 for POST/PATCH. Use `.never`, or set `rateLimitRetries: 0`, to keep surfacing 429s immediately.
 - `EventSubEvent` gains `.subscriptionFailed(EventSubSubscription, HelixError)`; exhaustive `switch` statements over `EventSubEvent` need a case for it.
 - `TwitchAccessTokenProvider` gains `refreshIfNeeded(rejectedAccessToken:)`. A default implementation calls `refreshIfNeeded()`, so existing custom providers keep compiling; implement it to skip refreshes for tokens you've already replaced.

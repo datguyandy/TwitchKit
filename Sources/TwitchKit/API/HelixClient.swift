@@ -16,7 +16,7 @@ public struct HelixClient: Sendable {
 
     public init(
         tokenProvider: any TwitchAccessTokenProvider,
-        clientId: String,
+        clientID clientId: String,
         httpClient: any HTTPClient = URLSessionHTTPClient(),
         requestConfiguration: HelixRequestConfiguration = .default,
         retryPolicy: HelixRetryPolicy = .default,
@@ -32,7 +32,7 @@ public struct HelixClient: Sendable {
 
     public init(
         auth: TwitchAuth,
-        clientId: String,
+        clientID clientId: String,
         httpClient: any HTTPClient = URLSessionHTTPClient(),
         requestConfiguration: HelixRequestConfiguration = .default,
         retryPolicy: HelixRetryPolicy = .default,
@@ -40,7 +40,7 @@ public struct HelixClient: Sendable {
     ) {
         self.init(
             tokenProvider: auth,
-            clientId: clientId,
+            clientID: clientId,
             httpClient: httpClient,
             requestConfiguration: requestConfiguration,
             retryPolicy: retryPolicy,

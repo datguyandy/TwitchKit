@@ -21,7 +21,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchUser()
 
@@ -52,7 +52,7 @@ final class HTTPClientTests: XCTestCase {
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         let api = HelixClient(
             auth: auth,
-            clientId: "client-id",
+            clientID: "client-id",
             httpClient: transport,
             requestConfiguration: HelixRequestConfiguration(timeoutInterval: 12)
         )
@@ -68,7 +68,7 @@ final class HTTPClientTests: XCTestCase {
         let transport = MockHTTPClient(responses: [.cancellation])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -104,7 +104,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let users = try await api.fetchUsers(ids: ["1"], logins: ["anotherdev"])
 
@@ -135,7 +135,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let user = try await api.fetchUser(login: "twitchdev")
 
@@ -148,7 +148,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchUsersRequiresAtLeastOneIdentifier() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchUsers()
@@ -189,7 +189,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchStreamsPage(
             userIDs: ["1"],
@@ -217,9 +217,9 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
-        let stream = try await api.fetchStream(forUserID: "offline-user")
+        let stream = try await api.fetchStream(userID: "offline-user")
 
         XCTAssertNil(stream)
     }
@@ -241,7 +241,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let games = try await api.fetchGames(ids: ["493057"], names: ["Just Chatting"], igdbIDs: ["27789"])
 
@@ -272,7 +272,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchTopGamesPage(first: 10, after: "cursor")
 
@@ -301,13 +301,13 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let result = try await api.sendChatMessage(
-            broadcasterId: "broadcaster-id",
-            senderId: "sender-id",
+            broadcasterID: "broadcaster-id",
+            senderID: "sender-id",
             message: "Hello from TwitchKit",
-            replyParentMessageId: "parent-message-id",
+            replyParentMessageID: "parent-message-id",
             forSourceOnly: true
         )
 
@@ -349,11 +349,11 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let result = try await api.sendChatMessage(
-            broadcasterId: "broadcaster-id",
-            senderId: "sender-id",
+            broadcasterID: "broadcaster-id",
+            senderID: "sender-id",
             message: "Held message"
         )
 
@@ -374,7 +374,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchChattersPage(
             broadcasterID: "broadcaster",
@@ -412,7 +412,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.updateChatSettings(
             broadcasterID: "broadcaster",
@@ -437,7 +437,7 @@ final class HTTPClientTests: XCTestCase {
         let transport = MockHTTPClient(responses: [.json(statusCode: 204, body: "")])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.sendChatAnnouncement(
             broadcasterID: "broadcaster",
@@ -476,7 +476,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.banUser(
             broadcasterID: "broadcaster",
@@ -513,7 +513,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchModeratorsPage(broadcasterID: "broadcaster", userIDs: ["1", "2"])
 
@@ -541,7 +541,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.warnChatUser(
             broadcasterID: "broadcaster",
@@ -582,7 +582,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth(clientSecret: "secret", httpClient: transport)
         try await auth.setToken(OAuthToken(accessToken: "expired-token", refreshToken: "refresh-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchUser()
 
@@ -637,7 +637,7 @@ final class HTTPClientTests: XCTestCase {
             .json(statusCode: 400, body: #"{"error":"authorization_pending","error_description":"Still waiting"}"#),
             .json(statusCode: 200, body: #"{"access_token":"device-token","refresh_token":"refresh-token","expires_in":3600,"token_type":"bearer"}"#),
         ])
-        let oauthClient = TwitchOAuthClient(clientId: "client-id", httpClient: transport)
+        let oauthClient = TwitchOAuthClient(clientID: "client-id", httpClient: transport)
 
         let token = try await oauthClient.pollDeviceCode(
             deviceCode: "device-code",
@@ -658,7 +658,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -688,7 +688,7 @@ final class HTTPClientTests: XCTestCase {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         // Retries disabled: this test checks how the 429 is surfaced.
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport, retryPolicy: .never)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport, retryPolicy: .never)
 
         do {
             _ = try await api.fetchUser()
@@ -718,7 +718,7 @@ final class HTTPClientTests: XCTestCase {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         // Retries disabled: this test checks how the 429 is surfaced.
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport, retryPolicy: .never)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport, retryPolicy: .never)
 
         do {
             _ = try await api.fetchUser()
@@ -760,7 +760,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchTopGamesPage(first: 1)
 
@@ -797,7 +797,7 @@ final class HTTPClientTests: XCTestCase {
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         let api = HelixClient(
             auth: auth,
-            clientId: "client-id",
+            clientID: "client-id",
             httpClient: transport,
             responseMetadataHandler: { metadata in
                 Task { await recorder.append(metadata) }
@@ -830,7 +830,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let user = try await api.fetchUser()
 
@@ -847,7 +847,7 @@ final class HTTPClientTests: XCTestCase {
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
         let api = HelixClient(
             auth: auth,
-            clientId: "client-id",
+            clientID: "client-id",
             httpClient: transport,
             retryPolicy: .never
         )
@@ -875,7 +875,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -896,10 +896,10 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.updateChannelInfo(
-            forBroadcasterID: "broadcaster-id",
+            broadcasterID: "broadcaster-id",
             with: ChannelInfoUpdate(title: "New title")
         )
 
@@ -915,13 +915,13 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let subscription = try await api.createEventSubSubscription(
             type: "channel.chat.message",
             version: "1",
             condition: ["broadcaster_user_id": "broadcaster-id", "user_id": "user-id"],
-            sessionId: "session-id"
+            sessionID: "session-id"
         )
 
         XCTAssertEqual(subscription.id, "subscription-1")
@@ -944,7 +944,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.createEventSubSubscription(
             type: "user.update",
@@ -969,7 +969,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.createEventSubSubscription(
             type: "drop.entitlement.grant",
@@ -1016,7 +1016,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchEventSubSubscriptionsPage(
             filter: .status(.enabled),
@@ -1067,7 +1067,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchEventSubSubscriptionsPage(filter: .subscriptionID("subscription-1"))
 
@@ -1084,7 +1084,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchEventSubSubscriptionsPageRejectsEmptyFilterValue() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchEventSubSubscriptionsPage(filter: .subscriptionID(""))
@@ -1103,7 +1103,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.deleteEventSubSubscription(id: "subscription-1")
 
@@ -1119,7 +1119,7 @@ final class HTTPClientTests: XCTestCase {
     func test_deleteEventSubSubscriptionRejectsEmptyID() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             try await api.deleteEventSubSubscription(id: "")
@@ -1146,7 +1146,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let deletedCount = try await api.deleteAllEventSubSubscriptions(filter: .status(.enabled))
 
@@ -1178,7 +1178,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let deletedCount = try await api.deleteAllEventSubSubscriptions(filter: .status(.enabled))
 
@@ -1225,9 +1225,9 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
-        let channels = try await api.fetchChannelsInfo(forBroadcasterIDs: ["1", "2"])
+        let channels = try await api.fetchChannelsInfo(broadcasterIDs: ["1", "2"])
 
         XCTAssertEqual(channels.map(\.broadcasterName), ["TwitchDev", "Twitch"])
         let requests = await transport.recordedRequests()
@@ -1256,10 +1256,10 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchChannelFollowersPage(
-            forBroadcasterID: "broadcaster-id",
+            broadcasterID: "broadcaster-id",
             first: 1
         )
 
@@ -1307,10 +1307,10 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         var followers: [String] = []
-        for try await follower in api.channelFollowers(forBroadcasterID: "broadcaster-id", pageSize: 1) {
+        for try await follower in api.channelFollowers(broadcasterID: "broadcaster-id", pageSize: 1) {
             followers.append(follower.userName)
         }
 
@@ -1349,7 +1349,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         var moderators: [String] = []
         for try await moderator in api.moderators(broadcasterID: "broadcaster-id", pageSize: 1) {
@@ -1383,7 +1383,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchChattersPage(broadcasterID: "broadcaster", moderatorID: "moderator", first: 1000)
 
@@ -1397,10 +1397,10 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchChannelStreamSchedulePageRejectsPageSizeOverScheduleLimit() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
-            _ = try await api.fetchChannelStreamSchedulePage(forBroadcasterID: "broadcaster", first: 26)
+            _ = try await api.fetchChannelStreamSchedulePage(broadcasterID: "broadcaster", first: 26)
             XCTFail("Expected bad request")
         } catch let error as HelixError {
             guard case .badRequest(let apiError) = error else {
@@ -1413,7 +1413,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchCustomRewardRedemptionsPageRequiresStatusWhenNoIDsSpecified() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchCustomRewardRedemptionsPage(broadcasterID: "broadcaster", rewardID: "reward")
@@ -1429,7 +1429,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchEmoteSetsRejectsMoreThanTwentyFiveIDs() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchEmoteSets(ids: (1...26).map(String.init))
@@ -1445,7 +1445,7 @@ final class HTTPClientTests: XCTestCase {
     func test_deleteVideosRejectsEmptyIDs() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.deleteVideos(ids: [])
@@ -1461,7 +1461,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchClipsPageRequiresExactlyOneFilter() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchClipsPage()
@@ -1487,7 +1487,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchStreamsPageRejectsMoreThanOneHundredUserIDs() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchStreamsPage(userIDs: (1...101).map(String.init))
@@ -1503,7 +1503,7 @@ final class HTTPClientTests: XCTestCase {
     func test_fetchTeamsRequiresExactlyOneOfNameOrID() async throws {
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: MockHTTPClient(responses: []))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: MockHTTPClient(responses: []))
 
         do {
             _ = try await api.fetchTeams(name: "team", id: "1")
@@ -1528,15 +1528,15 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
-        _ = try await api.fetchFollowedChannelsPage(forUserID: "user", broadcasterID: "broadcaster", first: 10, after: "cursor")
-        _ = try await api.fetchChannelEditors(forBroadcasterID: "broadcaster")
+        _ = try await api.fetchFollowedChannelsPage(userID: "user", broadcasterID: "broadcaster", first: 10, after: "cursor")
+        _ = try await api.fetchChannelEditors(broadcasterID: "broadcaster")
         _ = try await api.fetchContentClassificationLabels(locale: "en-US")
         _ = try await api.fetchSearchChannelsPage(query: "swift", liveOnly: true, first: 5)
-        _ = try await api.fetchChannelICalendar(forBroadcasterID: "broadcaster")
-        _ = try await api.fetchCharityCampaign(forBroadcasterID: "broadcaster")
-        _ = try await api.fetchHypeTrainStatus(forBroadcasterID: "broadcaster")
+        _ = try await api.fetchChannelICalendar(broadcasterID: "broadcaster")
+        _ = try await api.fetchCharityCampaign(broadcasterID: "broadcaster")
+        _ = try await api.fetchHypeTrainStatus(broadcasterID: "broadcaster")
 
         let urls = await transport.recordedRequests().map { $0.url?.absoluteString }
         XCTAssertEqual(urls[0], "https://api.twitch.tv/helix/channels/followed?user_id=user&broadcaster_id=broadcaster&first=10&after=cursor")
@@ -1563,13 +1563,13 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchPollsPage(broadcasterID: "broadcaster", ids: ["poll"], first: 1)
         _ = try await api.fetchPredictionsPage(broadcasterID: "broadcaster", ids: ["prediction"], after: "cursor")
         try await api.cancelRaid(broadcasterID: "broadcaster")
         _ = try await api.fetchStreamMarkersPage(userID: "user", first: 2)
-        _ = try await api.fetchCreatorGoals(forBroadcasterID: "broadcaster")
+        _ = try await api.fetchCreatorGoals(broadcasterID: "broadcaster")
         _ = try await api.fetchCustomRewards(broadcasterID: "broadcaster", ids: ["reward"], onlyManageableRewards: true)
         _ = try await api.fetchBroadcasterSubscriptionsPage(broadcasterID: "broadcaster", userIDs: ["user"])
         _ = try await api.fetchClipsPage(broadcasterID: "broadcaster", first: 3)
@@ -1616,11 +1616,11 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
         let date = Date(timeIntervalSince1970: 1_704_067_200)
 
         try await api.updateChannelStreamSchedule(
-            forBroadcasterID: "broadcaster",
+            broadcasterID: "broadcaster",
             with: ChannelStreamScheduleSettingsUpdate(
                 isVacationEnabled: true,
                 vacationStartTime: date,
@@ -1630,7 +1630,7 @@ final class HTTPClientTests: XCTestCase {
         )
         _ = try await api.createPoll(
             PollCreateRequest(
-                broadcasterId: "broadcaster",
+                broadcasterID: "broadcaster",
                 title: "Question?",
                 choices: [PollChoice(title: "Yes")],
                 duration: 60
@@ -1691,9 +1691,9 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
-        let page = try await api.fetchChannelStreamSchedulePage(forBroadcasterID: "141981764")
+        let page = try await api.fetchChannelStreamSchedulePage(broadcasterID: "141981764")
 
         XCTAssertEqual(page.schedule.broadcasterId, "141981764")
         XCTAssertEqual(page.schedule.broadcasterLogin, "twitchdev")
@@ -1703,7 +1703,7 @@ final class HTTPClientTests: XCTestCase {
         XCTAssertEqual(page.nextCursor, "next-cursor")
 
         let created = try await api.createChannelStreamScheduleSegment(
-            forBroadcasterID: "141981764",
+            broadcasterID: "141981764",
             segment: ChannelStreamScheduleSegmentCreate(
                 startTime: Date(timeIntervalSince1970: 1_704_067_200),
                 timezone: "America/New_York",
@@ -1729,7 +1729,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.startCommercial(broadcasterID: "broadcaster", length: 60)
         _ = try await api.fetchCheermotes(broadcasterID: "broadcaster")
@@ -1753,7 +1753,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.createConduit(shardCount: 2)
         _ = try await api.fetchDropsEntitlementsPage(gameID: "game", fulfillmentStatus: .claimed, first: 5, after: "cursor")
@@ -1775,7 +1775,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         _ = try await api.fetchExtensions(extensionID: "ext", extensionVersion: "1.0.0")
         try await api.setExtensionRequiredConfiguration(
@@ -1800,7 +1800,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         try await api.sendGuestStarInvite(broadcasterID: "broadcaster", moderatorID: "moderator", sessionID: "session", guestID: "guest")
         try await api.updateGuestStarSlotSettings(
@@ -1826,7 +1826,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -1845,7 +1845,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         do {
             _ = try await api.fetchUser()
@@ -1865,7 +1865,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let result = try await api.updateConduitShards(
             conduitID: "conduit-1",
@@ -1904,7 +1904,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let result = try await api.updateConduitShards(
             conduitID: "conduit-1",
@@ -1928,7 +1928,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchExtensionLiveChannelsPage(extensionID: "ext", first: 2)
 
@@ -1947,7 +1947,7 @@ final class HTTPClientTests: XCTestCase {
         ])
         let auth = makeAuth()
         try await auth.setToken(OAuthToken(accessToken: "access-token"))
-        let api = HelixClient(auth: auth, clientId: "client-id", httpClient: transport)
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
 
         let page = try await api.fetchExtensionLiveChannelsPage(extensionID: "ext", after: "cursor-value")
 
@@ -2075,13 +2075,13 @@ actor MetadataRecorder {
 }
 
 private func makeAuth(
-    clientId: String = "client-id",
+    clientID: String = "client-id",
     clientSecret: String? = nil,
     httpClient: any HTTPClient = URLSessionHTTPClient()
 ) -> TwitchAuth {
     TwitchAuth(
         oauthClient: TwitchOAuthClient(
-            clientId: clientId,
+            clientID: clientID,
             clientSecret: clientSecret,
             httpClient: httpClient
         ),

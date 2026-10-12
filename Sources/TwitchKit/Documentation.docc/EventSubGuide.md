@@ -32,7 +32,7 @@ Configure the buffering policy on ``TwitchKit/TwitchClient`` when your app needs
 
 ```swift
 let client = TwitchClient(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     eventBufferingPolicy: .bufferingNewest(5_000)
 )
 ```

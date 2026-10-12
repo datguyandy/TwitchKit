@@ -8,9 +8,9 @@ Authorization code flow is the right default for apps that can send the user thr
 
 ```swift
 let auth = TwitchAuth(
-    clientId: "<#Client ID#>",
+    clientID: "<#Client ID#>",
     clientSecret: "<#Client Secret#>",
-    redirectUri: "myapp://oauth/twitch"
+    redirectURI: "myapp://oauth/twitch"
 )
 
 let authorizationURL = auth.authorizationCodeURL(
