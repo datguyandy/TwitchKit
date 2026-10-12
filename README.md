@@ -179,6 +179,20 @@ for await event in channelEvents {
 }
 ```
 
+For chat, `joinChat` does both steps: it creates the six subscriptions a chat view needs (messages, notifications, clears, per-user clears, deletions and settings changes) in parallel and returns a `ChatRoom` with the channel's events. If any subscription fails, the others are removed again and `JoinChatError` lists what failed. Call `leave()` when the view goes away. Two rooms on one channel share subscriptions, so leaving one leaves the other working:
+
+```swift
+let room = try await twitch.eventSub.joinChat(broadcasterID: broadcasterID, userID: myUserID)
+
+for await event in room.events {
+    if case .known(.channelChatMessage(let message)) = event {
+        print("\(message.chatterUserName): \(message.message.text)")
+    }
+}
+
+try await room.leave()
+```
+
 ### Observing connection state
 
 `eventSub.connectionState` is an `AsyncStream<ConnectionState>` you can observe to drive UI such as a "Reconnecting…" indicator. Like `events`, each access returns an independent stream; it starts with the current state, so an observer that starts late still learns where the client is. `eventSub.currentConnectionState` reads the latest state synchronously.

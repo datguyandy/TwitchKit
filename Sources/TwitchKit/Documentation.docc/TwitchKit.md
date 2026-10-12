@@ -60,6 +60,7 @@ for await event in eventSub.events {
 - ``TwitchKit/TwitchClient``
 - ``TwitchKit/HelixClient``
 - ``TwitchKit/EventSubClient``
+- ``TwitchKit/ChatRoom``
 
 ### Authentication
 

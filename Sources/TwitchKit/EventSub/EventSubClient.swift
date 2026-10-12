@@ -115,6 +115,24 @@ public actor EventSubClient {
     private var desiredSubscriptionsById: [String: EventSubSubscription] = [:]
     /// Record ids of subscriptions created on the current session.
     private var activeSubscriptionsById: [String: EventSubSubscription] = [:]
+
+    // Chat-room bookkeeping, used by `joinChat` (ChatRoom.swift). Several
+    // rooms can need the same subscription (a chat view and a mini-player on
+    // one channel), so each subscription is claimed per room and removed only
+    // when the last room using it leaves, and only if a room created it.
+    /// How many joined (or joining) rooms use each subscription.
+    var chatRoomClaims: [EventSubSubscription: Int] = [:]
+    /// Subscriptions a room created, which the last leaving room removes.
+    var chatRoomCreatedSubscriptions: Set<EventSubSubscription> = []
+    /// In-flight creates, shared by concurrent joins of the same channel.
+    var chatRoomInFlightCreates: [EventSubSubscription: Task<Void, Error>] = [:]
+    /// In-flight deletes from rooms leaving, which a new join waits out.
+    var chatRoomInFlightDeletes: [EventSubSubscription: Task<Void, Error>] = [:]
+
+    /// Whether the client currently wants `subscription`, however it was added.
+    func isDesired(_ subscription: EventSubSubscription) -> Bool {
+        desiredSubscriptions.contains(subscription)
+    }
     private var seenMessageIds: Set<String> = []
     private var seenMessageIdOrder: [String] = []
 

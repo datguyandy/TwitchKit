@@ -905,6 +905,190 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 14. joinChat / ChatRoom
+
+    private static let chatSubscriptionTypes: Set<String> = [
+        "channel.chat.message", "channel.chat.notification", "channel.chat.clear",
+        "channel.chat.clear_user_messages", "channel.chat.message_delete", "channel.chat_settings.update",
+    ]
+
+    private func created(_ count: Int, startingAt first: Int = 1) -> [MockHTTPClient.Response] {
+        (first..<(first + count)).map {
+            .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-\($0)", type: "channel.chat.message", sessionId: "session-1"))
+        }
+    }
+
+    private func deleted(_ count: Int) -> [MockHTTPClient.Response] {
+        Array(repeating: .json(statusCode: 204, body: ""), count: count)
+    }
+
+    private func postedTypes(_ requests: [URLRequest]) throws -> [String] {
+        try requests.filter { $0.httpMethod == "POST" }.map { request in
+            let body = try XCTUnwrap(request.httpBody)
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            return try XCTUnwrap(object["type"] as? String)
+        }
+    }
+
+    func test_joinChatCreatesTheRoomAndLeaveRemovesIt() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(sockets: [socket], responses: created(6) + deleted(6))
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        let room = try await client.joinChat(broadcasterID: "a", userID: "me")
+
+        let afterJoin = await transport.recordedRequests()
+        XCTAssertEqual(Set(try postedTypes(afterJoin)), Self.chatSubscriptionTypes)
+        XCTAssertEqual(afterJoin.count, 6)
+
+        // The room sees only its own channel.
+        let roomEvents = room.events
+        let collector = Task { await collectEventTypes(from: roomEvents) }
+        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageId: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageId: "m3", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        let types = await collector.value
+        XCTAssertEqual(types, ["test.event.chat", "test.event.sentinel"])
+
+        try await room.leave()
+        let afterLeave = await transport.recordedRequests()
+        let deletedIDs = afterLeave.filter { $0.httpMethod == "DELETE" }.compactMap { $0.url?.query() }
+        XCTAssertEqual(Set(deletedIDs), Set((1...6).map { "id=sub-\($0)" }))
+        let hasLeft = await room.hasLeftRoom
+        XCTAssertTrue(hasLeft)
+
+        // Leaving twice is a no-op.
+        try await room.leave()
+        let afterSecondLeave = await transport.recordedRequests()
+        XCTAssertEqual(afterSecondLeave.count, afterLeave.count)
+
+        await client.disconnect()
+    }
+
+    func test_joinChatRollsBackWhenASubscriptionFails() async throws {
+        let socket = FakeWebSocket()
+        let forbidden = MockHTTPClient.Response.json(
+            statusCode: 403,
+            body: #"{"error":"Forbidden","status":403,"message":"subscription missing proper authorization"}"#
+        )
+        let (client, _, transport) = try await makeClient(
+            sockets: [socket],
+            responses: created(5) + [forbidden] + deleted(5)
+        )
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        do {
+            _ = try await client.joinChat(broadcasterID: "a", userID: "me")
+            XCTFail("Expected JoinChatError")
+        } catch let error as JoinChatError {
+            XCTAssertEqual(error.broadcasterID, "a")
+            XCTAssertEqual(error.failures.count, 1)
+            guard case .forbidden? = error.failures.first?.error as? HelixError else {
+                return XCTFail("Expected forbidden, got \(String(describing: error.failures.first?.error))")
+            }
+        }
+
+        // The five subscriptions that were created are removed again.
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.filter { $0.httpMethod == "DELETE" }.count, 5)
+
+        await client.disconnect()
+    }
+
+    func test_roomsOnTheSameChannelShareSubscriptions() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(sockets: [socket], responses: created(6) + deleted(6))
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        let chatView = try await client.joinChat(broadcasterID: "a", userID: "me")
+        let miniPlayer = try await client.joinChat(broadcasterID: "a", userID: "me")
+        let afterJoins = await transport.recordedRequests()
+        XCTAssertEqual(afterJoins.count, 6, "the second room must reuse the first room's subscriptions")
+
+        try await chatView.leave()
+        let afterFirstLeave = await transport.recordedRequests()
+        XCTAssertEqual(afterFirstLeave.count, 6, "the mini-player still needs the subscriptions")
+
+        try await miniPlayer.leave()
+        let afterSecondLeave = await transport.recordedRequests()
+        XCTAssertEqual(afterSecondLeave.filter { $0.httpMethod == "DELETE" }.count, 6)
+
+        await client.disconnect()
+    }
+
+    func test_leavingNeverRemovesASubscriptionTheAppCreated() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(sockets: [socket], responses: created(6) + deleted(5))
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        // The app subscribes to chat messages itself, then joins the room.
+        try await client.subscribe(.Chat.message(broadcasterID: "a", userID: "me"))
+        let room = try await client.joinChat(broadcasterID: "a", userID: "me")
+        let afterJoin = await transport.recordedRequests()
+        XCTAssertEqual(afterJoin.count, 6, "the room reuses the app's message subscription")
+
+        try await room.leave()
+        let requests = await transport.recordedRequests()
+        let deletes = requests.filter { $0.httpMethod == "DELETE" }
+        XCTAssertEqual(deletes.count, 5)
+        XCTAssertFalse(deletes.contains { $0.url?.query() == "id=sub-1" }, "the app's own subscription must stay")
+
+        await client.disconnect()
+    }
+
+    func test_aSubscriptionThatFailsToDeleteIsTakenOverByTheNextRoom() async throws {
+        let socket = FakeWebSocket()
+        let forbidden = MockHTTPClient.Response.json(
+            statusCode: 403,
+            body: #"{"error":"Forbidden","status":403,"message":"forbidden"}"#
+        )
+        let (client, _, transport) = try await makeClient(
+            sockets: [socket],
+            responses: created(6) + deleted(5) + [forbidden] + created(5, startingAt: 7) + deleted(6)
+        )
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        let first = try await client.joinChat(broadcasterID: "a", userID: "me")
+        do {
+            try await first.leave()
+            XCTFail("Expected the failed delete to be rethrown")
+        } catch HelixError.forbidden {
+            // Expected.
+        }
+
+        // The next room reuses the subscription that is still live.
+        let second = try await client.joinChat(broadcasterID: "a", userID: "me")
+        let afterRejoin = await transport.recordedRequests()
+        XCTAssertEqual(afterRejoin.filter { $0.httpMethod == "POST" }.count, 11)
+
+        // And removes it when it leaves.
+        try await second.leave()
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.filter { $0.httpMethod == "DELETE" }.count, 12)
+
+        await client.disconnect()
+    }
 }
 
 /// A notification whose envelope carries the delivering subscription, as

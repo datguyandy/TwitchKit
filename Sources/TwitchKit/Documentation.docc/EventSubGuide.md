@@ -68,6 +68,25 @@ for await event in eventSub.events(for: "<#Broadcaster ID#>") {
 }
 ```
 
+### Join a chat room
+
+Showing a channel's chat takes six subscriptions. ``TwitchKit/EventSubClient/joinChat(broadcasterID:userID:additionalSubscriptions:)`` creates them in parallel and returns a ``TwitchKit/ChatRoom`` whose ``TwitchKit/ChatRoom/events`` carries that channel's events:
+
+```swift
+let room = try await eventSub.joinChat(
+    broadcasterID: "<#Broadcaster ID#>",
+    userID: "<#Your User ID#>"
+)
+
+for await event in room.events {
+    // messages, notifications, clears, deletions, settings changes
+}
+
+try await room.leave()
+```
+
+Joining is all-or-nothing: if Twitch rejects any subscription, the ones just created are removed and ``TwitchKit/JoinChatError`` lists each failure. Rooms on the same channel share subscriptions, so a chat view and a mini-player can each hold a room and leave independently. A subscription you created with `subscribe` before joining is never removed by a room. Pass `additionalSubscriptions` for anything else the room needs, such as `EventSubSubscription.Chat.userMessageHold`.
+
 ## Manage Subscriptions
 
 Use Helix when you need to inspect or clean up subscriptions created by your app:
