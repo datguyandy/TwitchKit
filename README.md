@@ -185,7 +185,7 @@ For chat, `joinChat` does both steps: it creates the six subscriptions a chat vi
 let room = try await twitch.eventSub.joinChat(broadcasterID: broadcasterID, userID: myUserID)
 
 for await event in room.events {
-    if case .known(.channelChatMessage(let message)) = event {
+    if case .chatMessage(let message) = event {
         print("\(message.chatterUserName): \(message.message.text)")
     }
 }
