@@ -233,6 +233,15 @@ extension HelixClient {
 public struct ClipCreate: Decodable, Sendable, Equatable {
     public let id: String
     public let editUrl: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        editUrl: String
+    ) {
+        self.id = id
+        self.editUrl = editUrl
+    }
 }
 
 public struct TwitchClip: Decodable, Sendable, Equatable {
@@ -253,12 +262,62 @@ public struct TwitchClip: Decodable, Sendable, Equatable {
     public let duration: Double
     public let vodOffset: Int?
     public let isFeatured: Bool?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        url: String,
+        embedUrl: String,
+        broadcasterId: String,
+        broadcasterName: String,
+        creatorId: String,
+        creatorName: String,
+        videoId: String,
+        gameId: String,
+        language: String,
+        title: String,
+        viewCount: Int,
+        createdAt: Date,
+        thumbnailUrl: String,
+        duration: Double,
+        vodOffset: Int? = nil,
+        isFeatured: Bool? = nil
+    ) {
+        self.id = id
+        self.url = url
+        self.embedUrl = embedUrl
+        self.broadcasterId = broadcasterId
+        self.broadcasterName = broadcasterName
+        self.creatorId = creatorId
+        self.creatorName = creatorName
+        self.videoId = videoId
+        self.gameId = gameId
+        self.language = language
+        self.title = title
+        self.viewCount = viewCount
+        self.createdAt = createdAt
+        self.thumbnailUrl = thumbnailUrl
+        self.duration = duration
+        self.vodOffset = vodOffset
+        self.isFeatured = isFeatured
+    }
 }
 
 public struct ClipDownload: Decodable, Sendable, Equatable {
     public let clipId: String
     public let landscapeDownloadUrl: String?
     public let portraitDownloadUrl: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        clipId: String,
+        landscapeDownloadUrl: String? = nil,
+        portraitDownloadUrl: String? = nil
+    ) {
+        self.clipId = clipId
+        self.landscapeDownloadUrl = landscapeDownloadUrl
+        self.portraitDownloadUrl = portraitDownloadUrl
+    }
 }
 
 public struct TwitchVideo: Decodable, Sendable, Equatable {
@@ -279,11 +338,59 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
     public let type: String
     public let duration: String
     public let mutedSegments: [MutedVideoSegment]?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        streamId: String? = nil,
+        userId: String,
+        userLogin: String,
+        userName: String,
+        title: String,
+        description: String,
+        createdAt: Date,
+        publishedAt: Date,
+        url: String,
+        thumbnailUrl: String,
+        viewable: String,
+        viewCount: Int,
+        language: String,
+        type: String,
+        duration: String,
+        mutedSegments: [MutedVideoSegment]? = nil
+    ) {
+        self.id = id
+        self.streamId = streamId
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.title = title
+        self.description = description
+        self.createdAt = createdAt
+        self.publishedAt = publishedAt
+        self.url = url
+        self.thumbnailUrl = thumbnailUrl
+        self.viewable = viewable
+        self.viewCount = viewCount
+        self.language = language
+        self.type = type
+        self.duration = duration
+        self.mutedSegments = mutedSegments
+    }
 }
 
 public struct MutedVideoSegment: Decodable, Sendable, Equatable {
     public let duration: Int
     public let offset: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        duration: Int,
+        offset: Int
+    ) {
+        self.duration = duration
+        self.offset = offset
+    }
 }
 
 private func validateClipDuration(_ duration: Double?) throws {

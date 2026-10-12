@@ -46,6 +46,39 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
     /// Whether the stream is marked mature.
     public let isMature: Bool
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        userId: String,
+        userLogin: String,
+        userName: String,
+        gameId: String,
+        gameName: String,
+        type: TwitchStreamType,
+        title: String,
+        tags: [String],
+        viewerCount: Int,
+        startedAt: Date,
+        language: String,
+        thumbnailUrl: String,
+        isMature: Bool
+    ) {
+        self.id = id
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.gameId = gameId
+        self.gameName = gameName
+        self.type = type
+        self.title = title
+        self.tags = tags
+        self.viewerCount = viewerCount
+        self.startedAt = startedAt
+        self.language = language
+        self.thumbnailUrl = thumbnailUrl
+        self.isMature = isMature
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, userId, userLogin, userName, gameId, gameName, type, title
         case tags, viewerCount, startedAt, language, thumbnailUrl, isMature

@@ -133,6 +133,15 @@ private struct ConduitShardsUpdateResponse: Decodable {
 public struct EventSubConduit: Decodable, Sendable, Equatable {
     public let id: String
     public let shardCount: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        shardCount: Int
+    ) {
+        self.id = id
+        self.shardCount = shardCount
+    }
 }
 
 public enum ConduitShardStatus: String, Sendable, Equatable {
@@ -150,6 +159,17 @@ public struct EventSubConduitShard: Decodable, Sendable, Equatable {
     public let id: String
     public let status: String
     public let transport: EventSubConduitShardTransport
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        status: String,
+        transport: EventSubConduitShardTransport
+    ) {
+        self.id = id
+        self.status = status
+        self.transport = transport
+    }
 }
 
 public struct EventSubConduitShardUpdate: Encodable, Sendable, Equatable {
@@ -191,6 +211,17 @@ public struct ConduitShardUpdateError: Decodable, Sendable, Equatable {
 
     /// An error code describing the failure, when Twitch includes one.
     public let code: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        message: String,
+        code: String? = nil
+    ) {
+        self.id = id
+        self.message = message
+        self.code = code
+    }
 
     /// Creates a per-shard failure.
     ///

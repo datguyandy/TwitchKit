@@ -137,6 +137,19 @@ public struct TwitchOAuthError: Decodable, Sendable, Equatable {
     public let message: String
     public let errorDescription: String?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        error: String,
+        status: Int? = nil,
+        message: String,
+        errorDescription: String? = nil
+    ) {
+        self.error = error
+        self.status = status
+        self.message = message
+        self.errorDescription = errorDescription
+    }
+
     public init(error: String, status: Int? = nil, message: String? = nil, errorDescription: String? = nil) {
         self.error = error
         self.status = status
@@ -170,6 +183,17 @@ public struct TwitchAPIError: Decodable, Sendable, Equatable {
     public let error: String
     public let status: Int
     public let message: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        error: String,
+        status: Int,
+        message: String
+    ) {
+        self.error = error
+        self.status = status
+        self.message = message
+    }
 
     public init(error: String, status: Int, message: String) {
         self.error = error
@@ -248,6 +272,13 @@ public struct HelixResponse<T: Decodable & Sendable>: Decodable, Sendable {
 public struct Pagination: Decodable, Sendable, Equatable {
     /// Cursor used to request the next page, or `nil` on the last page.
     public let cursor: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        cursor: String? = nil
+    ) {
+        self.cursor = cursor
+    }
 
     /// Creates pagination metadata.
     ///

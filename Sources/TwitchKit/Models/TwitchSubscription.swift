@@ -21,4 +21,19 @@ public struct TwitchSubscription: Codable, Sendable, Equatable {
 
     /// Whether this subscription was gifted by another user.
     public let isGift: Bool
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String? = nil,
+        userName: String,
+        tier: SubscriptionTier,
+        isGift: Bool
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.tier = tier
+        self.isGift = isGift
+    }
 }

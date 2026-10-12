@@ -201,18 +201,53 @@ public struct FollowedChannel: Decodable, Sendable, Equatable {
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let followedAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        followedAt: Date
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.followedAt = followedAt
+    }
 }
 
 public struct ChannelEditor: Decodable, Sendable, Equatable {
     public let userId: String
     public let userName: String
     public let createdAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userName: String,
+        createdAt: Date
+    ) {
+        self.userId = userId
+        self.userName = userName
+        self.createdAt = createdAt
+    }
 }
 
 public struct TwitchContentClassificationLabel: Decodable, Sendable, Equatable {
     public let id: String
     public let description: String
     public let name: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        description: String,
+        name: String
+    ) {
+        self.id = id
+        self.description = description
+        self.name = name
+    }
 }
 
 /// A content classification label to enable or disable on a channel.

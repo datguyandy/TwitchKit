@@ -83,4 +83,25 @@ public struct UserSubscription: Decodable, Sendable, Equatable {
 
     /// The subscription tier.
     public let tier: SubscriptionTier
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        isGift: Bool,
+        gifterId: String? = nil,
+        gifterLogin: String? = nil,
+        gifterName: String? = nil,
+        tier: SubscriptionTier
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.isGift = isGift
+        self.gifterId = gifterId
+        self.gifterLogin = gifterLogin
+        self.gifterName = gifterName
+        self.tier = tier
+    }
 }

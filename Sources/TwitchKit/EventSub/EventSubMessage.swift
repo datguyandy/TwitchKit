@@ -505,6 +505,21 @@ public struct EventSubRevocation: Codable, Sendable, Equatable {
     public let type: String
     public let version: String
     public let condition: [String: String]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        status: EventSubSubscriptionStatus,
+        type: String,
+        version: String,
+        condition: [String: String]
+    ) {
+        self.id = id
+        self.status = status
+        self.type = type
+        self.version = version
+        self.condition = condition
+    }
 }
 
 

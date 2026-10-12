@@ -182,6 +182,51 @@ public struct CustomReward: Decodable, Sendable, Equatable {
     public let shouldRedemptionsSkipRequestQueue: Bool
     public let redemptionsRedeemedCurrentStream: Int?
     public let cooldownExpiresAt: Date?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        id: String,
+        title: String,
+        prompt: String,
+        cost: Int,
+        image: CustomRewardImage? = nil,
+        defaultImage: CustomRewardImage,
+        backgroundColor: String,
+        isEnabled: Bool,
+        isUserInputRequired: Bool,
+        maxPerStreamSetting: CustomRewardLimitSetting,
+        maxPerUserPerStreamSetting: CustomRewardLimitSetting,
+        globalCooldownSetting: CustomRewardCooldownSetting,
+        isPaused: Bool,
+        isInStock: Bool,
+        shouldRedemptionsSkipRequestQueue: Bool,
+        redemptionsRedeemedCurrentStream: Int? = nil,
+        cooldownExpiresAt: Date? = nil
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.id = id
+        self.title = title
+        self.prompt = prompt
+        self.cost = cost
+        self.image = image
+        self.defaultImage = defaultImage
+        self.backgroundColor = backgroundColor
+        self.isEnabled = isEnabled
+        self.isUserInputRequired = isUserInputRequired
+        self.maxPerStreamSetting = maxPerStreamSetting
+        self.maxPerUserPerStreamSetting = maxPerUserPerStreamSetting
+        self.globalCooldownSetting = globalCooldownSetting
+        self.isPaused = isPaused
+        self.isInStock = isInStock
+        self.shouldRedemptionsSkipRequestQueue = shouldRedemptionsSkipRequestQueue
+        self.redemptionsRedeemedCurrentStream = redemptionsRedeemedCurrentStream
+        self.cooldownExpiresAt = cooldownExpiresAt
+    }
 }
 
 public struct CustomRewardImage: Decodable, Sendable, Equatable {
@@ -190,11 +235,31 @@ public struct CustomRewardImage: Decodable, Sendable, Equatable {
     public let url1X: String
     public let url2X: String
     public let url4X: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        url1X: String,
+        url2X: String,
+        url4X: String
+    ) {
+        self.url1X = url1X
+        self.url2X = url2X
+        self.url4X = url4X
+    }
 }
 
 public struct CustomRewardLimitSetting: Codable, Sendable, Equatable {
     public let isEnabled: Bool
     public let value: Int?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        isEnabled: Bool,
+        value: Int? = nil
+    ) {
+        self.isEnabled = isEnabled
+        self.value = value
+    }
 
     // Twitch carries the limit under an endpoint-specific key (`max_per_stream` or
     // `max_per_user_per_stream`) depending on which setting this is, so accept either.
@@ -223,6 +288,15 @@ public struct CustomRewardLimitSetting: Codable, Sendable, Equatable {
 public struct CustomRewardCooldownSetting: Codable, Sendable, Equatable {
     public let isEnabled: Bool
     public let globalCooldownSeconds: Int?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        isEnabled: Bool,
+        globalCooldownSeconds: Int? = nil
+    ) {
+        self.isEnabled = isEnabled
+        self.globalCooldownSeconds = globalCooldownSeconds
+    }
 }
 
 public struct CustomRewardCreateRequest: Encodable, Sendable, Equatable {
@@ -333,10 +407,50 @@ public struct CustomRewardRedemption: Decodable, Sendable, Equatable {
     public let redeemedAt: Date
     public let reward: RedemptionReward
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        id: String,
+        userId: String,
+        userLogin: String,
+        userName: String,
+        userInput: String,
+        status: ChannelPointsRedemptionStatus,
+        redeemedAt: Date,
+        reward: RedemptionReward
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.id = id
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.userInput = userInput
+        self.status = status
+        self.redeemedAt = redeemedAt
+        self.reward = reward
+    }
+
     public struct RedemptionReward: Decodable, Sendable, Equatable {
         public let id: String
         public let title: String
         public let prompt: String
         public let cost: Int
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            id: String,
+            title: String,
+            prompt: String,
+            cost: Int
+        ) {
+            self.id = id
+            self.title = title
+            self.prompt = prompt
+            self.cost = cost
+        }
     }
 }

@@ -40,4 +40,31 @@ public struct TwitchChannel: Codable, Sendable, Equatable {
 
     /// Whether the channel is marked as branded content.
     public let isBrandedContent: Bool?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterLogin: String? = nil,
+        broadcasterName: String,
+        title: String,
+        gameName: String,
+        gameId: String,
+        tags: [String],
+        broadcasterLanguage: String,
+        delay: Int? = nil,
+        contentClassificationLabels: [String]? = nil,
+        isBrandedContent: Bool? = nil
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.title = title
+        self.gameName = gameName
+        self.gameId = gameId
+        self.tags = tags
+        self.broadcasterLanguage = broadcasterLanguage
+        self.delay = delay
+        self.contentClassificationLabels = contentClassificationLabels
+        self.isBrandedContent = isBrandedContent
+    }
 }

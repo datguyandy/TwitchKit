@@ -67,6 +67,31 @@ public struct CharityCampaign: Decodable, Sendable, Equatable {
     public let charityWebsite: String
     public let currentAmount: CharityAmount
     public let targetAmount: CharityAmount
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        charityName: String,
+        charityDescription: String,
+        charityLogo: String,
+        charityWebsite: String,
+        currentAmount: CharityAmount,
+        targetAmount: CharityAmount
+    ) {
+        self.id = id
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.charityName = charityName
+        self.charityDescription = charityDescription
+        self.charityLogo = charityLogo
+        self.charityWebsite = charityWebsite
+        self.currentAmount = currentAmount
+        self.targetAmount = targetAmount
+    }
 }
 
 public struct CharityDonation: Decodable, Sendable, Equatable {
@@ -76,10 +101,38 @@ public struct CharityDonation: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let amount: CharityAmount
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        campaignId: String,
+        userId: String,
+        userLogin: String,
+        userName: String,
+        amount: CharityAmount
+    ) {
+        self.id = id
+        self.campaignId = campaignId
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.amount = amount
+    }
 }
 
 public struct CharityAmount: Decodable, Sendable, Equatable {
     public let value: Int
     public let decimalPlaces: Int
     public let currency: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        value: Int,
+        decimalPlaces: Int,
+        currency: String
+    ) {
+        self.value = value
+        self.decimalPlaces = decimalPlaces
+        self.currency = currency
+    }
 }

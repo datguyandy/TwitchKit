@@ -172,6 +172,19 @@ public struct ExtensionConfiguration: Decodable, Sendable, Equatable {
     public let broadcasterId: String?
     public let content: String
     public let version: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        segment: String,
+        broadcasterId: String? = nil,
+        content: String,
+        version: String
+    ) {
+        self.segment = segment
+        self.broadcasterId = broadcasterId
+        self.content = content
+        self.version = version
+    }
 }
 
 public struct ExtensionConfigurationUpdate: Encodable, Sendable, Equatable {
@@ -213,6 +226,15 @@ public struct ExtensionPubSubMessage: Encodable, Sendable, Equatable {
 public struct ExtensionLiveChannelsPage: Decodable, Sendable, Equatable {
     public let data: [ExtensionLiveChannel]
     public let pagination: Pagination?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        data: [ExtensionLiveChannel],
+        pagination: Pagination? = nil
+    ) {
+        self.data = data
+        self.pagination = pagination
+    }
 
     /// Creates a page of live channels.
     ///
@@ -258,17 +280,52 @@ public struct ExtensionLiveChannel: Decodable, Sendable, Equatable {
     public let gameName: String
     public let gameId: String
     public let title: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterName: String,
+        gameName: String,
+        gameId: String,
+        title: String
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterName = broadcasterName
+        self.gameName = gameName
+        self.gameId = gameId
+        self.title = title
+    }
 }
 
 public struct ExtensionSecretSet: Decodable, Sendable, Equatable {
     public let formatVersion: Int
     public let secrets: [ExtensionSecret]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        formatVersion: Int,
+        secrets: [ExtensionSecret]
+    ) {
+        self.formatVersion = formatVersion
+        self.secrets = secrets
+    }
 }
 
 public struct ExtensionSecret: Decodable, Sendable, Equatable {
     public let content: String
     public let activeAt: Date
     public let expiresAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        content: String,
+        activeAt: Date,
+        expiresAt: Date
+    ) {
+        self.content = content
+        self.activeAt = activeAt
+        self.expiresAt = expiresAt
+    }
 }
 
 public struct TwitchExtension: Decodable, Sendable, Equatable {
@@ -292,6 +349,51 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
     public let supportEmail: String?
     public let version: String?
     public let viewerSummary: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        authorName: String? = nil,
+        bitsEnabled: Bool? = nil,
+        canInstall: Bool? = nil,
+        configurationLocation: String? = nil,
+        description: String? = nil,
+        eulaTosUrl: String? = nil,
+        hasChatSupport: Bool? = nil,
+        iconUrl: String? = nil,
+        iconUrls: [String: String]? = nil,
+        id: String,
+        name: String,
+        privacyPolicyUrl: String? = nil,
+        requestIdentityLink: Bool? = nil,
+        screenshotUrls: [String]? = nil,
+        state: String? = nil,
+        subscriptionsSupportLevel: String? = nil,
+        summary: String? = nil,
+        supportEmail: String? = nil,
+        version: String? = nil,
+        viewerSummary: String? = nil
+    ) {
+        self.authorName = authorName
+        self.bitsEnabled = bitsEnabled
+        self.canInstall = canInstall
+        self.configurationLocation = configurationLocation
+        self.description = description
+        self.eulaTosUrl = eulaTosUrl
+        self.hasChatSupport = hasChatSupport
+        self.iconUrl = iconUrl
+        self.iconUrls = iconUrls
+        self.id = id
+        self.name = name
+        self.privacyPolicyUrl = privacyPolicyUrl
+        self.requestIdentityLink = requestIdentityLink
+        self.screenshotUrls = screenshotUrls
+        self.state = state
+        self.subscriptionsSupportLevel = subscriptionsSupportLevel
+        self.summary = summary
+        self.supportEmail = supportEmail
+        self.version = version
+        self.viewerSummary = viewerSummary
+    }
 }
 
 public struct ExtensionBitsProduct: Decodable, Sendable, Equatable {
@@ -302,9 +404,35 @@ public struct ExtensionBitsProduct: Decodable, Sendable, Equatable {
     public let expiration: String?
     public let isBroadcast: Bool?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        sku: String,
+        cost: Cost,
+        displayName: String,
+        inDevelopment: Bool,
+        expiration: String? = nil,
+        isBroadcast: Bool? = nil
+    ) {
+        self.sku = sku
+        self.cost = cost
+        self.displayName = displayName
+        self.inDevelopment = inDevelopment
+        self.expiration = expiration
+        self.isBroadcast = isBroadcast
+    }
+
     public struct Cost: Codable, Sendable, Equatable {
         public let amount: Int
         public let type: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            amount: Int,
+            type: String
+        ) {
+            self.amount = amount
+            self.type = type
+        }
     }
 }
 

@@ -19,6 +19,17 @@ public struct HypeTrainStatus: Decodable, Sendable, Equatable {
     public let current: HypeTrainCurrent?
     public let allTimeHigh: HypeTrainRecord?
     public let sharedAllTimeHigh: HypeTrainRecord?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        current: HypeTrainCurrent? = nil,
+        allTimeHigh: HypeTrainRecord? = nil,
+        sharedAllTimeHigh: HypeTrainRecord? = nil
+    ) {
+        self.current = current
+        self.allTimeHigh = allTimeHigh
+        self.sharedAllTimeHigh = sharedAllTimeHigh
+    }
 }
 
 public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
@@ -36,6 +47,39 @@ public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
     public let type: String
     public let isSharedTrain: Bool
     public let sharedTrainParticipants: [HypeTrainParticipant]?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterUserId: String,
+        broadcasterUserLogin: String,
+        broadcasterUserName: String,
+        total: Int,
+        progress: Int,
+        goal: Int,
+        topContributions: [HypeTrainContribution],
+        level: Int,
+        startedAt: Date,
+        expiresAt: Date,
+        type: String,
+        isSharedTrain: Bool,
+        sharedTrainParticipants: [HypeTrainParticipant]? = nil
+    ) {
+        self.id = id
+        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserLogin = broadcasterUserLogin
+        self.broadcasterUserName = broadcasterUserName
+        self.total = total
+        self.progress = progress
+        self.goal = goal
+        self.topContributions = topContributions
+        self.level = level
+        self.startedAt = startedAt
+        self.expiresAt = expiresAt
+        self.type = type
+        self.isSharedTrain = isSharedTrain
+        self.sharedTrainParticipants = sharedTrainParticipants
+    }
 }
 
 public struct HypeTrainContribution: Decodable, Sendable, Equatable {
@@ -44,16 +88,53 @@ public struct HypeTrainContribution: Decodable, Sendable, Equatable {
     public let userName: String
     public let type: String
     public let total: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String,
+        type: String,
+        total: Int
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.type = type
+        self.total = total
+    }
 }
 
 public struct HypeTrainParticipant: Decodable, Sendable, Equatable {
     public let broadcasterUserId: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterUserId: String,
+        broadcasterUserLogin: String,
+        broadcasterUserName: String
+    ) {
+        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserLogin = broadcasterUserLogin
+        self.broadcasterUserName = broadcasterUserName
+    }
 }
 
 public struct HypeTrainRecord: Decodable, Sendable, Equatable {
     public let level: Int
     public let total: Int
     public let achievedAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        level: Int,
+        total: Int,
+        achievedAt: Date
+    ) {
+        self.level = level
+        self.total = total
+        self.achievedAt = achievedAt
+    }
 }

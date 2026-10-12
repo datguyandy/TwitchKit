@@ -150,6 +150,21 @@ public struct DeviceCodeAuthorization: Decodable, Sendable, Equatable {
     public let userCode: String
     public let verificationUri: String
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        deviceCode: String,
+        expiresIn: Int,
+        interval: Int,
+        userCode: String,
+        verificationUri: String
+    ) {
+        self.deviceCode = deviceCode
+        self.expiresIn = expiresIn
+        self.interval = interval
+        self.userCode = userCode
+        self.verificationUri = verificationUri
+    }
+
     public var verificationURL: URL? {
         URL(string: verificationUri)
     }

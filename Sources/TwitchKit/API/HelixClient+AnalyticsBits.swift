@@ -146,9 +146,33 @@ public struct AnalyticsReport: Decodable, Sendable, Equatable {
     public let type: String
     public let dateRange: DateRange
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        extensionId: String? = nil,
+        gameId: String? = nil,
+        url: String,
+        type: String,
+        dateRange: DateRange
+    ) {
+        self.extensionId = extensionId
+        self.gameId = gameId
+        self.url = url
+        self.type = type
+        self.dateRange = dateRange
+    }
+
     public struct DateRange: Decodable, Sendable, Equatable {
         public let startedAt: Date
         public let endedAt: Date
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            startedAt: Date,
+            endedAt: Date
+        ) {
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -184,6 +208,17 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
     public let dateRange: DateRange
     public let total: Int
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        data: [Entry],
+        dateRange: DateRange,
+        total: Int
+    ) {
+        self.data = data
+        self.dateRange = dateRange
+        self.total = total
+    }
+
     /// The leaderboard's reporting window.
     ///
     /// Twitch sends empty strings for both dates when the request omits
@@ -192,6 +227,15 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
     public struct DateRange: Decodable, Sendable, Equatable {
         public let startedAt: Date?
         public let endedAt: Date?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            startedAt: Date? = nil,
+            endedAt: Date? = nil
+        ) {
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+        }
 
         private enum CodingKeys: String, CodingKey {
             case startedAt, endedAt
@@ -212,6 +256,21 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
         public let userName: String
         public let rank: Int
         public let score: Int
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            userId: String,
+            userLogin: String,
+            userName: String,
+            rank: Int,
+            score: Int
+        ) {
+            self.userId = userId
+            self.userLogin = userLogin
+            self.userName = userName
+            self.rank = rank
+            self.score = score
+        }
     }
 }
 
@@ -223,6 +282,23 @@ public struct Cheermote: Decodable, Sendable, Equatable {
     public let lastUpdated: Date
     public let isCharitable: Bool
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        prefix: String,
+        tiers: [Tier],
+        type: String,
+        order: Int,
+        lastUpdated: Date,
+        isCharitable: Bool
+    ) {
+        self.prefix = prefix
+        self.tiers = tiers
+        self.type = type
+        self.order = order
+        self.lastUpdated = lastUpdated
+        self.isCharitable = isCharitable
+    }
+
     public struct Tier: Decodable, Sendable, Equatable {
         public let minBits: Int
         public let id: String
@@ -230,16 +306,51 @@ public struct Cheermote: Decodable, Sendable, Equatable {
         public let images: Images
         public let canCheer: Bool
         public let showInBitsCard: Bool
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            minBits: Int,
+            id: String,
+            color: String,
+            images: Images,
+            canCheer: Bool,
+            showInBitsCard: Bool
+        ) {
+            self.minBits = minBits
+            self.id = id
+            self.color = color
+            self.images = images
+            self.canCheer = canCheer
+            self.showInBitsCard = showInBitsCard
+        }
     }
 
     public struct Images: Decodable, Sendable, Equatable {
         public let dark: Theme
         public let light: Theme
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            dark: Theme,
+            light: Theme
+        ) {
+            self.dark = dark
+            self.light = light
+        }
     }
 
     public struct Theme: Decodable, Sendable, Equatable {
         public let animated: ImageScales
         public let staticImage: ImageScales
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            animated: ImageScales,
+            staticImage: ImageScales
+        ) {
+            self.animated = animated
+            self.staticImage = staticImage
+        }
 
         enum CodingKeys: String, CodingKey {
             case animated
@@ -253,6 +364,21 @@ public struct Cheermote: Decodable, Sendable, Equatable {
         public let scale2: String?
         public let scale3: String?
         public let scale4: String?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            scale1: String? = nil,
+            scale15: String? = nil,
+            scale2: String? = nil,
+            scale3: String? = nil,
+            scale4: String? = nil
+        ) {
+            self.scale1 = scale1
+            self.scale15 = scale15
+            self.scale2 = scale2
+            self.scale3 = scale3
+            self.scale4 = scale4
+        }
 
         enum CodingKeys: String, CodingKey {
             case scale1 = "1"
@@ -287,6 +413,51 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
 
     @available(*, deprecated, renamed: "bits")
     public var cost: Int { bits }
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        bits: Int,
+        title: String,
+        prompt: String,
+        image: CustomRewardImage? = nil,
+        defaultImage: CustomRewardImage,
+        backgroundColor: String,
+        isEnabled: Bool,
+        isUserInputRequired: Bool,
+        maxPerStreamSetting: CustomRewardLimitSetting,
+        maxPerUserPerStreamSetting: CustomRewardLimitSetting,
+        globalCooldownSetting: CustomRewardCooldownSetting,
+        isPaused: Bool,
+        isInStock: Bool,
+        redemptionsRedeemedCurrentStream: Int? = nil,
+        cooldownExpiresAt: Date? = nil,
+        cost: Int { bits }
+    ) {
+        self.id = id
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.bits = bits
+        self.title = title
+        self.prompt = prompt
+        self.image = image
+        self.defaultImage = defaultImage
+        self.backgroundColor = backgroundColor
+        self.isEnabled = isEnabled
+        self.isUserInputRequired = isUserInputRequired
+        self.maxPerStreamSetting = maxPerStreamSetting
+        self.maxPerUserPerStreamSetting = maxPerUserPerStreamSetting
+        self.globalCooldownSetting = globalCooldownSetting
+        self.isPaused = isPaused
+        self.isInStock = isInStock
+        self.redemptionsRedeemedCurrentStream = redemptionsRedeemedCurrentStream
+        self.cooldownExpiresAt = cooldownExpiresAt
+        self.cost = cost
+    }
 }
 
 public struct ExtensionTransaction: Decodable, Sendable, Equatable {
@@ -301,6 +472,31 @@ public struct ExtensionTransaction: Decodable, Sendable, Equatable {
     public let productType: String
     public let productData: ProductData
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        timestamp: Date,
+        broadcasterId: String,
+        broadcasterLogin: String? = nil,
+        broadcasterName: String? = nil,
+        userId: String,
+        userLogin: String? = nil,
+        userName: String? = nil,
+        productType: String,
+        productData: ProductData
+    ) {
+        self.id = id
+        self.timestamp = timestamp
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.productType = productType
+        self.productData = productData
+    }
+
     public struct ProductData: Decodable, Sendable, Equatable {
         public let sku: String
         public let cost: Cost
@@ -308,10 +504,36 @@ public struct ExtensionTransaction: Decodable, Sendable, Equatable {
         public let inDevelopment: Bool?
         public let expiration: String?
         public let broadcast: Bool?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            sku: String,
+            cost: Cost,
+            displayName: String,
+            inDevelopment: Bool? = nil,
+            expiration: String? = nil,
+            broadcast: Bool? = nil
+        ) {
+            self.sku = sku
+            self.cost = cost
+            self.displayName = displayName
+            self.inDevelopment = inDevelopment
+            self.expiration = expiration
+            self.broadcast = broadcast
+        }
     }
 
     public struct Cost: Decodable, Sendable, Equatable {
         public let amount: Int
         public let type: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            amount: Int,
+            type: String
+        ) {
+            self.amount = amount
+            self.type = type
+        }
     }
 }

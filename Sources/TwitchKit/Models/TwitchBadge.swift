@@ -37,6 +37,17 @@ public struct TwitchBadgeSet: Codable, Sendable, Equatable, Identifiable {
     /// All versions of this badge. For subscriber badges, each version
     /// corresponds to a tenure milestone (0, 3, 6, 12 months, etc.).
     public let versions: [TwitchBadge]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        setId: String,
+        id: String { setId },
+        versions: [TwitchBadge]
+    ) {
+        self.setId = setId
+        self.id = id
+        self.versions = versions
+    }
 }
 
 /// A single badge version with image URLs at multiple resolutions.
@@ -80,4 +91,25 @@ public struct TwitchBadge: Codable, Sendable, Equatable, Identifiable {
 
     /// URL opened when the badge is clicked (if `clickAction` is `"visit_url"`).
     public let clickUrl: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        imageUrl1x: String,
+        imageUrl2x: String,
+        imageUrl4x: String,
+        title: String? = nil,
+        description: String? = nil,
+        clickAction: BadgeClickAction? = nil,
+        clickUrl: String? = nil
+    ) {
+        self.id = id
+        self.imageUrl1x = imageUrl1x
+        self.imageUrl2x = imageUrl2x
+        self.imageUrl4x = imageUrl4x
+        self.title = title
+        self.description = description
+        self.clickAction = clickAction
+        self.clickUrl = clickUrl
+    }
 }

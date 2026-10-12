@@ -93,9 +93,37 @@ public struct DropsEntitlement: Decodable, Sendable, Equatable {
     public let gameId: String
     public let fulfillmentStatus: String
     public let lastUpdated: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        benefitId: String,
+        timestamp: Date,
+        userId: String,
+        gameId: String,
+        fulfillmentStatus: String,
+        lastUpdated: Date
+    ) {
+        self.id = id
+        self.benefitId = benefitId
+        self.timestamp = timestamp
+        self.userId = userId
+        self.gameId = gameId
+        self.fulfillmentStatus = fulfillmentStatus
+        self.lastUpdated = lastUpdated
+    }
 }
 
 public struct DropsEntitlementUpdateResult: Decodable, Sendable, Equatable {
     public let status: String
     public let ids: [String]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        status: String,
+        ids: [String]
+    ) {
+        self.status = status
+        self.ids = ids
+    }
 }

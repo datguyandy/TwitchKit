@@ -46,6 +46,17 @@ public struct CommercialStart: Decodable, Sendable, Equatable {
     public let length: Int
     public let message: String
     public let retryAfter: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        length: Int,
+        message: String,
+        retryAfter: Int
+    ) {
+        self.length = length
+        self.message = message
+        self.retryAfter = retryAfter
+    }
 }
 
 public struct AdSchedule: Decodable, Sendable, Equatable {
@@ -55,6 +66,23 @@ public struct AdSchedule: Decodable, Sendable, Equatable {
     public let duration: Int?
     public let lastAdAt: Date?
     public let prerollFreeTime: Int?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        snoozeCount: Int? = nil,
+        snoozeRefreshAt: Date? = nil,
+        nextAdAt: Date? = nil,
+        duration: Int? = nil,
+        lastAdAt: Date? = nil,
+        prerollFreeTime: Int? = nil
+    ) {
+        self.snoozeCount = snoozeCount
+        self.snoozeRefreshAt = snoozeRefreshAt
+        self.nextAdAt = nextAdAt
+        self.duration = duration
+        self.lastAdAt = lastAdAt
+        self.prerollFreeTime = prerollFreeTime
+    }
 
     private enum CodingKeys: String, CodingKey {
         case snoozeCount, snoozeRefreshAt, nextAdAt, duration, lastAdAt, prerollFreeTime
@@ -84,6 +112,17 @@ public struct AdSnooze: Decodable, Sendable, Equatable {
     public let snoozeCount: Int
     public let snoozeRefreshAt: Date?
     public let nextAdAt: Date?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        snoozeCount: Int,
+        snoozeRefreshAt: Date? = nil,
+        nextAdAt: Date? = nil
+    ) {
+        self.snoozeCount = snoozeCount
+        self.snoozeRefreshAt = snoozeRefreshAt
+        self.nextAdAt = nextAdAt
+    }
 
     enum CodingKeys: String, CodingKey {
         case snoozeCount

@@ -59,6 +59,31 @@ public struct TwitchEmote: Codable, Sendable, Equatable, Identifiable {
     /// ID of the emote set this emote belongs to. Nil for global emotes.
     public let emoteSetId: String?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        name: String,
+        images: EmoteImages? = nil,
+        format: [String],
+        scale: [String],
+        themeMode: [String],
+        template: String? = nil,
+        tier: String? = nil,
+        emoteType: String? = nil,
+        emoteSetId: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.images = images
+        self.format = format
+        self.scale = scale
+        self.themeMode = themeMode
+        self.template = template
+        self.tier = tier
+        self.emoteType = emoteType
+        self.emoteSetId = emoteSetId
+    }
+
     /// Constructs a CDN URL for this emote with the given display preferences.
     ///
     /// Uses the `template` field if available, otherwise falls back to the standard CDN pattern.
@@ -91,6 +116,17 @@ public struct EmoteImages: Codable, Sendable, Equatable {
 
     /// Large emote (112x112 pixels).
     public let url4x: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        url1x: String,
+        url2x: String,
+        url4x: String
+    ) {
+        self.url1x = url1x
+        self.url2x = url2x
+        self.url4x = url4x
+    }
 
     /// Custom coding keys — `.convertFromSnakeCase` turns `url_1x` into `url1X` (capital X),
     /// but our properties use lowercase `url1x`.

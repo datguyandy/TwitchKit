@@ -162,6 +162,23 @@ public struct GuestStarSettings: Decodable, Sendable, Equatable {
     public let groupLayout: String?
     public let layout: String?
     public let browserSourceToken: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        isModeratorSendLiveEnabled: Bool,
+        slotCount: Int,
+        isBrowserSourceAudioEnabled: Bool,
+        groupLayout: String? = nil,
+        layout: String? = nil,
+        browserSourceToken: String
+    ) {
+        self.isModeratorSendLiveEnabled = isModeratorSendLiveEnabled
+        self.slotCount = slotCount
+        self.isBrowserSourceAudioEnabled = isBrowserSourceAudioEnabled
+        self.groupLayout = groupLayout
+        self.layout = layout
+        self.browserSourceToken = browserSourceToken
+    }
 }
 
 public struct GuestStarSettingsUpdate: Sendable, Equatable {
@@ -190,6 +207,15 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
     public let id: String
     public let guests: [Guest]
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        guests: [Guest]
+    ) {
+        self.id = id
+        self.guests = guests
+    }
+
     public struct Guest: Decodable, Sendable, Equatable {
         public let id: String?
         public let slotId: String?
@@ -201,12 +227,48 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
         public let assignedAt: Date
         public let audioSettings: MediaSettings
         public let videoSettings: MediaSettings
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            id: String? = nil,
+            slotId: String? = nil,
+            userId: String,
+            userDisplayName: String,
+            userLogin: String,
+            isLive: Bool,
+            volume: Int,
+            assignedAt: Date,
+            audioSettings: MediaSettings,
+            videoSettings: MediaSettings
+        ) {
+            self.id = id
+            self.slotId = slotId
+            self.userId = userId
+            self.userDisplayName = userDisplayName
+            self.userLogin = userLogin
+            self.isLive = isLive
+            self.volume = volume
+            self.assignedAt = assignedAt
+            self.audioSettings = audioSettings
+            self.videoSettings = videoSettings
+        }
     }
 
     public struct MediaSettings: Decodable, Sendable, Equatable {
         public let isHostEnabled: Bool
         public let isGuestEnabled: Bool
         public let isAvailable: Bool
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            isHostEnabled: Bool,
+            isGuestEnabled: Bool,
+            isAvailable: Bool
+        ) {
+            self.isHostEnabled = isHostEnabled
+            self.isGuestEnabled = isGuestEnabled
+            self.isAvailable = isAvailable
+        }
     }
 }
 
@@ -218,6 +280,25 @@ public struct GuestStarInvite: Decodable, Sendable, Equatable {
     public let isAudioEnabled: Bool
     public let isVideoAvailable: Bool
     public let isAudioAvailable: Bool
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        invitedAt: Date,
+        status: String,
+        isVideoEnabled: Bool,
+        isAudioEnabled: Bool,
+        isVideoAvailable: Bool,
+        isAudioAvailable: Bool
+    ) {
+        self.userId = userId
+        self.invitedAt = invitedAt
+        self.status = status
+        self.isVideoEnabled = isVideoEnabled
+        self.isAudioEnabled = isAudioEnabled
+        self.isVideoAvailable = isVideoAvailable
+        self.isAudioAvailable = isAudioAvailable
+    }
 }
 
 public struct GuestStarSlotSettingsUpdate: Sendable, Equatable {

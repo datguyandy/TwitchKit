@@ -183,6 +183,21 @@ public struct ChannelStreamSchedule: Decodable, Sendable, Equatable {
     public let broadcasterName: String
     public let broadcasterLogin: String
     public let vacation: ChannelStreamScheduleVacation?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        segments: [ChannelStreamScheduleSegment],
+        broadcasterId: String,
+        broadcasterName: String,
+        broadcasterLogin: String,
+        vacation: ChannelStreamScheduleVacation? = nil
+    ) {
+        self.segments = segments
+        self.broadcasterId = broadcasterId
+        self.broadcasterName = broadcasterName
+        self.broadcasterLogin = broadcasterLogin
+        self.vacation = vacation
+    }
 }
 
 public struct ChannelStreamScheduleSegment: Decodable, Sendable, Equatable {
@@ -194,15 +209,52 @@ public struct ChannelStreamScheduleSegment: Decodable, Sendable, Equatable {
     public let category: Category?
     public let isRecurring: Bool
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        startTime: Date,
+        endTime: Date,
+        title: String,
+        canceledUntil: Date? = nil,
+        category: Category? = nil,
+        isRecurring: Bool
+    ) {
+        self.id = id
+        self.startTime = startTime
+        self.endTime = endTime
+        self.title = title
+        self.canceledUntil = canceledUntil
+        self.category = category
+        self.isRecurring = isRecurring
+    }
+
     public struct Category: Decodable, Sendable, Equatable {
         public let id: String
         public let name: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            id: String,
+            name: String
+        ) {
+            self.id = id
+            self.name = name
+        }
     }
 }
 
 public struct ChannelStreamScheduleVacation: Codable, Sendable, Equatable {
     public let startTime: Date
     public let endTime: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        startTime: Date,
+        endTime: Date
+    ) {
+        self.startTime = startTime
+        self.endTime = endTime
+    }
 }
 
 public struct ChannelStreamScheduleSettingsUpdate: Encodable, Sendable, Equatable {

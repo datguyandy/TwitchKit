@@ -78,11 +78,43 @@ public struct CreatorGoal: Decodable, Sendable, Equatable {
     public let currentAmount: Int
     public let targetAmount: Int
     public let createdAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterId: String,
+        broadcasterName: String,
+        broadcasterLogin: String,
+        type: String,
+        description: String,
+        currentAmount: Int,
+        targetAmount: Int,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.broadcasterId = broadcasterId
+        self.broadcasterName = broadcasterName
+        self.broadcasterLogin = broadcasterLogin
+        self.type = type
+        self.description = description
+        self.currentAmount = currentAmount
+        self.targetAmount = targetAmount
+        self.createdAt = createdAt
+    }
 }
 
 public struct RaidStart: Decodable, Sendable, Equatable {
     public let createdAt: Date
     public let isMature: Bool
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        createdAt: Date,
+        isMature: Bool
+    ) {
+        self.createdAt = createdAt
+        self.isMature = isMature
+    }
 }
 
 private struct StreamMarkerCreateRequest: Encodable {
@@ -96,6 +128,21 @@ public struct StreamMarker: Decodable, Sendable, Equatable {
     public let description: String
     public let positionSeconds: Int
     public let url: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        createdAt: Date,
+        description: String,
+        positionSeconds: Int,
+        url: String? = nil
+    ) {
+        self.id = id
+        self.createdAt = createdAt
+        self.description = description
+        self.positionSeconds = positionSeconds
+        self.url = url
+    }
 }
 
 public struct StreamMarkersByVideo: Decodable, Sendable, Equatable {
@@ -104,8 +151,30 @@ public struct StreamMarkersByVideo: Decodable, Sendable, Equatable {
     public let userName: String
     public let videos: [VideoMarkers]
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String,
+        videos: [VideoMarkers]
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.videos = videos
+    }
+
     public struct VideoMarkers: Decodable, Sendable, Equatable {
         public let videoId: String
         public let markers: [StreamMarker]
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            videoId: String,
+            markers: [StreamMarker]
+        ) {
+            self.videoId = videoId
+            self.markers = markers
+        }
     }
 }

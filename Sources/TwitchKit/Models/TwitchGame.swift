@@ -15,4 +15,17 @@ public struct TwitchGame: Decodable, Sendable, Equatable {
 
     /// The matching IGDB ID, when Twitch provides one.
     public let igdbId: String?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        name: String,
+        boxArtUrl: String,
+        igdbId: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.boxArtUrl = boxArtUrl
+        self.igdbId = igdbId
+    }
 }

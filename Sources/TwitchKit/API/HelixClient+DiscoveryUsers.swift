@@ -180,6 +180,19 @@ public struct StreamTag: Decodable, Sendable, Equatable {
     public let isAuto: Bool
     public let localizationNames: [String: String]
     public let localizationDescriptions: [String: String]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        tagId: String,
+        isAuto: Bool,
+        localizationNames: [String: String],
+        localizationDescriptions: [String: String]
+    ) {
+        self.tagId = tagId
+        self.isAuto = isAuto
+        self.localizationNames = localizationNames
+        self.localizationDescriptions = localizationDescriptions
+    }
 }
 
 public struct ChannelTeam: Decodable, Sendable, Equatable {
@@ -195,6 +208,35 @@ public struct ChannelTeam: Decodable, Sendable, Equatable {
     public let teamName: String
     public let teamDisplayName: String
     public let id: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        broadcasterName: String,
+        broadcasterLogin: String,
+        backgroundImageUrl: String? = nil,
+        banner: String? = nil,
+        createdAt: Date,
+        updatedAt: Date,
+        info: String,
+        thumbnailUrl: String,
+        teamName: String,
+        teamDisplayName: String,
+        id: String
+    ) {
+        self.broadcasterId = broadcasterId
+        self.broadcasterName = broadcasterName
+        self.broadcasterLogin = broadcasterLogin
+        self.backgroundImageUrl = backgroundImageUrl
+        self.banner = banner
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.info = info
+        self.thumbnailUrl = thumbnailUrl
+        self.teamName = teamName
+        self.teamDisplayName = teamDisplayName
+        self.id = id
+    }
 }
 
 public struct TwitchTeam: Decodable, Sendable, Equatable {
@@ -209,10 +251,46 @@ public struct TwitchTeam: Decodable, Sendable, Equatable {
     public let teamDisplayName: String
     public let id: String
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        users: [User],
+        backgroundImageUrl: String? = nil,
+        banner: String? = nil,
+        createdAt: Date,
+        updatedAt: Date,
+        info: String,
+        thumbnailUrl: String,
+        teamName: String,
+        teamDisplayName: String,
+        id: String
+    ) {
+        self.users = users
+        self.backgroundImageUrl = backgroundImageUrl
+        self.banner = banner
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.info = info
+        self.thumbnailUrl = thumbnailUrl
+        self.teamName = teamName
+        self.teamDisplayName = teamDisplayName
+        self.id = id
+    }
+
     public struct User: Decodable, Sendable, Equatable {
         public let userId: String
         public let userName: String
         public let userLogin: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            userId: String,
+            userName: String,
+            userLogin: String
+        ) {
+            self.userId = userId
+            self.userName = userName
+            self.userLogin = userLogin
+        }
     }
 }
 
@@ -224,12 +302,40 @@ public struct UserAuthorization: Decodable, Sendable, Equatable {
     public let userLogin: String?
     public let userName: String?
     public let scopes: [String]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        hasAuthorized: Bool,
+        clientId: String? = nil,
+        userId: String,
+        userLogin: String? = nil,
+        userName: String? = nil,
+        scopes: [String]
+    ) {
+        self.hasAuthorized = hasAuthorized
+        self.clientId = clientId
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.scopes = scopes
+    }
 }
 
 public struct BlockedUser: Decodable, Sendable, Equatable {
     public let userId: String
     public let userLogin: String
     public let displayName: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        displayName: String
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.displayName = displayName
+    }
 }
 
 public enum UserBlockSourceContext: String, Sendable, Equatable {
@@ -249,10 +355,32 @@ public struct UserExtension: Decodable, Sendable, Equatable {
     public let name: String
     public let canActivate: Bool
     public let type: [String]
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        version: String,
+        name: String,
+        canActivate: Bool,
+        type: [String]
+    ) {
+        self.id = id
+        self.version = version
+        self.name = name
+        self.canActivate = canActivate
+        self.type = type
+    }
 }
 
 public struct UserActiveExtensions: Codable, Sendable, Equatable {
     public let data: UserActiveExtensionsData
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        data: UserActiveExtensionsData
+    ) {
+        self.data = data
+    }
 }
 
 public struct UserActiveExtensionsData: Codable, Sendable, Equatable {
@@ -278,6 +406,23 @@ public struct UserActiveExtension: Codable, Sendable, Equatable {
     public let name: String?
     public let x: Int?
     public let y: Int?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        active: Bool,
+        id: String? = nil,
+        version: String? = nil,
+        name: String? = nil,
+        x: Int? = nil,
+        y: Int? = nil
+    ) {
+        self.active = active
+        self.id = id
+        self.version = version
+        self.name = name
+        self.x = x
+        self.y = y
+    }
 
     public init(active: Bool, id: String? = nil, version: String? = nil, name: String? = nil, x: Int? = nil, y: Int? = nil) {
         self.active = active

@@ -139,6 +139,39 @@ public struct TwitchPoll: Decodable, Sendable, Equatable {
     public let duration: Int
     public let startedAt: Date
     public let endedAt: Date?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        title: String,
+        choices: [PollChoice],
+        bitsVotingEnabled: Bool? = nil,
+        bitsPerVote: Int? = nil,
+        channelPointsVotingEnabled: Bool,
+        channelPointsPerVote: Int,
+        status: String,
+        duration: Int,
+        startedAt: Date,
+        endedAt: Date? = nil
+    ) {
+        self.id = id
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.title = title
+        self.choices = choices
+        self.bitsVotingEnabled = bitsVotingEnabled
+        self.bitsPerVote = bitsPerVote
+        self.channelPointsVotingEnabled = channelPointsVotingEnabled
+        self.channelPointsPerVote = channelPointsPerVote
+        self.status = status
+        self.duration = duration
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+    }
 }
 
 public struct PollChoice: Codable, Sendable, Equatable {
@@ -147,6 +180,21 @@ public struct PollChoice: Codable, Sendable, Equatable {
     public let votes: Int?
     public let channelPointsVotes: Int?
     public let bitsVotes: Int?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String? = nil,
+        title: String,
+        votes: Int? = nil,
+        channelPointsVotes: Int? = nil,
+        bitsVotes: Int? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.votes = votes
+        self.channelPointsVotes = channelPointsVotes
+        self.bitsVotes = bitsVotes
+    }
 
     public init(id: String? = nil, title: String, votes: Int? = nil, channelPointsVotes: Int? = nil, bitsVotes: Int? = nil) {
         self.id = id
@@ -206,6 +254,35 @@ public struct TwitchPrediction: Decodable, Sendable, Equatable {
     public let createdAt: Date
     public let endedAt: Date?
     public let lockedAt: Date?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        broadcasterId: String,
+        broadcasterLogin: String,
+        broadcasterName: String,
+        title: String,
+        winningOutcomeId: String? = nil,
+        outcomes: [PredictionOutcome],
+        predictionWindow: Int,
+        status: String,
+        createdAt: Date,
+        endedAt: Date? = nil,
+        lockedAt: Date? = nil
+    ) {
+        self.id = id
+        self.broadcasterId = broadcasterId
+        self.broadcasterLogin = broadcasterLogin
+        self.broadcasterName = broadcasterName
+        self.title = title
+        self.winningOutcomeId = winningOutcomeId
+        self.outcomes = outcomes
+        self.predictionWindow = predictionWindow
+        self.status = status
+        self.createdAt = createdAt
+        self.endedAt = endedAt
+        self.lockedAt = lockedAt
+    }
 }
 
 public struct PredictionOutcome: Codable, Sendable, Equatable {
@@ -239,6 +316,21 @@ public struct PredictionTopPredictor: Codable, Sendable, Equatable {
     public let userName: String
     public let channelPointsWon: Int?
     public let channelPointsUsed: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String,
+        channelPointsWon: Int? = nil,
+        channelPointsUsed: Int
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.channelPointsWon = channelPointsWon
+        self.channelPointsUsed = channelPointsUsed
+    }
 }
 
 public struct PredictionCreateRequest: Encodable, Sendable, Equatable {

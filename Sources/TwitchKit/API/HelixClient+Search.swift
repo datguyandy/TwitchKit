@@ -103,6 +103,35 @@ public struct SearchChannel: Decodable, Sendable, Equatable {
     public let title: String
     public let startedAt: Date?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterLanguage: String,
+        broadcasterLogin: String,
+        displayName: String,
+        gameId: String,
+        gameName: String,
+        id: String,
+        isLive: Bool,
+        tagIds: [String],
+        tags: [String],
+        thumbnailUrl: String,
+        title: String,
+        startedAt: Date? = nil
+    ) {
+        self.broadcasterLanguage = broadcasterLanguage
+        self.broadcasterLogin = broadcasterLogin
+        self.displayName = displayName
+        self.gameId = gameId
+        self.gameName = gameName
+        self.id = id
+        self.isLive = isLive
+        self.tagIds = tagIds
+        self.tags = tags
+        self.thumbnailUrl = thumbnailUrl
+        self.title = title
+        self.startedAt = startedAt
+    }
+
     private enum CodingKeys: String, CodingKey {
         case broadcasterLanguage, broadcasterLogin, displayName, gameId
         case gameName, id, isLive, tagIds, tags, thumbnailUrl, title, startedAt

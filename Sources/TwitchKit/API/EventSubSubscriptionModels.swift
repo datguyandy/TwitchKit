@@ -86,6 +86,27 @@ public struct EventSubSubscriptionRecord: Decodable, Sendable, Equatable {
     public let transport: Transport
     public let cost: Int
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        status: EventSubSubscriptionStatus,
+        type: String,
+        version: String,
+        condition: [String: String],
+        createdAt: Date,
+        transport: Transport,
+        cost: Int
+    ) {
+        self.id = id
+        self.status = status
+        self.type = type
+        self.version = version
+        self.condition = condition
+        self.createdAt = createdAt
+        self.transport = transport
+        self.cost = cost
+    }
+
     public struct Transport: Decodable, Sendable, Equatable {
         public let method: EventSubTransportMethod
         public let callback: URL?
@@ -93,6 +114,23 @@ public struct EventSubSubscriptionRecord: Decodable, Sendable, Equatable {
         public let connectedAt: Date?
         public let disconnectedAt: Date?
         public let conduitId: String?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            method: EventSubTransportMethod,
+            callback: URL? = nil,
+            sessionId: String? = nil,
+            connectedAt: Date? = nil,
+            disconnectedAt: Date? = nil,
+            conduitId: String? = nil
+        ) {
+            self.method = method
+            self.callback = callback
+            self.sessionId = sessionId
+            self.connectedAt = connectedAt
+            self.disconnectedAt = disconnectedAt
+            self.conduitId = conduitId
+        }
     }
 }
 

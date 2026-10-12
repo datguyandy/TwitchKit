@@ -33,4 +33,27 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
 
     /// Account creation date.
     public let createdAt: Date?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        login: String,
+        displayName: String,
+        profileImageUrl: String,
+        email: String? = nil,
+        broadcasterType: String,
+        description: String? = nil,
+        offlineImageUrl: String? = nil,
+        createdAt: Date? = nil
+    ) {
+        self.id = id
+        self.login = login
+        self.displayName = displayName
+        self.profileImageUrl = profileImageUrl
+        self.email = email
+        self.broadcasterType = broadcasterType
+        self.description = description
+        self.offlineImageUrl = offlineImageUrl
+        self.createdAt = createdAt
+    }
 }

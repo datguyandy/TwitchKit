@@ -271,6 +271,17 @@ public struct TwitchChatter: Decodable, Sendable, Equatable {
     public let userId: String
     public let userLogin: String
     public let userName: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+    }
 }
 
 /// Chat settings for a broadcaster.
@@ -285,6 +296,31 @@ public struct ChatSettings: Decodable, Sendable, Equatable {
     public let slowModeWaitTime: Int?
     public let subscriberMode: Bool
     public let uniqueChatMode: Bool
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        broadcasterId: String,
+        emoteMode: Bool,
+        followerMode: Bool,
+        followerModeDuration: Int? = nil,
+        nonModeratorChatDelay: Bool? = nil,
+        nonModeratorChatDelayDuration: Int? = nil,
+        slowMode: Bool,
+        slowModeWaitTime: Int? = nil,
+        subscriberMode: Bool,
+        uniqueChatMode: Bool
+    ) {
+        self.broadcasterId = broadcasterId
+        self.emoteMode = emoteMode
+        self.followerMode = followerMode
+        self.followerModeDuration = followerModeDuration
+        self.nonModeratorChatDelay = nonModeratorChatDelay
+        self.nonModeratorChatDelayDuration = nonModeratorChatDelayDuration
+        self.slowMode = slowMode
+        self.slowModeWaitTime = slowModeWaitTime
+        self.subscriberMode = subscriberMode
+        self.uniqueChatMode = uniqueChatMode
+    }
 }
 
 /// Request body for updating chat settings.
@@ -339,8 +375,30 @@ public struct SharedChatSession: Decodable, Sendable, Equatable {
     public let createdAt: Date
     public let updatedAt: Date
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        sessionId: String,
+        hostBroadcasterId: String,
+        participants: [Participant],
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.sessionId = sessionId
+        self.hostBroadcasterId = hostBroadcasterId
+        self.participants = participants
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
     public struct Participant: Decodable, Sendable, Equatable {
         public let broadcasterId: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            broadcasterId: String
+        ) {
+            self.broadcasterId = broadcasterId
+        }
     }
 }
 
@@ -350,6 +408,19 @@ public struct UserChatColor: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let color: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String,
+        color: String
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.color = color
+    }
 }
 
 /// A pinned chat message.
@@ -366,6 +437,35 @@ public struct PinnedChatMessage: Decodable, Sendable, Equatable {
     public let startsAt: Date
     public let endsAt: Date?
     public let updatedAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        messageId: String,
+        broadcasterId: String,
+        senderUserId: String,
+        senderUserLogin: String,
+        senderUserName: String,
+        pinnedByUserId: String,
+        pinnedByUserLogin: String,
+        pinnedByUserName: String,
+        message: ChatMessage.ChatMessageBody,
+        startsAt: Date,
+        endsAt: Date? = nil,
+        updatedAt: Date
+    ) {
+        self.messageId = messageId
+        self.broadcasterId = broadcasterId
+        self.senderUserId = senderUserId
+        self.senderUserLogin = senderUserLogin
+        self.senderUserName = senderUserName
+        self.pinnedByUserId = pinnedByUserId
+        self.pinnedByUserLogin = pinnedByUserLogin
+        self.pinnedByUserName = pinnedByUserName
+        self.message = message
+        self.startsAt = startsAt
+        self.endsAt = endsAt
+        self.updatedAt = updatedAt
+    }
 }
 
 

@@ -19,4 +19,17 @@ public struct TwitchFollow: Codable, Sendable, Equatable {
 
     /// When the follow occurred.
     public let followedAt: Date
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String? = nil,
+        userName: String,
+        followedAt: Date
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+        self.followedAt = followedAt
+    }
 }

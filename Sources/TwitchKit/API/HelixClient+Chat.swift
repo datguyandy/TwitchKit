@@ -125,6 +125,17 @@ public struct SendChatMessageResponse: Decodable, Sendable {
     /// Reason the message was dropped, if `isSent` is `false`.
     public let dropReason: DropReason?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        messageId: String,
+        isSent: Bool,
+        dropReason: DropReason? = nil
+    ) {
+        self.messageId = messageId
+        self.isSent = isSent
+        self.dropReason = dropReason
+    }
+
     /// Details about why a chat message was not sent.
     public struct DropReason: Decodable, Sendable {
         /// Machine-readable error code (e.g., `"automod_held"`, `"msg_banned"`, `"msg_ratelimit"`).
@@ -132,5 +143,14 @@ public struct SendChatMessageResponse: Decodable, Sendable {
 
         /// Human-readable explanation.
         public let message: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            code: String,
+            message: String
+        ) {
+            self.code = code
+            self.message = message
+        }
     }
 }

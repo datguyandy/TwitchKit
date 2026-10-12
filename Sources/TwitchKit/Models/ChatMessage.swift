@@ -47,15 +47,78 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
 
     public let isSourceOnly: Bool?
 
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        messageId: String,
+        id: String { messageId },
+        broadcasterUserId: String,
+        broadcasterUserLogin: String,
+        broadcasterUserName: String,
+        chatterUserId: String,
+        chatterUserLogin: String,
+        chatterUserName: String,
+        message: ChatMessageBody,
+        color: String,
+        badges: [ChatBadge],
+        messageType: ChatMessageType,
+        cheer: Cheer? = nil,
+        reply: Reply? = nil,
+        channelPointsCustomRewardId: String? = nil,
+        sourceBroadcasterUserId: String? = nil,
+        sourceBroadcasterUserLogin: String? = nil,
+        sourceBroadcasterUserName: String? = nil,
+        sourceMessageId: String? = nil,
+        sourceBadges: [ChatBadge]? = nil,
+        isSourceOnly: Bool? = nil
+    ) {
+        self.messageId = messageId
+        self.id = id
+        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserLogin = broadcasterUserLogin
+        self.broadcasterUserName = broadcasterUserName
+        self.chatterUserId = chatterUserId
+        self.chatterUserLogin = chatterUserLogin
+        self.chatterUserName = chatterUserName
+        self.message = message
+        self.color = color
+        self.badges = badges
+        self.messageType = messageType
+        self.cheer = cheer
+        self.reply = reply
+        self.channelPointsCustomRewardId = channelPointsCustomRewardId
+        self.sourceBroadcasterUserId = sourceBroadcasterUserId
+        self.sourceBroadcasterUserLogin = sourceBroadcasterUserLogin
+        self.sourceBroadcasterUserName = sourceBroadcasterUserName
+        self.sourceMessageId = sourceMessageId
+        self.sourceBadges = sourceBadges
+        self.isSourceOnly = isSourceOnly
+    }
+
     // MARK: - Nested Types
 
     public struct ChatMessageBody: Codable, Sendable, Equatable {
         public let text: String
         public let fragments: [ChatFragment]
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            text: String,
+            fragments: [ChatFragment]
+        ) {
+            self.text = text
+            self.fragments = fragments
+        }
     }
 
     public struct Cheer: Codable, Sendable, Equatable {
         public let bits: Int
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            bits: Int
+        ) {
+            self.bits = bits
+        }
     }
 
     public struct Reply: Codable, Sendable, Equatable {
@@ -68,6 +131,29 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
         public let threadUserId: String
         public let threadUserLogin: String
         public let threadUserName: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            parentMessageId: String,
+            parentMessageBody: String,
+            parentUserId: String,
+            parentUserLogin: String,
+            parentUserName: String,
+            threadMessageId: String,
+            threadUserId: String,
+            threadUserLogin: String,
+            threadUserName: String
+        ) {
+            self.parentMessageId = parentMessageId
+            self.parentMessageBody = parentMessageBody
+            self.parentUserId = parentUserId
+            self.parentUserLogin = parentUserLogin
+            self.parentUserName = parentUserName
+            self.threadMessageId = threadMessageId
+            self.threadUserId = threadUserId
+            self.threadUserLogin = threadUserLogin
+            self.threadUserName = threadUserName
+        }
     }
 }
 
@@ -78,6 +164,23 @@ public struct ChatFragment: Codable, Sendable, Equatable {
     public let emote: EmoteReference?
     public let mention: MentionReference?
     public let gif: GIFReference?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        type: ChatFragmentType,
+        text: String,
+        cheermote: CheermoteReference? = nil,
+        emote: EmoteReference? = nil,
+        mention: MentionReference? = nil,
+        gif: GIFReference? = nil
+    ) {
+        self.type = type
+        self.text = text
+        self.cheermote = cheermote
+        self.emote = emote
+        self.mention = mention
+        self.gif = gif
+    }
 }
 
 public struct EmoteReference: Codable, Sendable, Equatable {
@@ -85,28 +188,83 @@ public struct EmoteReference: Codable, Sendable, Equatable {
     public let emoteSetId: String
     public let ownerId: String?
     public let format: [String]?
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        id: String,
+        emoteSetId: String,
+        ownerId: String? = nil,
+        format: [String]? = nil
+    ) {
+        self.id = id
+        self.emoteSetId = emoteSetId
+        self.ownerId = ownerId
+        self.format = format
+    }
 }
 
 public struct CheermoteReference: Codable, Sendable, Equatable {
     public let prefix: String
     public let bits: Int
     public let tier: Int
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        prefix: String,
+        bits: Int,
+        tier: Int
+    ) {
+        self.prefix = prefix
+        self.bits = bits
+        self.tier = tier
+    }
 }
 
 public struct MentionReference: Codable, Sendable, Equatable {
     public let userId: String
     public let userLogin: String
     public let userName: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        userId: String,
+        userLogin: String,
+        userName: String
+    ) {
+        self.userId = userId
+        self.userLogin = userLogin
+        self.userName = userName
+    }
 }
 
 public struct ChatBadge: Codable, Sendable, Equatable {
     public let setId: String
     public let id: String
     public let info: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        setId: String,
+        id: String,
+        info: String
+    ) {
+        self.setId = setId
+        self.id = id
+        self.info = info
+    }
 }
 
 /// GIF metadata in a chat message fragment.
 public struct GIFReference: Codable, Sendable, Equatable {
     public let gifId: String
     public let url: String
+
+    /// Creates a value directly, for example in tests or SwiftUI previews.
+    public init(
+        gifId: String,
+        url: String
+    ) {
+        self.gifId = gifId
+        self.url = url
+    }
 }
