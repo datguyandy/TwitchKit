@@ -1883,7 +1883,7 @@ final class HTTPClientTests: XCTestCase {
         )
 
         XCTAssertEqual(result.updated.map(\.id), ["0"])
-        XCTAssertEqual(result.updated.first?.status, "enabled")
+        XCTAssertEqual(result.updated.first?.status, .enabled)
         XCTAssertEqual(
             result.errors,
             [

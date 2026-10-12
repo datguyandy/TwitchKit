@@ -343,7 +343,7 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
     public let privacyPolicyUrl: String?
     public let requestIdentityLink: Bool?
     public let screenshotUrls: [String]?
-    public let state: String?
+    public let state: ExtensionState?
     public let subscriptionsSupportLevel: String?
     public let summary: String?
     public let supportEmail: String?
@@ -366,7 +366,7 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
         privacyPolicyUrl: String? = nil,
         requestIdentityLink: Bool? = nil,
         screenshotUrls: [String]? = nil,
-        state: String? = nil,
+        state: ExtensionState? = nil,
         subscriptionsSupportLevel: String? = nil,
         summary: String? = nil,
         supportEmail: String? = nil,

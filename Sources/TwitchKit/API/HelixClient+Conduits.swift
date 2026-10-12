@@ -144,26 +144,15 @@ public struct EventSubConduit: Decodable, Sendable, Equatable {
     }
 }
 
-public enum ConduitShardStatus: String, Sendable, Equatable {
-    case enabled
-    case webhookCallbackVerificationPending = "webhook_callback_verification_pending"
-    case webhookCallbackVerificationFailed = "webhook_callback_verification_failed"
-    case notificationFailuresExceeded = "notification_failures_exceeded"
-    case websocketDisconnected = "websocket_disconnected"
-    case websocketFailedPingPong = "websocket_failed_ping_pong"
-    case websocketReceivedInboundTraffic = "websocket_received_inbound_traffic"
-    case websocketConnectionUnused = "websocket_connection_unused"
-}
-
 public struct EventSubConduitShard: Decodable, Sendable, Equatable {
     public let id: String
-    public let status: String
+    public let status: ConduitShardStatus
     public let transport: EventSubConduitShardTransport
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        status: String,
+        status: ConduitShardStatus,
         transport: EventSubConduitShardTransport
     ) {
         self.id = id

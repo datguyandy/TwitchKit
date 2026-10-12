@@ -138,7 +138,7 @@ extension HelixClient {
     public func fetchUnbanRequestsPage(
         broadcasterID: String,
         moderatorID: String,
-        status: UnbanRequestStatusFilter,
+        status: UnbanRequestStatus,
         userID: String? = nil,
         first: Int? = nil,
         after cursor: String? = nil
@@ -171,7 +171,7 @@ extension HelixClient {
     public func unbanRequests(
         broadcasterID: String,
         moderatorID: String,
-        status: UnbanRequestStatusFilter,
+        status: UnbanRequestStatus,
         userID: String? = nil,
         pageSize: Int? = nil
     ) -> HelixPagedSequence<UnbanRequest> {
@@ -770,13 +770,8 @@ public struct BanUserResponse: Decodable, Sendable, Equatable {
 }
 
 /// Filter status for unban requests.
-public enum UnbanRequestStatusFilter: String, Sendable, Equatable {
-    case pending
-    case approved
-    case denied
-    case acknowledged
-    case canceled
-}
+@available(*, deprecated, renamed: "UnbanRequestStatus")
+public typealias UnbanRequestStatusFilter = UnbanRequestStatus
 
 /// Resolution status for an unban request.
 public enum UnbanRequestResolutionStatus: String, Sendable, Equatable {
@@ -794,7 +789,7 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let text: String
-    public let status: String
+    public let status: UnbanRequestStatus
     public let createdAt: Date
     public let resolvedAt: Date?
     public let resolutionText: String?
@@ -812,7 +807,7 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
         userLogin: String,
         userName: String,
         text: String,
-        status: String,
+        status: UnbanRequestStatus,
         createdAt: Date,
         resolvedAt: Date? = nil,
         resolutionText: String? = nil,
@@ -989,19 +984,13 @@ public struct ChatWarning: Decodable, Sendable, Equatable {
     }
 }
 
-/// Suspicious-user status values accepted by Twitch.
-public enum SuspiciousUserStatus: String, Sendable, Equatable {
-    case activeMonitoring = "ACTIVE_MONITORING"
-    case restricted = "RESTRICTED"
-}
-
 /// Result of applying or removing suspicious-user status.
 public struct SuspiciousUserAction: Decodable, Sendable, Equatable {
     public let userId: String
     public let broadcasterId: String
     public let moderatorId: String
     public let updatedAt: Date
-    public let status: String
+    public let status: SuspiciousUserStatus
     public let types: [String]
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
@@ -1010,7 +999,7 @@ public struct SuspiciousUserAction: Decodable, Sendable, Equatable {
         broadcasterId: String,
         moderatorId: String,
         updatedAt: Date,
-        status: String,
+        status: SuspiciousUserStatus,
         types: [String]
     ) {
         self.userId = userId

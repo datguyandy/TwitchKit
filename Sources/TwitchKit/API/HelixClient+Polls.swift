@@ -135,7 +135,7 @@ public struct TwitchPoll: Decodable, Sendable, Equatable {
     public let bitsPerVote: Int?
     public let channelPointsVotingEnabled: Bool
     public let channelPointsPerVote: Int
-    public let status: String
+    public let status: TwitchPollStatus
     public let duration: Int
     public let startedAt: Date
     public let endedAt: Date?
@@ -152,7 +152,7 @@ public struct TwitchPoll: Decodable, Sendable, Equatable {
         bitsPerVote: Int? = nil,
         channelPointsVotingEnabled: Bool,
         channelPointsPerVote: Int,
-        status: String,
+        status: TwitchPollStatus,
         duration: Int,
         startedAt: Date,
         endedAt: Date? = nil
@@ -250,7 +250,7 @@ public struct TwitchPrediction: Decodable, Sendable, Equatable {
     public let winningOutcomeId: String?
     public let outcomes: [PredictionOutcome]
     public let predictionWindow: Int
-    public let status: String
+    public let status: TwitchPredictionStatus
     public let createdAt: Date
     public let endedAt: Date?
     public let lockedAt: Date?
@@ -265,7 +265,7 @@ public struct TwitchPrediction: Decodable, Sendable, Equatable {
         winningOutcomeId: String? = nil,
         outcomes: [PredictionOutcome],
         predictionWindow: Int,
-        status: String,
+        status: TwitchPredictionStatus,
         createdAt: Date,
         endedAt: Date? = nil,
         lockedAt: Date? = nil

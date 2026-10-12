@@ -275,7 +275,7 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
 public struct GuestStarInvite: Decodable, Sendable, Equatable {
     public let userId: String
     public let invitedAt: Date
-    public let status: String
+    public let status: GuestStarGuestState
     public let isVideoEnabled: Bool
     public let isAudioEnabled: Bool
     public let isVideoAvailable: Bool
@@ -285,7 +285,7 @@ public struct GuestStarInvite: Decodable, Sendable, Equatable {
     public init(
         userId: String,
         invitedAt: Date,
-        status: String,
+        status: GuestStarGuestState,
         isVideoEnabled: Bool,
         isAudioEnabled: Bool,
         isVideoAvailable: Bool,

@@ -80,18 +80,13 @@ private struct DropsEntitlementUpdateRequest: Encodable {
     let fulfillmentStatus: String
 }
 
-public enum DropsEntitlementFulfillmentStatus: String, Sendable, Equatable {
-    case claimed = "CLAIMED"
-    case fulfilled = "FULFILLED"
-}
-
 public struct DropsEntitlement: Decodable, Sendable, Equatable {
     public let id: String
     public let benefitId: String
     public let timestamp: Date
     public let userId: String
     public let gameId: String
-    public let fulfillmentStatus: String
+    public let fulfillmentStatus: DropsEntitlementFulfillmentStatus
     public let lastUpdated: Date
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
@@ -101,7 +96,7 @@ public struct DropsEntitlement: Decodable, Sendable, Equatable {
         timestamp: Date,
         userId: String,
         gameId: String,
-        fulfillmentStatus: String,
+        fulfillmentStatus: DropsEntitlementFulfillmentStatus,
         lastUpdated: Date
     ) {
         self.id = id
@@ -115,12 +110,12 @@ public struct DropsEntitlement: Decodable, Sendable, Equatable {
 }
 
 public struct DropsEntitlementUpdateResult: Decodable, Sendable, Equatable {
-    public let status: String
+    public let status: DropsEntitlementUpdateStatus
     public let ids: [String]
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        status: String,
+        status: DropsEntitlementUpdateStatus,
         ids: [String]
     ) {
         self.status = status

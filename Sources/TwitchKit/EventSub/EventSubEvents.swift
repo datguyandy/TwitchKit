@@ -185,7 +185,7 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
     public let message: ChatMessage.ChatMessageBody
     public let category: String?
     public let level: Int?
-    public let status: String?
+    public let status: AutoModMessageStatus?
     public let heldAt: Date?
     public let reason: String?
     public let automod: AutoModDetails?
@@ -203,7 +203,7 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
         message: ChatMessage.ChatMessageBody,
         category: String? = nil,
         level: Int? = nil,
-        status: String? = nil,
+        status: AutoModMessageStatus? = nil,
         heldAt: Date? = nil,
         reason: String? = nil,
         automod: AutoModDetails? = nil,
@@ -1263,7 +1263,7 @@ public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
     public let userName: String
     public let messageId: String
     public let message: ChatMessage.ChatMessageBody
-    public let status: String
+    public let status: ChatUserMessageStatus
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -1275,7 +1275,7 @@ public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
         userName: String,
         messageId: String,
         message: ChatMessage.ChatMessageBody,
-        status: String
+        status: ChatUserMessageStatus
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -1702,7 +1702,7 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
     public let guestUserLogin: String
     public let guestUserName: String
     public let slotId: String?
-    public let state: String
+    public let state: GuestStarGuestState
     public let isAudioEnabled: Bool?
     public let isVideoEnabled: Bool?
     public let isLive: Bool?
@@ -1720,7 +1720,7 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
         guestUserLogin: String,
         guestUserName: String,
         slotId: String? = nil,
-        state: String,
+        state: GuestStarGuestState,
         isAudioEnabled: Bool? = nil,
         isVideoEnabled: Bool? = nil,
         isLive: Bool? = nil
@@ -1892,7 +1892,7 @@ public struct EventSubPoll: Codable, Sendable, Equatable {
     public let choices: [Choice]
     public let bitsVoting: Voting?
     public let channelPointsVoting: Voting?
-    public let status: String?
+    public let status: TwitchPollStatus?
     public let durationSeconds: Int?
     public let startedAt: Date
     public let endedAt: Date?
@@ -1907,7 +1907,7 @@ public struct EventSubPoll: Codable, Sendable, Equatable {
         choices: [Choice],
         bitsVoting: Voting? = nil,
         channelPointsVoting: Voting? = nil,
-        status: String? = nil,
+        status: TwitchPollStatus? = nil,
         durationSeconds: Int? = nil,
         startedAt: Date,
         endedAt: Date? = nil
@@ -1972,7 +1972,7 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
     public let title: String
     public let outcomes: [Outcome]
     public let winningOutcomeId: String?
-    public let status: String?
+    public let status: TwitchPredictionStatus?
     public let startedAt: Date?
     public let locksAt: Date?
     public let lockedAt: Date?
@@ -1987,7 +1987,7 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
         title: String,
         outcomes: [Outcome],
         winningOutcomeId: String? = nil,
-        status: String? = nil,
+        status: TwitchPredictionStatus? = nil,
         startedAt: Date? = nil,
         locksAt: Date? = nil,
         lockedAt: Date? = nil,
@@ -2361,7 +2361,7 @@ public struct EventSubSuspiciousUserMessage: Decodable, Sendable, Equatable {
     public let userId: String
     public let userLogin: String
     public let userName: String
-    public let lowTrustStatus: String?
+    public let lowTrustStatus: SuspiciousUserStatus?
     public let sharedBanChannelIds: [String]?
     public let types: [String]?
     public let banEvasionEvaluation: String?
@@ -2375,7 +2375,7 @@ public struct EventSubSuspiciousUserMessage: Decodable, Sendable, Equatable {
         userId: String,
         userLogin: String,
         userName: String,
-        lowTrustStatus: String? = nil,
+        lowTrustStatus: SuspiciousUserStatus? = nil,
         sharedBanChannelIds: [String]? = nil,
         types: [String]? = nil,
         banEvasionEvaluation: String? = nil,
@@ -2405,7 +2405,7 @@ public struct EventSubSuspiciousUserUpdate: Codable, Sendable, Equatable {
     public let userId: String
     public let userLogin: String
     public let userName: String
-    public let lowTrustStatus: String
+    public let lowTrustStatus: SuspiciousUserStatus
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -2418,7 +2418,7 @@ public struct EventSubSuspiciousUserUpdate: Codable, Sendable, Equatable {
         userId: String,
         userLogin: String,
         userName: String,
-        lowTrustStatus: String
+        lowTrustStatus: SuspiciousUserStatus
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -2614,14 +2614,14 @@ public struct EventSubWarning: Codable, Sendable, Equatable {
 public struct EventSubConduitShardDisabled: Codable, Sendable, Equatable {
     public let conduitId: String
     public let shardId: String
-    public let status: String
+    public let status: ConduitShardStatus
     public let transport: Transport?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         conduitId: String,
         shardId: String,
-        status: String,
+        status: ConduitShardStatus,
         transport: Transport? = nil
     ) {
         self.conduitId = conduitId
