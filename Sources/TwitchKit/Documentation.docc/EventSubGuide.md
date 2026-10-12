@@ -62,6 +62,8 @@ for await event in eventSub.events {
 }
 ```
 
+For Twitch's metadata with each event (message ID and timestamp, and the delivering subscription's ID, type, version and condition), iterate ``TwitchKit/EventSubClient/notifications`` or ``TwitchKit/EventSubClient/notifications(for:)``.
+
 To follow a single channel, iterate ``TwitchKit/EventSubClient/events(for:)`` instead. It yields only events delivered by subscriptions that name that broadcaster, so a chat screen per channel doesn't need its own routing:
 
 ```swift
@@ -152,26 +154,27 @@ try await client.api.createEventSubSubscription(
 
 ## Webhook Verification
 
-For webhook transports, verify Twitch's request signature before decoding or acting on a notification. Use the raw HTTP request body bytes exactly as received.
+For webhook transports, ``TwitchKit/EventSubWebhookVerifier/message(headers:body:maxAge:now:)`` checks Twitch's request signature and timestamp, then decodes the request into an ``TwitchKit/EventSubWebhookMessage``. Use the raw HTTP request body bytes exactly as received.
 
 ```swift
 let verifier = EventSubWebhookVerifier(secret: eventSubSecret)
-let isValid = verifier.isValid(
-    messageID: request.headers["Twitch-Eventsub-Message-Id"],
-    timestamp: request.headers["Twitch-Eventsub-Message-Timestamp"],
-    body: requestBody,
-    signature: request.headers["Twitch-Eventsub-Message-Signature"],
-    maxAge: .seconds(600)
-)
+
+switch try verifier.message(headers: request.headers, body: requestBody) {
+case .verification(let challenge, _):
+    return .ok(text: challenge)     // 200, Content-Type: text/plain
+case .notification(let notification):
+    await handle(notification)      // a typed event (or `.revocation`) with Twitch's metadata
+    return .noContent               // respond 2xx quickly
+}
 ```
 
-When Twitch sends a webhook callback verification request, respond with the challenge string:
+A request whose signature doesn't match, or whose timestamp is older than `maxAge`, throws ``TwitchKit/EventSubWebhookError/invalidSignature``; respond 403 and don't process it.
 
-```swift
-let challenge = try EventSubWebhookVerifier.challenge(from: requestBody)
-```
+Notifications are ``TwitchKit/EventSubNotification`` values, the same type ``TwitchKit/EventSubClient/notifications`` yields for the WebSocket transport, so one handler can serve both.
 
-Only process the request when `isValid` is true. Before applying side effects, atomically check and record `Twitch-Eventsub-Message-Id` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
+Twitch can deliver a message more than once. Before applying side effects, atomically check and record the notification's ``TwitchKit/EventSubMetadata/messageID`` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
+
+To decode an event you received some other way, call ``TwitchKit/EventSubEvent/decode(type:event:)`` with its subscription type and the JSON of its `event` object.
 
 ## Known And Unknown Events
 

@@ -72,5 +72,8 @@ for await event in eventSub.events {
 
 - ``TwitchKit/EventSubSubscription``
 - ``TwitchKit/EventSubEvent``
+- ``TwitchKit/EventSubNotification``
+- ``TwitchKit/EventSubMetadata``
+- ``TwitchKit/EventSubWebhookMessage``
 - ``TwitchKit/EventSubKnownEvent``
 - ``TwitchKit/EventSubKnownEventType``

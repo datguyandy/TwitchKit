@@ -1089,6 +1089,71 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 15. Notification metadata
+
+    func test_notificationsCarryTwitchMetadata() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+
+        let collector = Task { () -> [EventSubNotification] in
+            var collected: [EventSubNotification] = []
+            for await notification in client.notifications(for: "b") {
+                collected.append(notification)
+                if case .revocation = notification.event { break }
+            }
+            return collected
+        }
+        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        socket.push(text: revocationJSON(messageId: "r1", subscriptionId: "sub-r", type: "channel.follow"))
+        let collected = await collector.value
+
+        XCTAssertEqual(collected.count, 2)
+        let notification = try XCTUnwrap(collected.first?.metadata)
+        XCTAssertEqual(notification.messageID, "m1")
+        XCTAssertEqual(notification.messageTimestamp, TwitchDateParser.date(from: "2024-01-01T00:00:01Z"))
+        XCTAssertEqual(notification.subscriptionID, "sub-m1")
+        XCTAssertEqual(notification.subscriptionType, "test.event.chat")
+        XCTAssertEqual(notification.subscriptionVersion, "1")
+        XCTAssertEqual(notification.condition, ["broadcaster_user_id": "b", "user_id": "me"])
+
+        let revocation = try XCTUnwrap(collected.last?.metadata)
+        XCTAssertEqual(revocation.messageID, "r1")
+        XCTAssertEqual(revocation.subscriptionID, "sub-r")
+        XCTAssertEqual(revocation.subscriptionVersion, "2")
+
+        await client.disconnect()
+    }
+
+    func test_chatRoomNotificationsCarryMetadata() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket], responses: created(6) + deleted(6))
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        let room = try await client.joinChat(broadcasterID: "a", userID: "me")
+
+        let notifications = room.notifications
+        let first = Task { () -> EventSubNotification? in
+            for await notification in notifications {
+                return notification
+            }
+            return nil
+        }
+        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        let notification = await first.value
+
+        XCTAssertEqual(notification?.metadata?.messageID, "m1")
+        try await room.leave()
+        await client.disconnect()
+    }
 }
 
 /// A notification whose envelope carries the delivering subscription, as

@@ -31,7 +31,7 @@ public actor ChatRoom {
     public nonisolated let subscriptions: [EventSubSubscription]
 
     private let client: EventSubClient
-    private let broadcaster: AsyncBroadcaster<EventSubEvent>
+    private let broadcaster: AsyncBroadcaster<EventSubNotification>
     private let pump: Task<Void, Never>
     private var hasLeft = false
 
@@ -40,13 +40,13 @@ public actor ChatRoom {
         broadcasterID: String,
         userID: String,
         subscriptions: [EventSubSubscription],
-        source: AsyncStream<EventSubEvent>
+        source: AsyncStream<EventSubNotification>
     ) {
         self.client = client
         self.broadcasterID = broadcasterID
         self.userID = userID
         self.subscriptions = subscriptions
-        let broadcaster = AsyncBroadcaster<EventSubEvent>(
+        let broadcaster = AsyncBroadcaster<EventSubNotification>(
             bufferingPolicy: .bufferingNewest(1_000),
             backlogPolicy: .bufferingNewest(1_000),
             replaysLatest: false
@@ -55,8 +55,8 @@ public actor ChatRoom {
         // `source` was registered before the subscriptions were created, so
         // nothing is missed; events wait in the room until a view iterates.
         pump = Task {
-            for await event in source {
-                broadcaster.yield(event)
+            for await notification in source {
+                broadcaster.yield(notification)
             }
             broadcaster.finish()
         }
@@ -75,6 +75,13 @@ public actor ChatRoom {
     /// before anything iterates are kept for the first one. Streams finish
     /// when the room leaves.
     public nonisolated var events: AsyncStream<EventSubEvent> {
+        broadcaster.makeStream { $0.event }
+    }
+
+    /// A new stream of this channel's events with Twitch's metadata (message
+    /// ID and timestamp, and the delivering subscription). Behaves like
+    /// ``events``.
+    public nonisolated var notifications: AsyncStream<EventSubNotification> {
         broadcaster.makeStream()
     }
 
@@ -150,7 +157,7 @@ extension EventSubClient {
 
         // Register the room's stream before any subscription exists, so the
         // first events can't arrive ahead of it.
-        let source = events(for: broadcasterID)
+        let source = notifications(for: broadcasterID)
 
         // Claim every subscription before the first await, so a concurrent
         // join of the same channel shares this join's creates instead of

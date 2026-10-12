@@ -33,7 +33,19 @@ public actor EventSubClient {
     /// arrive while nobody is iterating are buffered (per the client's
     /// buffering policy) and delivered to the next consumer.
     public nonisolated var events: AsyncStream<EventSubEvent> {
-        eventBroadcaster.makeStream { $0.event }
+        eventBroadcaster.makeStream { $0.notification.event }
+    }
+
+    /// A new stream of events with Twitch's metadata: the message ID and
+    /// timestamp, and the ID, type, version and condition of the subscription
+    /// that delivered each one.
+    ///
+    /// Behaves like ``events`` (independent per access, buffered while
+    /// nobody iterates). Webhook requests decode to the same
+    /// ``EventSubNotification`` type, so one handler can serve both
+    /// transports.
+    public nonisolated var notifications: AsyncStream<EventSubNotification> {
+        eventBroadcaster.makeStream { $0.notification }
     }
 
     /// A new stream of the events that belong to one broadcaster's channel.
@@ -48,15 +60,24 @@ public actor EventSubClient {
     ///
     /// - Parameter broadcasterID: The broadcaster's user ID.
     public nonisolated func events(for broadcasterID: String) -> AsyncStream<EventSubEvent> {
-        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.event : nil }
+        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.notification.event : nil }
+    }
+
+    /// A new stream of one broadcaster's events with Twitch's metadata. Routes
+    /// like ``events(for:)``.
+    ///
+    /// - Parameter broadcasterID: The broadcaster's user ID.
+    public nonisolated func notifications(for broadcasterID: String) -> AsyncStream<EventSubNotification> {
+        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.notification : nil }
     }
 
     private let eventBroadcaster: AsyncBroadcaster<RoutedEvent>
 
     /// An event with the condition of the subscription that delivered it,
-    /// which is what `events(for:)` routes on.
+    /// which is what `events(for:)` routes on. Client-generated events have
+    /// no metadata but still have a condition.
     struct RoutedEvent: Sendable {
-        let event: EventSubEvent
+        let notification: EventSubNotification
         let condition: [String: String]
 
         private static let broadcasterConditionKeys = [
@@ -614,7 +635,10 @@ public actor EventSubClient {
             let subType = envelope.metadata.subscriptionType ?? "unknown"
             logger.debug("EventSub notification: \(subType)")
             let event = parseNotificationEvent(type: subType, envelopeData: data)
-            eventBroadcaster.yield(RoutedEvent(event: event, condition: envelope.payload.subscription?.condition ?? [:]))
+            eventBroadcaster.yield(RoutedEvent(
+                notification: EventSubNotification(event: event, metadata: Self.metadata(for: envelope)),
+                condition: envelope.payload.subscription?.condition ?? [:]
+            ))
 
         case "session_reconnect":
             if webSocketTask === task,
@@ -632,12 +656,28 @@ public actor EventSubClient {
         case "revocation":
             if let revocation = envelope.payload.subscription {
                 forgetRevokedSubscription(revocation)
-                eventBroadcaster.yield(RoutedEvent(event: .revocation(revocation), condition: revocation.condition))
+                eventBroadcaster.yield(RoutedEvent(
+                    notification: EventSubNotification(event: .revocation(revocation), metadata: Self.metadata(for: envelope)),
+                    condition: revocation.condition
+                ))
             }
 
         default:
             break
         }
+    }
+
+    /// Twitch's metadata for a notification or revocation message.
+    static func metadata(for envelope: EventSubEnvelope) -> EventSubMetadata {
+        let subscription = envelope.payload.subscription
+        return EventSubMetadata(
+            messageID: envelope.metadata.messageId,
+            messageTimestamp: envelope.metadata.messageTimestamp,
+            subscriptionID: subscription?.id ?? "",
+            subscriptionType: subscription?.type ?? envelope.metadata.subscriptionType ?? "",
+            subscriptionVersion: subscription?.version ?? envelope.metadata.subscriptionVersion ?? "",
+            condition: subscription?.condition ?? [:]
+        )
     }
 
     private func parseNotificationEvent(type: String, envelopeData: Data) -> EventSubEvent {
@@ -989,7 +1029,10 @@ public actor EventSubClient {
                 guard desiredSubscriptions.contains(subscription) else { continue }
                 logger.error("❌ EventSub: Twitch rejected \(subscription.type) on resubscribe; dropping it: \(error.localizedDescription)")
                 forget(subscription)
-                eventBroadcaster.yield(RoutedEvent(event: .subscriptionFailed(subscription, error), condition: subscription.condition))
+                eventBroadcaster.yield(RoutedEvent(
+                    notification: EventSubNotification(event: .subscriptionFailed(subscription, error), metadata: nil),
+                    condition: subscription.condition
+                ))
                 continue
             }
             // Reentrancy check: unsubscribe() may have run while the

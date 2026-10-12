@@ -279,172 +279,187 @@ public enum EventSubEvent: Sendable {
         return fallbackEvent(type: type, payload: data)
     }
 
-    static func decodeNotification(type: String, envelope data: Data, decoder: JSONDecoder = .twitch()) -> Self {
+    /// Decodes a notification's event, given the whole message: a WebSocket
+    /// message (`{"metadata":…,"payload":{"subscription":…,"event":…}}`) or a
+    /// webhook request body (`{"subscription":…,"event":…}`).
+    static func decodeNotification(
+        type: String,
+        envelope data: Data,
+        shape: NotificationShape = .webSocket,
+        decoder: JSONDecoder = .twitch()
+    ) -> Self {
         switch type {
         case "channel.chat.message":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: ChatMessage.self, map: Self.chatMessage)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: ChatMessage.self, map: Self.chatMessage)
         case "channel.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelUpdate.self, map: Self.channelUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelUpdate.self, map: Self.channelUpdate)
         case "channel.follow":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: TwitchFollow.self, map: Self.follow)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: TwitchFollow.self, map: Self.follow)
         case "channel.subscribe":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: TwitchSubscription.self, map: Self.subscription)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: TwitchSubscription.self, map: Self.subscription)
         case "stream.online":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubStreamOnline.self, map: Self.streamOnline)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubStreamOnline.self, map: Self.streamOnline)
         case "stream.offline":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubStreamOffline.self, map: Self.streamOffline)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubStreamOffline.self, map: Self.streamOffline)
         case "automod.message.hold":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubAutoModMessage.self, map: Self.automodMessageHold)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubAutoModMessage.self, map: Self.automodMessageHold)
         case "automod.message.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubAutoModMessage.self, map: Self.automodMessageUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubAutoModMessage.self, map: Self.automodMessageUpdate)
         case "automod.settings.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubAutoModSettingsUpdate.self, map: Self.automodSettingsUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubAutoModSettingsUpdate.self, map: Self.automodSettingsUpdate)
         case "automod.terms.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubAutoModTermsUpdate.self, map: Self.automodTermsUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubAutoModTermsUpdate.self, map: Self.automodTermsUpdate)
         case "channel.bits.use":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubBitsUse.self, map: Self.bitsUse)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubBitsUse.self, map: Self.bitsUse)
         case "channel.ad_break.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubAdBreakBegin.self, map: Self.adBreakBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubAdBreakBegin.self, map: Self.adBreakBegin)
         case "channel.raid":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubRaid.self, map: Self.raid)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubRaid.self, map: Self.raid)
         case "channel.cheer":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCheer.self, map: Self.cheer)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCheer.self, map: Self.cheer)
         case "channel.ban":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubBan.self, map: Self.ban)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubBan.self, map: Self.ban)
         case "channel.unban":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUnban.self, map: Self.unban)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUnban.self, map: Self.unban)
         case "channel.moderator.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubModeratorChange.self, map: Self.moderatorAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubModeratorChange.self, map: Self.moderatorAdd)
         case "channel.moderator.remove":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubModeratorChange.self, map: Self.moderatorRemove)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubModeratorChange.self, map: Self.moderatorRemove)
         case "channel.channel_points_custom_reward_redemption.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsCustomRewardRedemption.self, map: Self.channelPointsCustomRewardRedemptionAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsCustomRewardRedemption.self, map: Self.channelPointsCustomRewardRedemptionAdd)
         case "channel.channel_points_custom_reward_redemption.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsCustomRewardRedemption.self, map: Self.channelPointsCustomRewardRedemptionUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsCustomRewardRedemption.self, map: Self.channelPointsCustomRewardRedemptionUpdate)
         case "channel.channel_points_custom_reward.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardAdd)
         case "channel.channel_points_custom_reward.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardUpdate)
         case "channel.channel_points_custom_reward.remove":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardRemove)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsCustomReward.self, map: Self.channelPointsCustomRewardRemove)
         case "channel.channel_points_automatic_reward_redemption.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChannelPointsAutomaticRewardRedemption.self, map: Self.channelPointsAutomaticRewardRedemptionAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChannelPointsAutomaticRewardRedemption.self, map: Self.channelPointsAutomaticRewardRedemptionAdd)
         case "channel.chat.clear":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatClear.self, map: Self.chatClear)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatClear.self, map: Self.chatClear)
         case "channel.chat.clear_user_messages":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatClearUserMessages.self, map: Self.chatClearUserMessages)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatClearUserMessages.self, map: Self.chatClearUserMessages)
         case "channel.chat.message_delete":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatMessageDelete.self, map: Self.chatMessageDelete)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatMessageDelete.self, map: Self.chatMessageDelete)
         case "channel.chat.notification":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatNotification.self, map: Self.chatNotification)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatNotification.self, map: Self.chatNotification)
         case "channel.chat.user_message_hold":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatUserMessageModeration.self, map: Self.chatUserMessageHold)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatUserMessageModeration.self, map: Self.chatUserMessageHold)
         case "channel.chat.user_message_update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatUserMessageModeration.self, map: Self.chatUserMessageUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatUserMessageModeration.self, map: Self.chatUserMessageUpdate)
         case "channel.chat_settings.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubChatSettingsUpdate.self, map: Self.chatSettingsUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubChatSettingsUpdate.self, map: Self.chatSettingsUpdate)
         case "channel.shared_chat.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatBegin)
         case "channel.shared_chat.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatUpdate)
         case "channel.shared_chat.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSharedChatSession.self, map: Self.sharedChatEnd)
         case "channel.moderate":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubModerate.self, map: Self.moderate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubModerate.self, map: Self.moderate)
         case "channel.guest_star_session.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGuestStarSession.self, map: Self.guestStarSessionBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGuestStarSession.self, map: Self.guestStarSessionBegin)
         case "channel.guest_star_session.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGuestStarSession.self, map: Self.guestStarSessionEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGuestStarSession.self, map: Self.guestStarSessionEnd)
         case "channel.guest_star_guest.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGuestStarGuestUpdate.self, map: Self.guestStarGuestUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGuestStarGuestUpdate.self, map: Self.guestStarGuestUpdate)
         case "channel.guest_star_settings.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGuestStarSettingsUpdate.self, map: Self.guestStarSettingsUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGuestStarSettingsUpdate.self, map: Self.guestStarSettingsUpdate)
         case "channel.subscription.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSubscriptionEnd.self, map: Self.subscriptionEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSubscriptionEnd.self, map: Self.subscriptionEnd)
         case "channel.subscription.gift":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSubscriptionGift.self, map: Self.subscriptionGift)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSubscriptionGift.self, map: Self.subscriptionGift)
         case "channel.subscription.message":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSubscriptionMessage.self, map: Self.subscriptionMessage)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSubscriptionMessage.self, map: Self.subscriptionMessage)
         case "channel.poll.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPoll.self, map: Self.pollBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPoll.self, map: Self.pollBegin)
         case "channel.poll.progress":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPoll.self, map: Self.pollProgress)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPoll.self, map: Self.pollProgress)
         case "channel.poll.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPoll.self, map: Self.pollEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPoll.self, map: Self.pollEnd)
         case "channel.prediction.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionBegin)
         case "channel.prediction.progress":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionProgress)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionProgress)
         case "channel.prediction.lock":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionLock)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionLock)
         case "channel.prediction.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubPrediction.self, map: Self.predictionEnd)
         case "channel.goal.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGoal.self, map: Self.goalBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGoal.self, map: Self.goalBegin)
         case "channel.goal.progress":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGoal.self, map: Self.goalProgress)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGoal.self, map: Self.goalProgress)
         case "channel.goal.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubGoal.self, map: Self.goalEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubGoal.self, map: Self.goalEnd)
         case "channel.hype_train.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainBegin)
         case "channel.hype_train.progress":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainProgress)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainProgress)
         case "channel.hype_train.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubHypeTrain.self, map: Self.hypeTrainEnd)
         case "channel.charity_campaign.donate":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCharityDonation.self, map: Self.charityCampaignDonate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCharityDonation.self, map: Self.charityCampaignDonate)
         case "channel.charity_campaign.start":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignStart)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignStart)
         case "channel.charity_campaign.progress":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignProgress)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignProgress)
         case "channel.charity_campaign.stop":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignStop)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCharityCampaign.self, map: Self.charityCampaignStop)
         case "channel.custom_power_up_redemption.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubCustomPowerUpRedemption.self, map: Self.customPowerUpRedemptionAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubCustomPowerUpRedemption.self, map: Self.customPowerUpRedemptionAdd)
         case "channel.suspicious_user.message":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSuspiciousUserMessage.self, map: Self.suspiciousUserMessage)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSuspiciousUserMessage.self, map: Self.suspiciousUserMessage)
         case "channel.suspicious_user.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubSuspiciousUserUpdate.self, map: Self.suspiciousUserUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubSuspiciousUserUpdate.self, map: Self.suspiciousUserUpdate)
         case "channel.unban_request.create":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUnbanRequest.self, map: Self.unbanRequestCreate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUnbanRequest.self, map: Self.unbanRequestCreate)
         case "channel.unban_request.resolve":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUnbanRequest.self, map: Self.unbanRequestResolve)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUnbanRequest.self, map: Self.unbanRequestResolve)
         case "channel.vip.add":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubVIPChange.self, map: Self.vipAdd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubVIPChange.self, map: Self.vipAdd)
         case "channel.vip.remove":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubVIPChange.self, map: Self.vipRemove)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubVIPChange.self, map: Self.vipRemove)
         case "channel.shield_mode.begin":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubShieldMode.self, map: Self.shieldModeBegin)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubShieldMode.self, map: Self.shieldModeBegin)
         case "channel.shield_mode.end":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubShieldMode.self, map: Self.shieldModeEnd)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubShieldMode.self, map: Self.shieldModeEnd)
         case "channel.shoutout.create":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubShoutout.self, map: Self.shoutoutCreate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubShoutout.self, map: Self.shoutoutCreate)
         case "channel.shoutout.receive":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubShoutout.self, map: Self.shoutoutReceive)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubShoutout.self, map: Self.shoutoutReceive)
         case "channel.warning.acknowledge":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubWarning.self, map: Self.warningAcknowledge)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubWarning.self, map: Self.warningAcknowledge)
         case "channel.warning.send":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubWarning.self, map: Self.warningSend)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubWarning.self, map: Self.warningSend)
         case "conduit.shard.disabled":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubConduitShardDisabled.self, map: Self.conduitShardDisabled)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubConduitShardDisabled.self, map: Self.conduitShardDisabled)
         case "drop.entitlement.grant":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubDropEntitlementGrant.self, map: Self.dropEntitlementGrant)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubDropEntitlementGrant.self, map: Self.dropEntitlementGrant)
         case "extension.bits_transaction.create":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubExtensionBitsTransaction.self, map: Self.extensionBitsTransactionCreate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubExtensionBitsTransaction.self, map: Self.extensionBitsTransactionCreate)
         case "user.authorization.grant":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUserAuthorization.self, map: Self.userAuthorizationGrant)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUserAuthorization.self, map: Self.userAuthorizationGrant)
         case "user.authorization.revoke":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUserAuthorization.self, map: Self.userAuthorizationRevoke)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUserAuthorization.self, map: Self.userAuthorizationRevoke)
         case "user.update":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubUserUpdate.self, map: Self.userUpdate)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubUserUpdate.self, map: Self.userUpdate)
         case "user.whisper.message":
-            return decodeNotificationEvent(type: type, envelope: data, decoder: decoder, as: EventSubWhisperMessage.self, map: Self.userWhisperMessage)
+            return decodeNotificationEvent(type: type, envelope: data, shape: shape, decoder: decoder, as: EventSubWhisperMessage.self, map: Self.userWhisperMessage)
         default:
             break
         }
-        return fallbackEvent(type: type, payload: rawEventPayload(from: data) ?? data)
+        return fallbackEvent(type: type, payload: rawEventPayload(from: data, shape: shape) ?? data)
     }
 
+    /// Where a notification's event sits in the message.
+    enum NotificationShape: Sendable {
+        /// `payload.event`, in a WebSocket message.
+        case webSocket
+        /// `event`, at the top level of a webhook request body.
+        case webhook
+    }
 
     private static func decodeKnownEvent<T: Decodable>(
         type: String,
@@ -466,25 +481,40 @@ public enum EventSubEvent: Sendable {
     private static func decodeNotificationEvent<T: Decodable>(
         type: String,
         envelope data: Data,
+        shape: NotificationShape,
         decoder: JSONDecoder,
         as _: T.Type,
         map: (T) -> Self
     ) -> Self {
         do {
-            let envelope = try decoder.decode(EventSubNotificationEnvelope<T>.self, from: data)
-            return map(envelope.payload.event)
+            switch shape {
+            case .webSocket:
+                return map(try decoder.decode(EventSubNotificationEnvelope<T>.self, from: data).payload.event)
+            case .webhook:
+                return map(try decoder.decode(EventSubWebhookNotificationBody<T>.self, from: data).event)
+            }
         } catch {
             eventSubMessageLogger.error(
                 "EventSub: failed to decode notification \(type, privacy: .public) as \(String(describing: T.self), privacy: .public): \(eventSubDecodingErrorDescription(error), privacy: .public)"
             )
-            return fallbackEvent(type: type, payload: rawEventPayload(from: data) ?? data)
+            return fallbackEvent(type: type, payload: rawEventPayload(from: data, shape: shape) ?? data)
         }
     }
 
-    private static func rawEventPayload(from envelopeData: Data) -> Data? {
-        guard let object = try? JSONSerialization.jsonObject(with: envelopeData) as? [String: Any],
-              let payload = object["payload"] as? [String: Any],
-              let event = payload["event"] else {
+    /// The raw event JSON, for events that don't decode into a model. Batched
+    /// notifications carry an `events` array instead of `event`.
+    private static func rawEventPayload(from envelopeData: Data, shape: NotificationShape) -> Data? {
+        guard let object = try? JSONSerialization.jsonObject(with: envelopeData) as? [String: Any] else {
+            return nil
+        }
+        let container: [String: Any]?
+        switch shape {
+        case .webSocket: container = object["payload"] as? [String: Any]
+        case .webhook: container = object
+        }
+        // isValidJSONObject: data(withJSONObject:) traps on a bare string or number.
+        guard let event = container?["event"] ?? container?["events"],
+              JSONSerialization.isValidJSONObject(event) else {
             return nil
         }
         return try? JSONSerialization.data(withJSONObject: event)
@@ -531,6 +561,10 @@ private struct EventSubNotificationEnvelope<Event: Decodable>: Decodable {
     }
 }
 
+private struct EventSubWebhookNotificationBody<Event: Decodable>: Decodable {
+    let event: Event
+}
+
 /// Raw WebSocket message envelope from Twitch EventSub.
 struct EventSubEnvelope: Decodable {
     let metadata: Metadata
@@ -541,6 +575,7 @@ struct EventSubEnvelope: Decodable {
         let messageType: String
         let messageTimestamp: Date
         let subscriptionType: String?
+        let subscriptionVersion: String?
     }
 
     struct Payload: Decodable {

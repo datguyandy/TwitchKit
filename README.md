@@ -177,6 +177,8 @@ let twitch = TwitchClient(
 
 Each access to `eventSub.events` returns its own stream, so several parts of an app (for example a chat view and a moderation panel) can iterate at the same time and each receives every event. Cancelling one loop, such as a SwiftUI `.task` whose view disappears, ends only that stream; iterate `events` again to resume. Events that arrive while nothing is iterating are buffered for the next consumer.
 
+For Twitch's metadata (message ID and timestamp, and the ID, type, version and condition of the delivering subscription), iterate `eventSub.notifications` or `notifications(for:)` instead. They yield `EventSubNotification` values, the same type webhook requests decode to.
+
 To follow one channel, use `eventSub.events(for: broadcasterID)`. It yields only the events delivered by subscriptions that name that broadcaster (including raids targeting it), plus the channel's revocations and `.subscriptionFailed` events. Create the stream before subscribing so no early event is missed:
 
 ```swift
@@ -262,22 +264,31 @@ let deletedCount = try await twitch.api.deleteAllEventSubSubscriptions(
 
 ### EventSub Webhooks
 
-For webhook transports, verify Twitch's signature before decoding or acting on a notification. Pass the exact raw request body bytes you received from your HTTP server:
+`EventSubWebhookVerifier.message(headers:body:)` checks Twitch's signature and timestamp, then decodes the request into the same typed events the WebSocket client yields. Pass the exact raw request body bytes you received:
 
 ```swift
 let verifier = EventSubWebhookVerifier(secret: eventSubSecret)
-let isValid = verifier.isValid(
-    messageID: request.headers["Twitch-Eventsub-Message-Id"],
-    timestamp: request.headers["Twitch-Eventsub-Message-Timestamp"],
-    body: requestBody,
-    signature: request.headers["Twitch-Eventsub-Message-Signature"],
-    maxAge: .seconds(600)
-)
 
-let challenge = try EventSubWebhookVerifier.challenge(from: requestBody)
+do {
+    switch try verifier.message(headers: request.headers, body: requestBody) {
+    case .verification(let challenge, _):
+        return .ok(text: challenge)     // 200, Content-Type: text/plain
+    case .notification(let notification):
+        // A typed event (.chatMessage, .streamOnline, …, or .revocation), and
+        // metadata with the message ID, timestamp and subscription.
+        await handle(notification)
+        return .noContent               // respond 2xx quickly
+    }
+} catch EventSubWebhookError.invalidSignature {
+    return .forbidden                   // don't process the request
+}
 ```
 
-Only process the request when `isValid` is true. Before applying side effects, atomically check and record `Twitch-Eventsub-Message-Id` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
+If your server framework has its own header type, use `verifier.message(body:) { name in request.headers[name] }`. Header names match case-insensitively.
+
+Twitch can deliver a message more than once. Before applying side effects, atomically check and record `notification.metadata.messageID` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
+
+The lower-level `isValid(messageID:timestamp:body:signature:maxAge:)` and `EventSubWebhookVerifier.challenge(from:)` remain available.
 
 ## Supported APIs
 
