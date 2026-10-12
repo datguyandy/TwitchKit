@@ -209,8 +209,8 @@ final class MockNetworkPathMonitor: NetworkPathMonitoring, @unchecked Sendable {
 
     /// Drives a scripted path-status change.
     func send(_ status: NetworkPathStatus) {
-        let continuation = withLock { continuation }
-        continuation.yield(status)
+        let current = withLock { self.continuation }
+        current.yield(status)
     }
 
     private func withLock<T>(_ body: () -> T) -> T {
