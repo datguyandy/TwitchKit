@@ -11,8 +11,8 @@ public struct TwitchTokenInfo: Sendable, Equatable {
     /// The user's login name. `nil` for an app access token.
     public let login: String?
 
-    /// The scopes the user granted, as raw scope strings.
-    public let scopes: [String]
+    /// The scopes the user granted.
+    public let scopes: [TwitchScope]
 
     /// Seconds until the token expires, as of ``validatedAt``. `0` for tokens
     /// that don't expire.
@@ -25,7 +25,7 @@ public struct TwitchTokenInfo: Sendable, Equatable {
         clientID: String,
         userID: String? = nil,
         login: String? = nil,
-        scopes: [String] = [],
+        scopes: [TwitchScope] = [],
         expiresIn: Int,
         validatedAt: Date = .now
     ) {
@@ -44,7 +44,7 @@ public struct TwitchTokenInfo: Sendable, Equatable {
 
     /// Whether the user granted `scope`.
     public func hasScope(_ scope: TwitchScope) -> Bool {
-        scopes.contains(scope.rawValue)
+        scopes.contains(scope)
     }
 
     /// The `/oauth2/validate` response body. Every field is optional because
@@ -63,7 +63,7 @@ public struct TwitchTokenInfo: Sendable, Equatable {
             clientID: body.clientId ?? "",
             userID: body.userId,
             login: body.login,
-            scopes: body.scopes ?? [],
+            scopes: (body.scopes ?? []).map { TwitchScope($0) },
             expiresIn: body.expiresIn ?? 0,
             validatedAt: validatedAt
         )

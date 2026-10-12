@@ -642,7 +642,7 @@ final class HTTPClientTests: XCTestCase {
 
         let token = try await oauthClient.pollDeviceCode(
             deviceCode: "device-code",
-            rawScopes: ["user:read:email"],
+            scopes: ["user:read:email"],
             interval: 0,
             expiresIn: 60
         )

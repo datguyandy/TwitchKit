@@ -35,6 +35,8 @@ let scopes: [TwitchScope] = [
 ]
 ```
 
+A scope Twitch adds before TwitchKit lists it works as a string literal in the same array, for example `"user:read:new_thing"`.
+
 ## Run the Smoke Test
 
 The package includes a small command-line smoke test target for local verification:

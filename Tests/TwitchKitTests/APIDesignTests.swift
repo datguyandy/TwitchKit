@@ -19,7 +19,18 @@ final class APIDesignTests: XCTestCase {
         XCTAssertEqual(scope, "user:read:email user:read:chat")
     }
 
-    func test_rawScopeEscapeHatchAllowsFutureTwitchScopes() {
+    func test_scopesAcceptFutureTwitchScopes() {
+        let auth = TwitchAuth(clientID: "client-id")
+
+        let url = auth.implicitGrantURL(scopes: [.userReadChat, "future:scope", TwitchScope("other:future")])
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let scope = components?.queryItems?.first { $0.name == "scope" }?.value
+
+        XCTAssertEqual(scope, "user:read:chat future:scope other:future")
+    }
+
+    @available(*, deprecated)
+    func test_deprecatedRawScopeOverloadsStillForward() {
         let auth = TwitchAuth(clientID: "client-id")
 
         let url = auth.implicitGrantURL(rawScopes: ["future:scope"])

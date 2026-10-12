@@ -28,16 +28,17 @@ public struct TwitchOAuthClient: Sendable {
         state: String? = nil,
         forceVerify: Bool = true
     ) -> URL {
-        implicitGrantURL(rawScopes: scopes.map(\.rawValue), state: state, forceVerify: forceVerify)
+        authorizationURL(responseType: "token", scopes: scopes.map(\.rawValue), state: state, forceVerify: forceVerify)
     }
 
     /// Builds an OAuth implicit grant URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func implicitGrantURL(
         rawScopes: [String],
         state: String? = nil,
         forceVerify: Bool = true
     ) -> URL {
-        authorizationURL(responseType: "token", scopes: rawScopes, state: state, forceVerify: forceVerify)
+        implicitGrantURL(scopes: rawScopes.map { TwitchScope($0) }, state: state, forceVerify: forceVerify)
     }
 
     /// Builds an authorization code URL for apps that can exchange the code safely.
@@ -46,16 +47,17 @@ public struct TwitchOAuthClient: Sendable {
         state: String? = nil,
         forceVerify: Bool = true
     ) -> URL {
-        authorizationCodeURL(rawScopes: scopes.map(\.rawValue), state: state, forceVerify: forceVerify)
+        authorizationURL(responseType: "code", scopes: scopes.map(\.rawValue), state: state, forceVerify: forceVerify)
     }
 
     /// Builds an authorization code URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func authorizationCodeURL(
         rawScopes: [String],
         state: String? = nil,
         forceVerify: Bool = true
     ) -> URL {
-        authorizationURL(responseType: "code", scopes: rawScopes, state: state, forceVerify: forceVerify)
+        authorizationCodeURL(scopes: rawScopes.map { TwitchScope($0) }, state: state, forceVerify: forceVerify)
     }
 
     /// Builds an OIDC implicit grant URL when the app also needs an ID token for sign-in.
@@ -66,10 +68,18 @@ public struct TwitchOAuthClient: Sendable {
         nonce: String,
         forceVerify: Bool = true
     ) -> URL {
-        oidcImplicitGrantURL(rawScopes: scopes.map(\.rawValue), claims: claims, state: state, nonce: nonce, forceVerify: forceVerify)
+        authorizationURL(
+            responseType: "token id_token",
+            scopes: oidcScopes(scopes.map(\.rawValue)),
+            state: state,
+            forceVerify: forceVerify,
+            nonce: nonce,
+            claims: claims
+        )
     }
 
     /// Builds an OIDC implicit grant URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func oidcImplicitGrantURL(
         rawScopes: [String],
         claims: String? = nil,
@@ -77,14 +87,7 @@ public struct TwitchOAuthClient: Sendable {
         nonce: String,
         forceVerify: Bool = true
     ) -> URL {
-        authorizationURL(
-            responseType: "token id_token",
-            scopes: oidcScopes(rawScopes),
-            state: state,
-            forceVerify: forceVerify,
-            nonce: nonce,
-            claims: claims
-        )
+        oidcImplicitGrantURL(scopes: rawScopes.map { TwitchScope($0) }, claims: claims, state: state, nonce: nonce, forceVerify: forceVerify)
     }
 
     /// Builds an OIDC authorization code URL for sign-in plus Twitch API access.
@@ -95,10 +98,18 @@ public struct TwitchOAuthClient: Sendable {
         nonce: String,
         forceVerify: Bool = true
     ) -> URL {
-        oidcAuthorizationCodeURL(rawScopes: scopes.map(\.rawValue), claims: claims, state: state, nonce: nonce, forceVerify: forceVerify)
+        authorizationURL(
+            responseType: "code",
+            scopes: oidcScopes(scopes.map(\.rawValue)),
+            state: state,
+            forceVerify: forceVerify,
+            nonce: nonce,
+            claims: claims
+        )
     }
 
     /// Builds an OIDC authorization code URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func oidcAuthorizationCodeURL(
         rawScopes: [String],
         claims: String? = nil,
@@ -106,14 +117,7 @@ public struct TwitchOAuthClient: Sendable {
         nonce: String,
         forceVerify: Bool = true
     ) -> URL {
-        authorizationURL(
-            responseType: "code",
-            scopes: oidcScopes(rawScopes),
-            state: state,
-            forceVerify: forceVerify,
-            nonce: nonce,
-            claims: claims
-        )
+        oidcAuthorizationCodeURL(scopes: rawScopes.map { TwitchScope($0) }, claims: claims, state: state, nonce: nonce, forceVerify: forceVerify)
     }
 
     /// Exchanges an authorization code for an OAuth token.
@@ -130,33 +134,29 @@ public struct TwitchOAuthClient: Sendable {
 
     /// Requests an app access token with the client credentials flow.
     public func requestAppAccessToken(scopes: [TwitchScope] = []) async throws -> OAuthToken {
-        try await requestAppAccessToken(rawScopes: scopes.map(\.rawValue))
-    }
-
-    /// Requests an app access token with raw scope strings.
-    public func requestAppAccessToken(rawScopes: [String]) async throws -> OAuthToken {
         guard let clientSecret else { throw HelixError.missingClientSecret }
         return try await postTokenRequest(fields: [
             "client_id": clientId,
             "client_secret": clientSecret,
             "grant_type": "client_credentials",
-            "scope": rawScopes.joined(separator: " "),
+            "scope": Self.joined(scopes),
         ])
+    }
+
+    /// Requests an app access token with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
+    public func requestAppAccessToken(rawScopes: [String]) async throws -> OAuthToken {
+        try await requestAppAccessToken(scopes: rawScopes.map { TwitchScope($0) })
     }
 
     /// Starts Twitch's device code flow for clients with limited text input.
     public func startDeviceCodeFlow(scopes: [TwitchScope] = TwitchAuth.defaultScopeCases) async throws -> DeviceCodeAuthorization {
-        try await startDeviceCodeFlow(rawScopes: scopes.map(\.rawValue))
-    }
-
-    /// Starts Twitch's device code flow with raw scope strings.
-    public func startDeviceCodeFlow(rawScopes: [String]) async throws -> DeviceCodeAuthorization {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/device")!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded([
             "client_id": clientId,
-            "scopes": rawScopes.joined(separator: " "),
+            "scopes": Self.joined(scopes),
         ])
 
         let (data, response) = try await perform(request)
@@ -167,6 +167,12 @@ public struct TwitchOAuthClient: Sendable {
         return try JSONDecoder.twitch().decode(DeviceCodeAuthorization.self, from: data)
     }
 
+    /// Starts Twitch's device code flow with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
+    public func startDeviceCodeFlow(rawScopes: [String]) async throws -> DeviceCodeAuthorization {
+        try await startDeviceCodeFlow(scopes: rawScopes.map { TwitchScope($0) })
+    }
+
     /// Polls Twitch for device-code completion using an authorization response.
     public func pollDeviceCode(
         _ authorization: DeviceCodeAuthorization,
@@ -174,7 +180,7 @@ public struct TwitchOAuthClient: Sendable {
     ) async throws -> OAuthToken {
         try await pollDeviceCode(
             deviceCode: authorization.deviceCode,
-            rawScopes: scopes.map(\.rawValue),
+            scopes: scopes,
             interval: authorization.interval,
             expiresIn: authorization.expiresIn
         )
@@ -184,21 +190,6 @@ public struct TwitchOAuthClient: Sendable {
     public func pollDeviceCode(
         deviceCode: String,
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
-        interval: Int = 5,
-        expiresIn: Int = 600
-    ) async throws -> OAuthToken {
-        try await pollDeviceCode(
-            deviceCode: deviceCode,
-            rawScopes: scopes.map(\.rawValue),
-            interval: interval,
-            expiresIn: expiresIn
-        )
-    }
-
-    /// Polls Twitch for device-code completion using raw scope strings.
-    public func pollDeviceCode(
-        deviceCode: String,
-        rawScopes: [String],
         interval: Int = 5,
         expiresIn: Int = 600
     ) async throws -> OAuthToken {
@@ -213,7 +204,7 @@ public struct TwitchOAuthClient: Sendable {
             }
 
             do {
-                return try await exchangeDeviceCode(deviceCode: deviceCode, rawScopes: rawScopes)
+                return try await exchangeDeviceCode(deviceCode: deviceCode, scopes: scopes)
             } catch HelixError.oauth(let error) where error.error == "authorization_pending" {
                 try await Task.sleep(for: .seconds(pollingInterval))
             } catch HelixError.oauth(let error) where error.error == "slow_down" {
@@ -223,19 +214,41 @@ public struct TwitchOAuthClient: Sendable {
         }
     }
 
-    /// Performs one device-code token exchange request.
-    public func exchangeDeviceCode(deviceCode: String, scopes: [TwitchScope] = TwitchAuth.defaultScopeCases) async throws -> OAuthToken {
-        try await exchangeDeviceCode(deviceCode: deviceCode, rawScopes: scopes.map(\.rawValue))
+    /// Polls Twitch for device-code completion using raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
+    public func pollDeviceCode(
+        deviceCode: String,
+        rawScopes: [String],
+        interval: Int = 5,
+        expiresIn: Int = 600
+    ) async throws -> OAuthToken {
+        try await pollDeviceCode(
+            deviceCode: deviceCode,
+            scopes: rawScopes.map { TwitchScope($0) },
+            interval: interval,
+            expiresIn: expiresIn
+        )
     }
 
-    /// Performs one device-code token exchange request with raw scope strings.
-    public func exchangeDeviceCode(deviceCode: String, rawScopes: [String]) async throws -> OAuthToken {
+    /// Performs one device-code token exchange request.
+    public func exchangeDeviceCode(deviceCode: String, scopes: [TwitchScope] = TwitchAuth.defaultScopeCases) async throws -> OAuthToken {
         try await postTokenRequest(fields: [
             "client_id": clientId,
-            "scope": rawScopes.joined(separator: " "),
+            "scope": Self.joined(scopes),
             "device_code": deviceCode,
             "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
         ])
+    }
+
+    /// Performs one device-code token exchange request with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
+    public func exchangeDeviceCode(deviceCode: String, rawScopes: [String]) async throws -> OAuthToken {
+        try await exchangeDeviceCode(deviceCode: deviceCode, scopes: rawScopes.map { TwitchScope($0) })
+    }
+
+    /// Scopes as Twitch's space-separated form value.
+    private static func joined(_ scopes: [TwitchScope]) -> String {
+        scopes.map(\.rawValue).joined(separator: " ")
     }
 
     /// Refreshes an OAuth token using a refresh token.

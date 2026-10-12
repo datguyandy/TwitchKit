@@ -1,96 +1,219 @@
 import Foundation
 
-/// A Twitch OAuth scope.
-public enum TwitchScope: String, CaseIterable, Sendable {
+/// A Twitch OAuth scope, such as `user:read:chat`.
+///
+/// The static members cover every scope Twitch documents. Twitch adds scopes
+/// over time, so any scope string works too, without waiting for a TwitchKit
+/// release: `TwitchScope("user:read:new_thing")`, or a string literal where a
+/// `TwitchScope` is expected:
+///
+/// ```swift
+/// let url = twitch.auth.authorizationCodeURL(scopes: [.userReadChat, "user:read:new_thing"])
+/// ```
+public struct TwitchScope: RawRepresentable, Hashable, Sendable, Codable, CaseIterable,
+    ExpressibleByStringLiteral, CustomStringConvertible {
+    /// The scope string Twitch uses, for example `user:read:chat`.
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    public init(from decoder: any Decoder) throws {
+        rawValue = try decoder.singleValueContainer().decode(String.self)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public var description: String {
+        rawValue
+    }
+
+    /// Every scope Twitch documents, in the order they're declared below.
+    public static let allCases: [TwitchScope] = [
+        .analyticsReadExtensions,
+        .analyticsReadGames,
+        .bitsRead,
+        .channelBot,
+        .channelManageAds,
+        .channelReadAds,
+        .channelManageBroadcast,
+        .channelReadCharity,
+        .channelManageClips,
+        .channelEditCommercial,
+        .channelReadEditors,
+        .channelManageExtensions,
+        .channelReadGoals,
+        .channelReadGuestStar,
+        .channelManageGuestStar,
+        .channelReadHypeTrain,
+        .channelManageModerators,
+        .channelReadPolls,
+        .channelManagePolls,
+        .channelReadPredictions,
+        .channelManagePredictions,
+        .channelManageRaids,
+        .channelReadRedemptions,
+        .channelManageRedemptions,
+        .channelManageSchedule,
+        .channelReadStreamKey,
+        .channelReadSubscriptions,
+        .channelManageVideos,
+        .channelReadVips,
+        .channelManageVips,
+        .channelModerate,
+        .clipsEdit,
+        .editorManageClips,
+        .moderationRead,
+        .moderatorManageAnnouncements,
+        .moderatorManageAutomod,
+        .moderatorReadAutomodSettings,
+        .moderatorManageAutomodSettings,
+        .moderatorReadBannedUsers,
+        .moderatorManageBannedUsers,
+        .moderatorReadBlockedTerms,
+        .moderatorManageBlockedTerms,
+        .moderatorReadChatMessages,
+        .moderatorManageChatMessages,
+        .moderatorReadChatSettings,
+        .moderatorManageChatSettings,
+        .moderatorReadChatters,
+        .moderatorReadFollowers,
+        .moderatorReadGuestStar,
+        .moderatorManageGuestStar,
+        .moderatorReadModerators,
+        .moderatorReadShieldMode,
+        .moderatorManageShieldMode,
+        .moderatorReadShoutouts,
+        .moderatorManageShoutouts,
+        .moderatorReadSuspiciousUsers,
+        .moderatorManageSuspiciousUsers,
+        .moderatorReadUnbanRequests,
+        .moderatorManageUnbanRequests,
+        .moderatorReadVips,
+        .moderatorReadWarnings,
+        .moderatorManageWarnings,
+        .userBot,
+        .userEdit,
+        .userEditBroadcast,
+        .userReadBlockedUsers,
+        .userManageBlockedUsers,
+        .userReadBroadcast,
+        .userReadChat,
+        .userManageChatColor,
+        .userReadEmail,
+        .userReadEmotes,
+        .userReadFollows,
+        .userReadModeratedChannels,
+        .userReadSubscriptions,
+        .userReadWhispers,
+        .userManageWhispers,
+        .userWriteChat,
+        .chatEdit,
+        .chatRead,
+        .whispersRead,
+    ]
+
     // MARK: Twitch API and EventSub
 
-    case analyticsReadExtensions = "analytics:read:extensions"
-    case analyticsReadGames = "analytics:read:games"
-    case bitsRead = "bits:read"
-    case channelBot = "channel:bot"
-    case channelManageAds = "channel:manage:ads"
-    case channelReadAds = "channel:read:ads"
-    case channelManageBroadcast = "channel:manage:broadcast"
-    case channelReadCharity = "channel:read:charity"
-    case channelManageClips = "channel:manage:clips"
-    case channelEditCommercial = "channel:edit:commercial"
-    case channelReadEditors = "channel:read:editors"
-    case channelManageExtensions = "channel:manage:extensions"
-    case channelReadGoals = "channel:read:goals"
-    case channelReadGuestStar = "channel:read:guest_star"
-    case channelManageGuestStar = "channel:manage:guest_star"
-    case channelReadHypeTrain = "channel:read:hype_train"
-    case channelManageModerators = "channel:manage:moderators"
-    case channelReadPolls = "channel:read:polls"
-    case channelManagePolls = "channel:manage:polls"
-    case channelReadPredictions = "channel:read:predictions"
-    case channelManagePredictions = "channel:manage:predictions"
-    case channelManageRaids = "channel:manage:raids"
-    case channelReadRedemptions = "channel:read:redemptions"
-    case channelManageRedemptions = "channel:manage:redemptions"
-    case channelManageSchedule = "channel:manage:schedule"
-    case channelReadStreamKey = "channel:read:stream_key"
-    case channelReadSubscriptions = "channel:read:subscriptions"
-    case channelManageVideos = "channel:manage:videos"
-    case channelReadVips = "channel:read:vips"
-    case channelManageVips = "channel:manage:vips"
-    case channelModerate = "channel:moderate"
-    case clipsEdit = "clips:edit"
-    case editorManageClips = "editor:manage:clips"
-    case moderationRead = "moderation:read"
-    case moderatorManageAnnouncements = "moderator:manage:announcements"
-    case moderatorManageAutomod = "moderator:manage:automod"
-    case moderatorReadAutomodSettings = "moderator:read:automod_settings"
-    case moderatorManageAutomodSettings = "moderator:manage:automod_settings"
-    case moderatorReadBannedUsers = "moderator:read:banned_users"
-    case moderatorManageBannedUsers = "moderator:manage:banned_users"
-    case moderatorReadBlockedTerms = "moderator:read:blocked_terms"
-    case moderatorManageBlockedTerms = "moderator:manage:blocked_terms"
-    case moderatorReadChatMessages = "moderator:read:chat_messages"
-    case moderatorManageChatMessages = "moderator:manage:chat_messages"
-    case moderatorReadChatSettings = "moderator:read:chat_settings"
-    case moderatorManageChatSettings = "moderator:manage:chat_settings"
-    case moderatorReadChatters = "moderator:read:chatters"
-    case moderatorReadFollowers = "moderator:read:followers"
-    case moderatorReadGuestStar = "moderator:read:guest_star"
-    case moderatorManageGuestStar = "moderator:manage:guest_star"
-    case moderatorReadModerators = "moderator:read:moderators"
-    case moderatorReadShieldMode = "moderator:read:shield_mode"
-    case moderatorManageShieldMode = "moderator:manage:shield_mode"
-    case moderatorReadShoutouts = "moderator:read:shoutouts"
-    case moderatorManageShoutouts = "moderator:manage:shoutouts"
-    case moderatorReadSuspiciousUsers = "moderator:read:suspicious_users"
-    case moderatorManageSuspiciousUsers = "moderator:manage:suspicious_users"
-    case moderatorReadUnbanRequests = "moderator:read:unban_requests"
-    case moderatorManageUnbanRequests = "moderator:manage:unban_requests"
-    case moderatorReadVips = "moderator:read:vips"
-    case moderatorReadWarnings = "moderator:read:warnings"
-    case moderatorManageWarnings = "moderator:manage:warnings"
-    case userBot = "user:bot"
-    case userEdit = "user:edit"
-    case userEditBroadcast = "user:edit:broadcast"
-    case userReadBlockedUsers = "user:read:blocked_users"
-    case userManageBlockedUsers = "user:manage:blocked_users"
-    case userReadBroadcast = "user:read:broadcast"
-    case userReadChat = "user:read:chat"
-    case userManageChatColor = "user:manage:chat_color"
-    case userReadEmail = "user:read:email"
-    case userReadEmotes = "user:read:emotes"
-    case userReadFollows = "user:read:follows"
-    case userReadModeratedChannels = "user:read:moderated_channels"
-    case userReadSubscriptions = "user:read:subscriptions"
-    case userReadWhispers = "user:read:whispers"
-    case userManageWhispers = "user:manage:whispers"
-    case userWriteChat = "user:write:chat"
+    public static let analyticsReadExtensions = TwitchScope("analytics:read:extensions")
+    public static let analyticsReadGames = TwitchScope("analytics:read:games")
+    public static let bitsRead = TwitchScope("bits:read")
+    public static let channelBot = TwitchScope("channel:bot")
+    public static let channelManageAds = TwitchScope("channel:manage:ads")
+    public static let channelReadAds = TwitchScope("channel:read:ads")
+    public static let channelManageBroadcast = TwitchScope("channel:manage:broadcast")
+    public static let channelReadCharity = TwitchScope("channel:read:charity")
+    public static let channelManageClips = TwitchScope("channel:manage:clips")
+    public static let channelEditCommercial = TwitchScope("channel:edit:commercial")
+    public static let channelReadEditors = TwitchScope("channel:read:editors")
+    public static let channelManageExtensions = TwitchScope("channel:manage:extensions")
+    public static let channelReadGoals = TwitchScope("channel:read:goals")
+    public static let channelReadGuestStar = TwitchScope("channel:read:guest_star")
+    public static let channelManageGuestStar = TwitchScope("channel:manage:guest_star")
+    public static let channelReadHypeTrain = TwitchScope("channel:read:hype_train")
+    public static let channelManageModerators = TwitchScope("channel:manage:moderators")
+    public static let channelReadPolls = TwitchScope("channel:read:polls")
+    public static let channelManagePolls = TwitchScope("channel:manage:polls")
+    public static let channelReadPredictions = TwitchScope("channel:read:predictions")
+    public static let channelManagePredictions = TwitchScope("channel:manage:predictions")
+    public static let channelManageRaids = TwitchScope("channel:manage:raids")
+    public static let channelReadRedemptions = TwitchScope("channel:read:redemptions")
+    public static let channelManageRedemptions = TwitchScope("channel:manage:redemptions")
+    public static let channelManageSchedule = TwitchScope("channel:manage:schedule")
+    public static let channelReadStreamKey = TwitchScope("channel:read:stream_key")
+    public static let channelReadSubscriptions = TwitchScope("channel:read:subscriptions")
+    public static let channelManageVideos = TwitchScope("channel:manage:videos")
+    public static let channelReadVips = TwitchScope("channel:read:vips")
+    public static let channelManageVips = TwitchScope("channel:manage:vips")
+    public static let channelModerate = TwitchScope("channel:moderate")
+    public static let clipsEdit = TwitchScope("clips:edit")
+    public static let editorManageClips = TwitchScope("editor:manage:clips")
+    public static let moderationRead = TwitchScope("moderation:read")
+    public static let moderatorManageAnnouncements = TwitchScope("moderator:manage:announcements")
+    public static let moderatorManageAutomod = TwitchScope("moderator:manage:automod")
+    public static let moderatorReadAutomodSettings = TwitchScope("moderator:read:automod_settings")
+    public static let moderatorManageAutomodSettings = TwitchScope("moderator:manage:automod_settings")
+    public static let moderatorReadBannedUsers = TwitchScope("moderator:read:banned_users")
+    public static let moderatorManageBannedUsers = TwitchScope("moderator:manage:banned_users")
+    public static let moderatorReadBlockedTerms = TwitchScope("moderator:read:blocked_terms")
+    public static let moderatorManageBlockedTerms = TwitchScope("moderator:manage:blocked_terms")
+    public static let moderatorReadChatMessages = TwitchScope("moderator:read:chat_messages")
+    public static let moderatorManageChatMessages = TwitchScope("moderator:manage:chat_messages")
+    public static let moderatorReadChatSettings = TwitchScope("moderator:read:chat_settings")
+    public static let moderatorManageChatSettings = TwitchScope("moderator:manage:chat_settings")
+    public static let moderatorReadChatters = TwitchScope("moderator:read:chatters")
+    public static let moderatorReadFollowers = TwitchScope("moderator:read:followers")
+    public static let moderatorReadGuestStar = TwitchScope("moderator:read:guest_star")
+    public static let moderatorManageGuestStar = TwitchScope("moderator:manage:guest_star")
+    public static let moderatorReadModerators = TwitchScope("moderator:read:moderators")
+    public static let moderatorReadShieldMode = TwitchScope("moderator:read:shield_mode")
+    public static let moderatorManageShieldMode = TwitchScope("moderator:manage:shield_mode")
+    public static let moderatorReadShoutouts = TwitchScope("moderator:read:shoutouts")
+    public static let moderatorManageShoutouts = TwitchScope("moderator:manage:shoutouts")
+    public static let moderatorReadSuspiciousUsers = TwitchScope("moderator:read:suspicious_users")
+    public static let moderatorManageSuspiciousUsers = TwitchScope("moderator:manage:suspicious_users")
+    public static let moderatorReadUnbanRequests = TwitchScope("moderator:read:unban_requests")
+    public static let moderatorManageUnbanRequests = TwitchScope("moderator:manage:unban_requests")
+    public static let moderatorReadVips = TwitchScope("moderator:read:vips")
+    public static let moderatorReadWarnings = TwitchScope("moderator:read:warnings")
+    public static let moderatorManageWarnings = TwitchScope("moderator:manage:warnings")
+    public static let userBot = TwitchScope("user:bot")
+    public static let userEdit = TwitchScope("user:edit")
+    public static let userEditBroadcast = TwitchScope("user:edit:broadcast")
+    public static let userReadBlockedUsers = TwitchScope("user:read:blocked_users")
+    public static let userManageBlockedUsers = TwitchScope("user:manage:blocked_users")
+    public static let userReadBroadcast = TwitchScope("user:read:broadcast")
+    public static let userReadChat = TwitchScope("user:read:chat")
+    public static let userManageChatColor = TwitchScope("user:manage:chat_color")
+    public static let userReadEmail = TwitchScope("user:read:email")
+    public static let userReadEmotes = TwitchScope("user:read:emotes")
+    public static let userReadFollows = TwitchScope("user:read:follows")
+    public static let userReadModeratedChannels = TwitchScope("user:read:moderated_channels")
+    public static let userReadSubscriptions = TwitchScope("user:read:subscriptions")
+    public static let userReadWhispers = TwitchScope("user:read:whispers")
+    public static let userManageWhispers = TwitchScope("user:manage:whispers")
+    public static let userWriteChat = TwitchScope("user:write:chat")
 
     // MARK: IRC Chat
 
-    case chatEdit = "chat:edit"
-    case chatRead = "chat:read"
+    public static let chatEdit = TwitchScope("chat:edit")
+    public static let chatRead = TwitchScope("chat:read")
 
     // MARK: PubSub-specific Chat
 
-    case whispersRead = "whispers:read"
+    public static let whispersRead = TwitchScope("whispers:read")
 }
 
 /// A token response returned by Twitch OAuth endpoints.
@@ -249,6 +372,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Builds an OAuth implicit grant URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func implicitGrantURL(
         rawScopes: [String],
         state: String? = nil,
@@ -267,6 +391,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Builds an authorization code URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func authorizationCodeURL(
         rawScopes: [String],
         state: String? = nil,
@@ -287,6 +412,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Builds an OIDC implicit grant URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func oidcImplicitGrantURL(
         rawScopes: [String],
         claims: String? = nil,
@@ -309,6 +435,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Builds an OIDC authorization code URL with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func oidcAuthorizationCodeURL(
         rawScopes: [String],
         claims: String? = nil,
@@ -331,6 +458,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Requests an app access token with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func requestAppAccessToken(rawScopes: [String]) async throws -> OAuthToken {
         try await oauthClient.requestAppAccessToken(rawScopes: rawScopes)
     }
@@ -341,6 +469,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Starts Twitch's device code flow with raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public nonisolated func startDeviceCodeFlow(rawScopes: [String]) async throws -> DeviceCodeAuthorization {
         try await oauthClient.startDeviceCodeFlow(rawScopes: rawScopes)
     }
@@ -373,6 +502,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Polls Twitch for device-code completion using raw scope strings.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func pollDeviceCode(
         deviceCode: String,
         rawScopes: [String],
@@ -397,6 +527,7 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     }
 
     /// Performs one device-code token exchange request with raw scope strings and stores the token on success.
+    @available(*, deprecated, message: "Pass scopes: instead. TwitchScope accepts any scope string, for example TwitchScope(\"user:read:chat\") or a string literal.")
     public func exchangeDeviceCode(deviceCode: String, rawScopes: [String]) async throws -> OAuthToken {
         let token = try await oauthClient.exchangeDeviceCode(deviceCode: deviceCode, rawScopes: rawScopes)
         try await tokenProvider.setToken(token)
