@@ -4,7 +4,7 @@ Use ``TwitchKit/EventSubClient`` to receive Twitch EventSub notifications over W
 
 ## WebSocket Flow
 
-Connect first, then create subscriptions after Twitch sends the `session_welcome` message. ``TwitchKit/EventSubClient/connect(timeout:)`` waits for that welcome before returning.
+Subscriptions are created on a session, which exists once Twitch sends the `session_welcome` message. ``TwitchKit/EventSubClient/connect(timeout:)`` waits for that welcome before returning, and ``TwitchKit/EventSubClient/subscribe(_:)`` connects first if needed, so the explicit `connect()` below is optional.
 
 ```swift
 let eventSub = client.eventSub
@@ -24,6 +24,12 @@ Keep the returned subscription ID when your app needs to remove the subscription
 
 ```swift
 try await eventSub.unsubscribe(id: record.id)
+```
+
+``TwitchKit/EventSubClient/disconnect(forgettingSubscriptions:)`` closes the connection. By default the client remembers its subscriptions and re-creates them on the next `connect()`, which suits an app going to the background. When the user signs out or switches accounts, pass `forgettingSubscriptions: true` so the next session doesn't re-create the previous user's subscriptions:
+
+```swift
+await eventSub.disconnect(forgettingSubscriptions: true)
 ```
 
 TwitchKit reconnects automatically after disconnects and re-creates the subscriptions you requested through ``TwitchKit/EventSubClient/subscribe(_:)``. A subscription Twitch revokes (`.revocation`) is no longer re-created. If Twitch rejects re-creating a subscription for a reason retrying can't fix, such as a missing scope, the client drops it, reports `.subscriptionFailed`, and continues with the rest. Duplicate EventSub messages are ignored by message ID. Duplicate tracking is bounded, and EventSub notifications use `.bufferingNewest(1_000)` by default so a slow consumer cannot grow memory without limit.

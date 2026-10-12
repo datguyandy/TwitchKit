@@ -1154,6 +1154,132 @@ final class EventSubSocketTests: XCTestCase {
         try await room.leave()
         await client.disconnect()
     }
+
+    // MARK: - 16. subscribe() connects; disconnect can forget subscriptions; connect() takes over a reconnect
+
+    func test_subscribeConnectsFirst() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(
+            sockets: [socket],
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+        )
+
+        // No connect() first.
+        let subscribing = Task {
+            try await client.subscribe(
+                type: "channel.follow",
+                version: "2",
+                condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+            )
+        }
+        let waiting = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(waiting, "subscribe() should open a connection")
+        socket.push(text: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        let record = try await subscribing.value
+
+        XCTAssertEqual(record.id, "sub-1")
+        let requests = await transport.recordedRequests()
+        let body = try XCTUnwrap(requests.first?.httpBody)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let transportBody = try XCTUnwrap(object["transport"] as? [String: Any])
+        XCTAssertEqual(transportBody["session_id"] as? String, "session-1")
+
+        await client.disconnect()
+    }
+
+    func test_disconnectForgettingSubscriptionsStartsTheNextSessionEmpty() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await client.subscribe(type: "channel.follow", version: "2", condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"])
+
+        // Signing out, then the next user connects.
+        await client.disconnect(forgettingSubscriptions: true)
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 1, "the previous user's subscription must not be re-created")
+
+        await client.disconnect()
+    }
+
+    func test_forgettingDuringAnInFlightSubscribeDropsIt() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let gate = ResponseGate()
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [.gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        let subscribing = Task {
+            try await client.subscribe(type: "channel.follow", version: "2", condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"])
+        }
+        let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
+        XCTAssertTrue(sent)
+        await client.disconnect(forgettingSubscriptions: true)
+        await gate.open()
+
+        do {
+            _ = try await subscribing.value
+            XCTFail("A subscribe that outlived its session should fail")
+        } catch HelixError.networkError {
+            // Expected.
+        }
+
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.count, 1, "the dropped subscription must not be re-created on the next session")
+
+        await client.disconnect()
+    }
+
+    func test_connectDuringAReconnectAttemptTakesOver() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let socketC = FakeWebSocket()
+        let (client, factory, _) = try await makeClient(sockets: [socketA, socketB, socketC])
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        // Drop the socket. After its 1s backoff the ladder dials socketB and
+        // waits there for a welcome that never comes.
+        socketA.failReceive(with: HelixError.networkError("dropped"))
+        let ladderDialed = await waitUntil { factory.requestedURLs.count == 2 }
+        XCTAssertTrue(ladderDialed)
+        let ladderWaiting = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(ladderWaiting)
+
+        // connect() now must stop that attempt and connect on its own socket.
+        // Previously the two attempts superseded each other's welcome wait,
+        // and the loser's cleanup cancelled the winner's receive loop.
+        let connecting = Task { try await client.connect() }
+        let dialedOwnSocket = await waitUntil { factory.requestedURLs.count == 3 }
+        XCTAssertTrue(dialedOwnSocket)
+        let waiting = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(waiting)
+        socketC.push(text: welcomeJSON(messageId: "welcome-3", sessionId: "session-3"))
+        try await connecting.value
+
+        XCTAssertEqual(client.currentConnectionState, .connected)
+        XCTAssertTrue(socketB.wasCancelled, "the interrupted attempt's socket is closed")
+        XCTAssertFalse(socketC.wasCancelled)
+
+        await client.disconnect()
+    }
+}
+
+/// Polls (~5s) until `condition` holds.
+private func waitUntil(_ condition: @Sendable () async -> Bool) async -> Bool {
+    for _ in 0..<500 {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+    return await condition()
 }
 
 /// A notification whose envelope carries the delivering subscription, as

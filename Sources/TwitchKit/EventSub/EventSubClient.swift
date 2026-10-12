@@ -280,11 +280,21 @@ public actor EventSubClient {
     /// and share its outcome instead of erroring.
     private var inFlightConnect: Task<Void, Error>?
 
+    /// Bumped by `disconnect(forgettingSubscriptions: true)`, so a
+    /// `subscribe()` that was in flight doesn't record its subscription for
+    /// the next session (the next account's, after a switch).
+    private var subscriptionGeneration: UInt64 = 0
+
     /// Connects to EventSub and waits for the session to be established.
     ///
+    /// Returns at once when already connected, and joins a `connect()` that
+    /// is already in progress. If the client is reconnecting after a dropped
+    /// socket, this stops that attempt and connects now; if connecting fails,
+    /// the client goes back to reconnecting.
+    ///
     /// Subscriptions the client still wants, for example after
-    /// ``disconnect()`` or after the reconnect ladder gave up, are re-created
-    /// on the new session before this returns. A subscription Twitch rejects
+    /// ``disconnect(forgettingSubscriptions:)`` or after the reconnect ladder
+    /// gave up, are re-created on the new session before this returns. A subscription Twitch rejects
     /// outright is reported as ``EventSubEvent/subscriptionFailed(_:_:)``; a
     /// transient failure doesn't fail the call, and the client keeps retrying
     /// the missing subscriptions in the background.
@@ -299,6 +309,16 @@ public actor EventSubClient {
             return
         }
 
+        // A reconnect ladder mid-attempt would race this one: each attempt
+        // supersedes the other's welcome wait, and whichever fails cleans up
+        // by cancelling every receive loop, including the survivor's. Stop
+        // the ladder and let this attempt take over.
+        let interruptedLadder = lastEmittedState == .reconnecting ? reconnectTask : nil
+        if let interruptedLadder {
+            interruptedLadder.cancel()
+            reconnectTask = nil
+        }
+
         startConnectionLifecycle()
         isConnecting = true
         // Unstructured Task (inheriting this actor's isolation) so the
@@ -306,14 +326,33 @@ public actor EventSubClient {
         // caller — a cancelled initiator must not tear the handshake out
         // from under the coalesced waiters.
         let attempt = Task {
-            if let connectBodyForTesting {
-                try await connectBodyForTesting()
-            } else {
-                try await openConnection(to: Self.websocketURL, resetReconnectAttempts: true, timeout: timeout)
-                // Without this, a manual connect() left the new session with
-                // no subscriptions: Twitch closes an unused socket after ~10s,
-                // and only the reconnect that followed re-created them.
-                await resubscribeAfterConnect()
+            if let interruptedLadder {
+                await interruptedLadder.value
+                if sessionId != nil {
+                    // The ladder connected before it stopped; finish its work.
+                    emit(.connected)
+                    await resubscribeAfterConnect()
+                    return
+                }
+            }
+            do {
+                if let connectBodyForTesting {
+                    try await connectBodyForTesting()
+                } else {
+                    try await openConnection(to: Self.websocketURL, resetReconnectAttempts: true, timeout: timeout)
+                    // Without this, a manual connect() left the new session with
+                    // no subscriptions: Twitch closes an unused socket after ~10s,
+                    // and only the reconnect that followed re-created them.
+                    await resubscribeAfterConnect()
+                }
+            } catch {
+                // Hand reconnecting back to the ladder this attempt replaced.
+                if interruptedLadder != nil, shouldReconnect, sessionId == nil {
+                    emit(.reconnecting)
+                    reconnectTask?.cancel()
+                    reconnectTask = makeReconnectTask()
+                }
+                throw error
             }
         }
         inFlightConnect = attempt
@@ -414,8 +453,25 @@ public actor EventSubClient {
         }
     }
 
-    public func disconnect() async {
+    /// Closes the connection and stops reconnecting.
+    ///
+    /// By default the client remembers its subscriptions and re-creates them
+    /// on the next ``connect(timeout:)``, which suits an app going to the
+    /// background. Pass `forgettingSubscriptions: true` when the user signs
+    /// out or switches accounts, so the next session doesn't re-create the
+    /// previous user's subscriptions. Twitch removes a WebSocket session's
+    /// subscriptions when the session closes, so nothing is deleted on
+    /// Twitch's side. A `subscribe()` still in flight then throws, and chat
+    /// rooms joined earlier receive nothing more; leave them and join again.
+    public func disconnect(forgettingSubscriptions: Bool = false) async {
         logger.info("🔌 EventSub: disconnecting")
+        if forgettingSubscriptions {
+            subscriptionGeneration &+= 1
+            desiredSubscriptions.removeAll()
+            desiredSubscriptionsById.removeAll()
+            chatRoomClaims.removeAll()
+            chatRoomCreatedSubscriptions.removeAll()
+        }
         shouldReconnect = false
         reconnectTask?.cancel()
         reconnectTask = nil
@@ -440,9 +496,19 @@ public actor EventSubClient {
         welcomeContinuation = nil
     }
 
+    /// Creates a subscription on the current session, connecting first if
+    /// needed, and re-creates it after every reconnect until you unsubscribe.
     @discardableResult
     public func subscribe(_ subscription: EventSubSubscription) async throws -> EventSubSubscriptionRecord {
+        let generation = subscriptionGeneration
+        try await connect()
         let record = try await createSubscription(subscription)
+        guard generation == subscriptionGeneration else {
+            // disconnect(forgettingSubscriptions:) ran meanwhile; the record
+            // belongs to the closed session, so don't carry it forward.
+            activeSubscriptionsById[record.id] = nil
+            throw HelixError.networkError("EventSub disconnected while subscribing")
+        }
         desiredSubscriptions.insert(subscription)
         desiredSubscriptionsById[record.id] = subscription
         return record
@@ -542,7 +608,7 @@ public actor EventSubClient {
         guard let sessionId else {
             logger.error("❌ EventSub: no session ID — can't subscribe")
             throw HelixError.badRequest(
-                TwitchAPIError.fallback(status: 400, message: "No EventSub session — call connect() first")
+                TwitchAPIError.fallback(status: 400, message: "No EventSub session: it ended before the subscription was created")
             )
         }
         logger.info("📡 EventSub: subscribing to \(subscription.type) v\(subscription.version) with session \(sessionId)")
