@@ -42,6 +42,27 @@ let token = try await auth.pollDeviceCode(authorization)
 
 TwitchKit can store tokens through ``TwitchKit/TwitchTokenStore``. Apps that already have secure credential storage or a backend token exchange service can keep ownership of token persistence and pass access tokens into ``TwitchKit/TwitchClient`` with ``TwitchKit/InMemoryTokenStore`` or a custom store.
 
+## Validating Tokens
+
+Twitch requires apps to validate tokens when they start and hourly after that, and to stop using a token it rejects. ``TwitchKit/TwitchAuth/validations(every:)`` validates now and then every hour for as long as you iterate it, refreshing a rejected token when it can:
+
+```swift
+.task {
+    for await result in twitch.auth.validations() {
+        switch result {
+        case .valid(let info):
+            print("Signed in as \(info.login ?? "?"), expires \(String(describing: info.expiresAt))")
+        case .invalid:
+            showSignIn()        // rejected and couldn't be refreshed
+        case .signedOut, .failed:
+            break               // .failed (offline, outage) is retried next interval
+        }
+    }
+}
+```
+
+To validate once, call ``TwitchKit/TwitchAuth/validateToken()``. It returns a ``TwitchKit/TwitchTokenInfo`` with the token's user ID, login, granted scopes and expiry, or `nil` when there's no token. ``TwitchKit/TwitchOAuthClient/validate(_:)`` validates any access token without refreshing it.
+
 ## Signing Out
 
 ``TwitchKit/TwitchAuth/logout(revokingToken:)`` deletes the stored token, then revokes it on Twitch so it stops working everywhere:

@@ -251,16 +251,39 @@ public struct TwitchOAuthClient: Sendable {
         return try await postTokenRequest(fields: fields)
     }
 
+    /// Validates an access token with Twitch.
+    ///
+    /// Twitch requires apps to validate tokens when they start and hourly
+    /// after that; ``TwitchTokenProvider/validations(every:)`` does this.
+    ///
+    /// - Returns: The token's client ID, user, scopes and expiry, or `nil`
+    ///   when Twitch reports the token as invalid or expired.
+    public func validate(_ accessToken: String) async throws -> TwitchTokenInfo? {
+        guard let data = try await validationResponse(for: accessToken) else { return nil }
+        do {
+            let body = try JSONDecoder.twitch().decode(TwitchTokenInfo.ValidateResponse.self, from: data)
+            return TwitchTokenInfo(validateResponse: body, validatedAt: .now)
+        } catch {
+            throw HelixError.decodingFailed(eventSubDecodingErrorDescription(error))
+        }
+    }
+
     /// Returns whether the access token is valid according to Twitch.
+    /// ``validate(_:)`` also returns the token's user, scopes and expiry.
     public func validateAccessToken(_ accessToken: String) async throws -> Bool {
+        try await validationResponse(for: accessToken) != nil
+    }
+
+    /// The body of a 200 from `/oauth2/validate`, or `nil` for a 401.
+    private func validationResponse(for accessToken: String) async throws -> Data? {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/validate")!)
         request.setValue("OAuth \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
         switch http.statusCode {
-        case 200: return true
-        case 401: return false
+        case 200: return data
+        case 401: return nil
         case 500...599: throw HelixError.serverError(status: http.statusCode)
         default: throw oauthError(from: data, status: http.statusCode, fallbackMessage: "Token validation failed")
         }

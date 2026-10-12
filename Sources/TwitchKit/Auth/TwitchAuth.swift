@@ -411,8 +411,21 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
         try await tokenProvider.refreshIfNeeded(rejectedAccessToken: rejectedAccessToken)
     }
 
-    public func validateToken() async throws {
+    /// Validates the current token with Twitch, refreshing it if Twitch
+    /// reports it as invalid. See ``TwitchTokenProvider/validateToken()``.
+    ///
+    /// - Returns: What Twitch reports about the current token, or `nil` when
+    ///   there's no token.
+    @discardableResult
+    public func validateToken() async throws -> TwitchTokenInfo? {
         try await tokenProvider.validateToken()
+    }
+
+    /// Validates the token now and then every `interval` (an hour by
+    /// default), as Twitch requires, for as long as the stream is iterated.
+    /// See ``TwitchTokenProvider/validations(every:)``.
+    public nonisolated func validations(every interval: Duration = .seconds(3_600)) -> AsyncStream<TokenValidationResult> {
+        tokenProvider.validations(every: interval)
     }
 
     /// Signs out: deletes the stored token, then revokes it on Twitch.

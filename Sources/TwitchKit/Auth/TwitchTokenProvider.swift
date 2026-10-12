@@ -202,20 +202,103 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         }
     }
 
-    /// Validates the current token and refreshes it if Twitch reports it as invalid.
-    public func validateToken() async throws {
+    /// Validates the current token with Twitch, refreshing it if Twitch
+    /// reports it as invalid.
+    ///
+    /// Twitch requires apps to validate tokens when they start and hourly
+    /// after that; ``validations(every:)`` does both.
+    ///
+    /// - Returns: What Twitch reports about the current token (after a
+    ///   refresh, if one was needed), or `nil` when there's no token.
+    /// - Throws: The refresh error when Twitch rejected the token and it
+    ///   couldn't be refreshed, or the network or server error that stopped
+    ///   validation.
+    @discardableResult
+    public func validateToken() async throws -> TwitchTokenInfo? {
+        switch try await validateCurrentToken() {
+        case .valid(let info):
+            return info
+        case .signedOut:
+            return nil
+        case .invalid(let error), .failed(let error):
+            throw error
+        }
+    }
+
+    /// Validates the token now and then every `interval`, yielding each
+    /// outcome, for as long as the stream is iterated.
+    ///
+    /// Twitch requires apps to validate tokens when they start and hourly
+    /// after that, and to stop using a token it rejects. A rejected token is
+    /// refreshed when possible; ``TokenValidationResult/invalid(_:)`` means
+    /// it couldn't be, and the user needs to sign in again.
+    ///
+    /// ```swift
+    /// .task {
+    ///     for await result in twitch.auth.validations() {
+    ///         if case .invalid = result { showSignIn() }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameter interval: Time between validations. Defaults to an hour.
+    public nonisolated func validations(every interval: Duration = .seconds(3_600)) -> AsyncStream<TokenValidationResult> {
+        AsyncStream { continuation in
+            let task = Task { [weak self] in
+                var isFirst = true
+                while !Task.isCancelled {
+                    if !isFirst {
+                        do {
+                            try await Task.sleep(for: interval)
+                        } catch {
+                            break
+                        }
+                    }
+                    isFirst = false
+                    // Re-acquired each round, so a provider nobody else holds
+                    // isn't kept alive while the loop sleeps.
+                    guard let provider = self else { break }
+                    let result: TokenValidationResult
+                    do {
+                        result = try await provider.validateCurrentToken()
+                    } catch {
+                        result = .failed(error)
+                    }
+                    continuation.yield(result)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Validates the current token, refreshing it once if Twitch rejects it.
+    /// Throws only when validation couldn't reach a verdict.
+    private func validateCurrentToken() async throws -> TokenValidationResult {
         guard let token = try await currentToken() else {
             tokenProviderLogger.info("No token to validate")
-            return
+            return .signedOut
         }
 
         let revision = tokenRevision
-        let isValid = try await oauthClient.validateAccessToken(token.accessToken)
-        guard tokenRevision == revision else { return }
-        if !isValid {
-            tokenProviderLogger.warning("Token validation failed; attempting refresh")
-            try await refreshIfNeeded()
+        let info = try await oauthClient.validate(token.accessToken)
+        // A login, logout or refresh during the request: validate what's current.
+        guard tokenRevision == revision else { return try await validateCurrentToken() }
+        if let info {
+            return .valid(info)
         }
+
+        tokenProviderLogger.warning("Token validation failed; attempting refresh")
+        do {
+            try await refreshIfNeeded(rejectedAccessToken: token.accessToken)
+        } catch let error where Self.isDefinitiveRefreshRejection(error) {
+            return .invalid(error)
+        }
+        guard let refreshed = try await currentToken() else { return .signedOut }
+        guard let refreshedInfo = try await oauthClient.validate(refreshed.accessToken) else {
+            return .invalid(HelixError.unauthorized(nil))
+        }
+        return .valid(refreshedInfo)
     }
 
     /// Signs out: deletes the current token from memory and storage, then

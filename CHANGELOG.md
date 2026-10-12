@@ -8,6 +8,8 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ### Added
 
+- Auth: hourly token validation, which Twitch requires. `validations(every:)` on `TwitchAuth` and `TwitchTokenProvider` validates now and then every interval (an hour by default) for as long as the stream is iterated, yielding `.valid(TwitchTokenInfo)`, `.invalid(error)` (Twitch rejected the token and it couldn't be refreshed), `.signedOut`, or `.failed(error)` (offline or an outage; the token is left alone and retried next interval). A rejected token is refreshed when possible.
+- Auth: `TwitchTokenInfo` carries what Twitch reports about a token: client ID, user ID and login (`nil` for app tokens), granted scopes (`hasScope(_:)`), `expiresIn` and `expiresAt`. `TwitchOAuthClient.validate(_:)` returns it, or `nil` for a token Twitch rejects.
 - EventSub webhooks: `EventSubWebhookVerifier.message(headers:body:)` checks a request's signature and timestamp, then decodes it into an `EventSubWebhookMessage`: `.verification(challenge:metadata:)`, or `.notification(EventSubNotification)` with the same typed events the WebSocket client yields (revocations arrive as `.revocation` events). A failed check throws `EventSubWebhookError.invalidSignature`. Header names match case-insensitively, and a `header:` closure variant works with any server framework's header type. `EventSubWebhookMessage(headers:body:)` decodes without verifying, and `EventSubEvent.decode(type:event:)` decodes a single event's JSON. Previously webhook users could verify requests but had no way to get typed events.
 - EventSub: `notifications`, `notifications(for:)` and `ChatRoom.notifications` yield `EventSubNotification` values, pairing each event with Twitch's `EventSubMetadata`: message ID and timestamp, and the delivering subscription's ID, type, version and condition. `metadata` is `nil` only for events the client creates itself (`.subscriptionFailed`). `events` is unchanged.
 - EventSub: an event that doesn't decode into a model keeps its raw JSON for batched notifications too, which carry an `events` array instead of `event`.
@@ -22,6 +24,7 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ### Changed
 
+- Auth: `validateToken()` on `TwitchAuth` and `TwitchTokenProvider` returns the current token's `TwitchTokenInfo` (discardable, so existing calls compile unchanged). After refreshing a rejected token it validates the new one, which costs one extra request.
 - Auth: `logout()` on `TwitchAuth` and `TwitchTokenProvider` now revokes the access token on Twitch after deleting it locally, as the authentication guide already described. Revocation is best effort: a failure is logged, not thrown, so signing out still works offline. `logout(revokingToken: false)` only forgets the token locally. A refresh that Twitch rejects still logs out without revoking.
 - Helix: `deleteChatMessages(broadcasterID:moderatorID:messageID:)` is deprecated in favor of `deleteChatMessage` and `clearChat`.
 - Helix: an HTTP status without a dedicated `HelixError` case now throws `.unexpectedStatus` with Twitch's error body instead of `.serverError`, which is now only used for 5xx. A 410 used to read as "Server error (HTTP 410)".

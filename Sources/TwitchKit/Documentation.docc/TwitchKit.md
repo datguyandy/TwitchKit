@@ -65,6 +65,8 @@ for await event in eventSub.events {
 ### Authentication
 
 - ``TwitchKit/TwitchAuth``
+- ``TwitchKit/TwitchTokenInfo``
+- ``TwitchKit/TokenValidationResult``
 - ``TwitchKit/TwitchScope``
 - ``TwitchKit/TwitchTokenStore``
 

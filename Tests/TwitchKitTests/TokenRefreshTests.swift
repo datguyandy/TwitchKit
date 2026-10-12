@@ -86,12 +86,17 @@ final class TokenRefreshTests: XCTestCase {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 401, body: #"{"status":401,"message":"invalid access token"}"#),
             .json(statusCode: 200, body: Self.refreshedTokenJSON),
+            // The refreshed token is validated too, for its info.
+            .json(statusCode: 200, body: #"{"client_id":"id","login":"user","scopes":["chat:read"],"user_id":"1","expires_in":14400}"#),
         ])
         let store = InMemoryTokenStore(token: Self.seedToken)
         let provider = makeProvider(store: store, httpClient: transport)
 
-        try await provider.validateToken()
+        let info = try await provider.validateToken()
 
+        XCTAssertEqual(info?.scopes, ["chat:read"])
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests.last?.value(forHTTPHeaderField: "Authorization"), "OAuth new")
         let storedToken = try await store.loadToken()
         XCTAssertEqual(storedToken?.accessToken, "new")
         XCTAssertEqual(storedToken?.refreshToken, "r2")
