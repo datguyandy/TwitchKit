@@ -2336,8 +2336,7 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
         userInput: String,
         status: ChannelPointsRedemptionStatus,
         customPowerUp: PowerUp,
-        redeemedAt: Date,
-        cost: Int? { customPowerUp.bits }
+        redeemedAt: Date
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -2350,7 +2349,6 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
         self.status = status
         self.customPowerUp = customPowerUp
         self.redeemedAt = redeemedAt
-        self.cost = cost
     }
 }
 

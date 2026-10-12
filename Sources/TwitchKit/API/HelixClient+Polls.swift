@@ -181,21 +181,6 @@ public struct PollChoice: Codable, Sendable, Equatable {
     public let channelPointsVotes: Int?
     public let bitsVotes: Int?
 
-    /// Creates a value directly, for example in tests or SwiftUI previews.
-    public init(
-        id: String? = nil,
-        title: String,
-        votes: Int? = nil,
-        channelPointsVotes: Int? = nil,
-        bitsVotes: Int? = nil
-    ) {
-        self.id = id
-        self.title = title
-        self.votes = votes
-        self.channelPointsVotes = channelPointsVotes
-        self.bitsVotes = bitsVotes
-    }
-
     public init(id: String? = nil, title: String, votes: Int? = nil, channelPointsVotes: Int? = nil, bitsVotes: Int? = nil) {
         self.id = id
         self.title = title

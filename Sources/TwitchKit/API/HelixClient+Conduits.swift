@@ -201,17 +201,6 @@ public struct ConduitShardUpdateError: Decodable, Sendable, Equatable {
     /// An error code describing the failure, when Twitch includes one.
     public let code: String?
 
-    /// Creates a value directly, for example in tests or SwiftUI previews.
-    public init(
-        id: String,
-        message: String,
-        code: String? = nil
-    ) {
-        self.id = id
-        self.message = message
-        self.code = code
-    }
-
     /// Creates a per-shard failure.
     ///
     /// - Parameters:

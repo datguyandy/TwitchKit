@@ -434,8 +434,7 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
         isPaused: Bool,
         isInStock: Bool,
         redemptionsRedeemedCurrentStream: Int? = nil,
-        cooldownExpiresAt: Date? = nil,
-        cost: Int { bits }
+        cooldownExpiresAt: Date? = nil
     ) {
         self.id = id
         self.broadcasterId = broadcasterId
@@ -456,7 +455,6 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
         self.isInStock = isInStock
         self.redemptionsRedeemedCurrentStream = redemptionsRedeemedCurrentStream
         self.cooldownExpiresAt = cooldownExpiresAt
-        self.cost = cost
     }
 }
 

@@ -41,11 +41,9 @@ public struct TwitchBadgeSet: Codable, Sendable, Equatable, Identifiable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         setId: String,
-        id: String { setId },
         versions: [TwitchBadge]
     ) {
         self.setId = setId
-        self.id = id
         self.versions = versions
     }
 }

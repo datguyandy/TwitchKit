@@ -50,7 +50,6 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         messageId: String,
-        id: String { messageId },
         broadcasterUserId: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
@@ -72,7 +71,6 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
         isSourceOnly: Bool? = nil
     ) {
         self.messageId = messageId
-        self.id = id
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName

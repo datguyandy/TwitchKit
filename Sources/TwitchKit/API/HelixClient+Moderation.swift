@@ -741,15 +741,13 @@ public struct BanUserResponse: Decodable, Sendable, Equatable {
         moderatorId: String,
         userId: String,
         createdAt: Date,
-        endTime: Date? = nil,
-        isTimeout: Bool { endTime ! = nil }
+        endTime: Date? = nil
     ) {
         self.broadcasterId = broadcasterId
         self.moderatorId = moderatorId
         self.userId = userId
         self.createdAt = createdAt
         self.endTime = endTime
-        self.isTimeout = isTimeout
     }
 
     private enum CodingKeys: String, CodingKey {

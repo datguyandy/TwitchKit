@@ -227,15 +227,6 @@ public struct ExtensionLiveChannelsPage: Decodable, Sendable, Equatable {
     public let data: [ExtensionLiveChannel]
     public let pagination: Pagination?
 
-    /// Creates a value directly, for example in tests or SwiftUI previews.
-    public init(
-        data: [ExtensionLiveChannel],
-        pagination: Pagination? = nil
-    ) {
-        self.data = data
-        self.pagination = pagination
-    }
-
     /// Creates a page of live channels.
     ///
     /// - Parameters:

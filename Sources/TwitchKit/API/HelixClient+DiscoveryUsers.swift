@@ -407,23 +407,6 @@ public struct UserActiveExtension: Codable, Sendable, Equatable {
     public let x: Int?
     public let y: Int?
 
-    /// Creates a value directly, for example in tests or SwiftUI previews.
-    public init(
-        active: Bool,
-        id: String? = nil,
-        version: String? = nil,
-        name: String? = nil,
-        x: Int? = nil,
-        y: Int? = nil
-    ) {
-        self.active = active
-        self.id = id
-        self.version = version
-        self.name = name
-        self.x = x
-        self.y = y
-    }
-
     public init(active: Bool, id: String? = nil, version: String? = nil, name: String? = nil, x: Int? = nil, y: Int? = nil) {
         self.active = active
         self.id = id

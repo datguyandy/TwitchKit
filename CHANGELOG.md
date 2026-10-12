@@ -8,7 +8,7 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ### Added
 
-- Public memberwise initializers for all 222 response and EventSub event models (for example `TwitchUser(id:login:displayName:…)`), so apps can build fixtures for tests and SwiftUI previews without decoding JSON. Parameters follow each model's property order; optional properties default to `nil`.
+- Public memberwise initializers for the 215 response and EventSub event models that lacked one (for example `TwitchUser(id:login:displayName:…)`), so apps can build fixtures for tests and SwiftUI previews without decoding JSON. Parameters follow each model's property order; optional properties default to `nil`.
 
 - Typed status enums for 17 fields that were plain `String`s: `TwitchPoll`/`EventSubPoll.status` (`TwitchPollStatus`), `TwitchPrediction`/`EventSubPrediction.status` (`TwitchPredictionStatus`), `UnbanRequest.status` (`UnbanRequestStatus`), `DropsEntitlement.fulfillmentStatus`, `DropsEntitlementUpdateResult.status` (`DropsEntitlementUpdateStatus`), `SuspiciousUserAction.status` and the EventSub `lowTrustStatus` fields (`SuspiciousUserStatus`), `GuestStarInvite.status`/`EventSubGuestStarGuestUpdate.state` (`GuestStarGuestState`), `EventSubConduitShard`/`EventSubConduitShardDisabled.status` (`ConduitShardStatus`), `TwitchExtension.state` (`ExtensionState`), `EventSubAutoModMessage.status` (`AutoModMessageStatus`) and `EventSubChatUserMessageModeration.status` (`ChatUserMessageStatus`). Each keeps an `.unknown(String)` case so new Twitch values still decode, and matches case-insensitively, since Helix sends `ACTIVE` where EventSub sends `active`.
 
