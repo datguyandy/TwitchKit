@@ -20,7 +20,13 @@ public enum HelixError: Error, Sendable, LocalizedError {
     case rateLimited(HelixRateLimit)
     case oauth(TwitchOAuthError)
 
+    /// An HTTP status TwitchKit has no dedicated case for, outside 5xx: for
+    /// example 410 for a retired endpoint, or 405. Carries Twitch's error
+    /// body when one could be parsed.
+    case unexpectedStatus(status: Int, TwitchAPIError?)
+
     // Server errors
+    /// HTTP 5xx.
     case serverError(status: Int)
 
     // Client-side
@@ -58,6 +64,12 @@ public enum HelixError: Error, Sendable, LocalizedError {
                 "Rate limited"
             }
         case .oauth(let error): "OAuth error: \(error.message)"
+        case .unexpectedStatus(let status, let error):
+            if let error {
+                "Unexpected HTTP \(status): \(error.message)"
+            } else {
+                "Unexpected HTTP \(status)"
+            }
         case .serverError(let status): "Server error (HTTP \(status))"
         case .notAuthenticated: "Not authenticated — login required"
         case .missingClientSecret: "Client secret required for this OAuth flow"

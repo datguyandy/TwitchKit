@@ -51,7 +51,7 @@ final class AuthArchitectureTests: XCTestCase {
             oauthClient: TwitchOAuthClient(clientID: "client-id"),
             tokenStore: store
         )
-        try await provider.logout()
+        try await provider.logout(revokingToken: false)
         // InMemoryTokenStore.deleteToken cleared it; re-add to simulate the
         // failed delete.
         try await store.saveToken(OAuthToken(accessToken: "stale"))

@@ -42,6 +42,16 @@ let token = try await auth.pollDeviceCode(authorization)
 
 TwitchKit can store tokens through ``TwitchKit/TwitchTokenStore``. Apps that already have secure credential storage or a backend token exchange service can keep ownership of token persistence and pass access tokens into ``TwitchKit/TwitchClient`` with ``TwitchKit/InMemoryTokenStore`` or a custom store.
 
+## Signing Out
+
+``TwitchKit/TwitchAuth/logout(revokingToken:)`` deletes the stored token, then revokes it on Twitch so it stops working everywhere:
+
+```swift
+try await twitch.auth.logout()
+```
+
+The token is removed locally first, so signing out works offline. Revocation is best effort: if Twitch can't be reached, the failure is logged and the token stays valid until it expires. Call ``TwitchKit/TwitchOAuthClient/revokeToken(_:)`` directly when you need to know revocation succeeded, or pass `revokingToken: false` to only forget the token locally.
+
 ## Common Scopes
 
 Request only the scopes your app needs. Twitch may reject or restrict applications that ask for broad permissions without a clear product reason.

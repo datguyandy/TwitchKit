@@ -401,6 +401,9 @@ public actor EventSubClient {
         pathMonitorTask?.cancel()
         pathMonitorTask = nil
         pathMonitor.cancel()
+        // Nothing reports the path until the next connect() restarts the
+        // monitor, so a stale "offline" mustn't park that connect's reconnects.
+        isNetworkAvailable = true
         emit(.disconnected)
         cancelReceiveTasks()
         keepaliveTask?.cancel()

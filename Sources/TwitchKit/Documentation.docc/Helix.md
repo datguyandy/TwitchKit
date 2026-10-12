@@ -65,7 +65,7 @@ try await client.api.banUser(
     reason: "<#Reason#>"
 )
 
-try await client.api.deleteChatMessages(
+try await client.api.deleteChatMessage(
     broadcasterID: "<#Broadcaster ID#>",
     moderatorID: "<#Moderator ID#>",
     messageID: "<#Message ID#>"

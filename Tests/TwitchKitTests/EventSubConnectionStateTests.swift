@@ -38,6 +38,57 @@ final class EventSubConnectionStateTests: XCTestCase {
         XCTAssertEqual(observed, [.connecting, .waitingForNetwork, .reconnecting])
     }
 
+    func test_pathMonitoringResumesAfterDisconnectAndReconnect() async throws {
+        let mock = MockNetworkPathMonitor()
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
+
+        let collector = Task { () -> [ConnectionState] in
+            var observed: [ConnectionState] = []
+            for await state in client.connectionState {
+                observed.append(state)
+                if observed.count == 6 { break }
+            }
+            return observed
+        }
+        // A regression leaves the second session's path changes unobserved;
+        // end the wait instead of hanging the run.
+        let timeout = Task {
+            try await Task.sleep(for: .seconds(10))
+            collector.cancel()
+        }
+
+        await client.startConnectionLifecycle()   // → .connecting
+        mock.send(.unsatisfied)                    // → .waitingForNetwork
+        await waitForState(.waitingForNetwork, on: client)
+        await client.disconnect()                  // → .disconnected
+
+        // connect() again: the monitor restarts with a fresh stream, and the
+        // client must be listening to it.
+        await client.startConnectionLifecycle()    // → .connecting
+        mock.send(.unsatisfied)                    // → .waitingForNetwork
+        await waitForState(.waitingForNetwork, on: client)
+        mock.send(.satisfied)                      // → .reconnecting
+
+        let observed = await collector.value
+        timeout.cancel()
+        await client.disconnect()
+
+        XCTAssertEqual(observed, [.connecting, .waitingForNetwork, .disconnected, .connecting, .waitingForNetwork, .reconnecting])
+    }
+
+    func test_nwPathMonitorReportsAgainAfterRestart() async throws {
+        let monitor = NWPathNetworkMonitor()
+        monitor.start()
+        let first = await firstStatus(of: monitor.pathUpdates)
+        monitor.cancel()
+        XCTAssertNotNil(first)
+
+        monitor.start()
+        let second = await firstStatus(of: monitor.pathUpdates)
+        monitor.cancel()
+        XCTAssertNotNil(second, "a monitor started again after cancel() must report the path again")
+    }
+
     func test_disconnectEmitsDisconnected() async throws {
         let mock = MockNetworkPathMonitor()
         let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
@@ -120,21 +171,77 @@ final class EventSubConnectionStateTests: XCTestCase {
 // MARK: - Test doubles
 
 /// A `NetworkPathMonitoring` whose updates are driven by the test.
+/// Restartable like `NWPathNetworkMonitor`: a start after a cancel begins a
+/// new stream.
 final class MockNetworkPathMonitor: NetworkPathMonitoring, @unchecked Sendable {
-    let pathUpdates: AsyncStream<NetworkPathStatus>
-    private let continuation: AsyncStream<NetworkPathStatus>.Continuation
-    private(set) var didStart = false
-    private(set) var didCancel = false
+    private let lock = NSLock()
+    private var stream: AsyncStream<NetworkPathStatus>
+    private var continuation: AsyncStream<NetworkPathStatus>.Continuation
+    private var isCancelled = false
+    private var startCount = 0
+    private var cancelCount = 0
 
     init() {
-        (pathUpdates, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
+        (stream, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
     }
 
-    func start() { didStart = true }
-    func cancel() { didCancel = true; continuation.finish() }
+    var pathUpdates: AsyncStream<NetworkPathStatus> { withLock { stream } }
+    var didStart: Bool { withLock { startCount > 0 } }
+    var didCancel: Bool { withLock { cancelCount > 0 } }
+
+    func start() {
+        withLock {
+            startCount += 1
+            if isCancelled {
+                (stream, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
+                isCancelled = false
+            }
+        }
+    }
+
+    func cancel() {
+        withLock {
+            cancelCount += 1
+            isCancelled = true
+            continuation.finish()
+        }
+    }
 
     /// Drives a scripted path-status change.
-    func send(_ status: NetworkPathStatus) { continuation.yield(status) }
+    func send(_ status: NetworkPathStatus) {
+        let continuation = withLock { continuation }
+        continuation.yield(status)
+    }
+
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
+    }
+}
+
+/// The stream's first value, or nil if none arrives within ~5s.
+private func firstStatus(of stream: AsyncStream<NetworkPathStatus>) async -> NetworkPathStatus? {
+    let reader = Task { () -> NetworkPathStatus? in
+        for await status in stream {
+            return status
+        }
+        return nil
+    }
+    let timeout = Task {
+        try await Task.sleep(for: .seconds(5))
+        reader.cancel()
+    }
+    defer { timeout.cancel() }
+    return await reader.value
+}
+
+/// Polls (~5s) until the client reports `state`.
+private func waitForState(_ state: ConnectionState, on client: EventSubClient) async {
+    for _ in 0..<500 {
+        if client.currentConnectionState == state { return }
+        try? await Task.sleep(for: .milliseconds(10))
+    }
 }
 
 private func makeDummyAPI() -> HelixClient {

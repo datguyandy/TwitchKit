@@ -266,6 +266,39 @@ public struct TwitchOAuthClient: Sendable {
         }
     }
 
+    /// Revokes an access token, so Twitch rejects it from now on.
+    ///
+    /// A token Twitch already considers invalid (expired, or revoked
+    /// earlier) counts as revoked.
+    public func revokeToken(_ accessToken: String) async throws {
+        var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/revoke")!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = twitchFormEncoded(["client_id": clientId, "token": accessToken])
+
+        let (data, response) = try await perform(request)
+        guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
+        switch http.statusCode {
+        case 200...299:
+            return
+        case 400 where Self.isInvalidTokenResponse(data):
+            return
+        case 500...599:
+            throw HelixError.serverError(status: http.statusCode)
+        default:
+            throw oauthError(from: data, status: http.statusCode, fallbackMessage: "Token revocation failed")
+        }
+    }
+
+    /// Twitch answers 400 "Invalid token" when revoking a token that is
+    /// already expired or revoked.
+    static func isInvalidTokenResponse(_ data: Data) -> Bool {
+        guard let error = try? JSONDecoder.twitch().decode(TwitchOAuthError.self, from: data) else {
+            return false
+        }
+        return error.message.lowercased().contains("invalid token")
+    }
+
     private func postTokenRequest(fields: [String: String]) async throws -> OAuthToken {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/token")!)
         request.httpMethod = "POST"

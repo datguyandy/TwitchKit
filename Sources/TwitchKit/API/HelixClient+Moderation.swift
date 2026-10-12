@@ -275,14 +275,48 @@ extension HelixClient {
         )
     }
 
+    /// Deletes one chat message.
+    ///
+    /// Throws `.badRequest` for an empty `messageID` without calling Twitch,
+    /// because Twitch clears the whole chat when no message ID is sent. To
+    /// clear the chat, call ``clearChat(broadcasterID:moderatorID:)``.
+    public func deleteChatMessage(broadcasterID: String, moderatorID: String, messageID: String) async throws {
+        guard !messageID.isEmpty else {
+            throw HelixError.badRequest(
+                TwitchAPIError.fallback(status: 400, message: "A message ID is required; use clearChat to remove every message")
+            )
+        }
+        try await requestNoContent(
+            endpoint: "moderation/chat",
+            method: "DELETE",
+            queryItems: [
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "moderator_id", value: moderatorID),
+                URLQueryItem(name: "message_id", value: messageID),
+            ]
+        )
+    }
+
+    /// Removes every message from the channel's chat.
+    public func clearChat(broadcasterID: String, moderatorID: String) async throws {
+        try await requestNoContent(
+            endpoint: "moderation/chat",
+            method: "DELETE",
+            queryItems: [
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "moderator_id", value: moderatorID),
+            ]
+        )
+    }
+
     /// Deletes one chat message, or all chat messages when `messageID` is omitted.
+    @available(*, deprecated, message: "Use deleteChatMessage(broadcasterID:moderatorID:messageID:) to delete one message, or clearChat(broadcasterID:moderatorID:) to clear the chat")
     public func deleteChatMessages(broadcasterID: String, moderatorID: String, messageID: String? = nil) async throws {
-        var queryItems = [
-            URLQueryItem(name: "broadcaster_id", value: broadcasterID),
-            URLQueryItem(name: "moderator_id", value: moderatorID),
-        ]
-        HelixQuery.append(HelixQuery.item("message_id", messageID), to: &queryItems)
-        try await requestNoContent(endpoint: "moderation/chat", method: "DELETE", queryItems: queryItems)
+        if let messageID {
+            try await deleteChatMessage(broadcasterID: broadcasterID, moderatorID: moderatorID, messageID: messageID)
+        } else {
+            try await clearChat(broadcasterID: broadcasterID, moderatorID: moderatorID)
+        }
     }
 
     /// Gets one page of channels moderated by a user.

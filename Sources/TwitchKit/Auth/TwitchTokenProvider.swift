@@ -170,7 +170,8 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
             // the same refresh token remains usable on the next attempt.
             if tokenRevision == revision, Self.isDefinitiveRefreshRejection(error) {
                 tokenProviderLogger.warning("Token refresh rejected by OAuth server; logging out")
-                try await logout()
+                // Twitch already rejected this session; nothing to revoke.
+                try await logout(revokingToken: false)
             }
             throw error
         }
@@ -217,12 +218,32 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         }
     }
 
-    /// Deletes the current token from memory and storage.
-    public func logout() async throws {
+    /// Signs out: deletes the current token from memory and storage, then
+    /// asks Twitch to revoke it.
+    ///
+    /// The token is removed locally first, so signing out works offline.
+    /// Revocation is best effort: a failure (no network, a Twitch outage) is
+    /// logged rather than thrown, and the token stays valid on Twitch until
+    /// it expires. Call ``TwitchOAuthClient/revokeToken(_:)`` yourself when
+    /// you need to know revocation succeeded.
+    ///
+    /// - Parameter revokingToken: Whether to revoke the access token on
+    ///   Twitch. Pass `false` to only forget it locally.
+    public func logout(revokingToken: Bool = true) async throws {
+        let loadedToken = revokingToken ? (try? await currentToken()) : nil
+        // Re-read after the await: a refresh may have replaced the token.
+        let tokenToRevoke = revokingToken ? (cachedToken ?? loadedToken) : nil
         tokenRevision &+= 1
         cachedToken = nil
         hasLoadedStoredToken = true
         try await tokenStore.deleteToken()
+
+        guard let tokenToRevoke else { return }
+        do {
+            try await oauthClient.revokeToken(tokenToRevoke.accessToken)
+        } catch {
+            tokenProviderLogger.warning("Token revocation failed; the token stays valid until it expires: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func currentToken() async throws -> OAuthToken? {

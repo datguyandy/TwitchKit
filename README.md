@@ -333,6 +333,8 @@ OAuth is split into composable pieces:
 - `TwitchTokenProvider` loads, validates, refreshes, and supplies access tokens.
 - `TwitchAuth` is a convenience facade that composes the pieces above.
 
+`twitch.auth.logout()` deletes the stored token and revokes it on Twitch. The token is removed locally first, so signing out works offline; if revocation can't reach Twitch, the failure is logged and the token stays valid until it expires. Pass `revokingToken: false` to only forget it locally.
+
 Apps that already receive tokens from a backend can bypass Keychain storage entirely:
 
 ```swift

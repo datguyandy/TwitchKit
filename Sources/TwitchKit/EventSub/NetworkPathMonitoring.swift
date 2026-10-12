@@ -11,32 +11,69 @@ public enum NetworkPathStatus: Sendable {
 
 /// Abstracts `NWPathMonitor` so the reconnect logic can be unit-tested with a
 /// scripted sequence of path changes.
+///
+/// The client calls ``start()`` on `connect()` and ``cancel()`` on
+/// `disconnect()`, and a later `connect()` calls ``start()`` again, so a
+/// monitor must be restartable: ``start()`` after ``cancel()`` begins a new
+/// ``pathUpdates`` stream.
 public protocol NetworkPathMonitoring: Sendable {
-    /// Emits the current status promptly after ``start()``, then on every change.
-    /// Single-consumer (matches ``EventSubClient/events``).
+    /// Emits the current status promptly after ``start()``, then on every
+    /// change, until ``cancel()``. Read it after ``start()``: each start after
+    /// a cancel returns a new stream. Single-consumer.
     var pathUpdates: AsyncStream<NetworkPathStatus> { get }
     func start()
     func cancel()
 }
 
 /// Production ``NetworkPathMonitoring`` backed by `NWPathMonitor`.
+///
+/// An `NWPathMonitor` can't be restarted once cancelled, so each ``start()``
+/// after a ``cancel()`` creates a new one, with a new ``pathUpdates`` stream.
+/// Lock-protected rather than an actor because the protocol is synchronous.
 public final class NWPathNetworkMonitor: NetworkPathMonitoring, @unchecked Sendable {
-    public let pathUpdates: AsyncStream<NetworkPathStatus>
-    private let continuation: AsyncStream<NetworkPathStatus>.Continuation
-    private let monitor = NWPathMonitor()
+    private let lock = NSLock()
     private let queue = DispatchQueue(label: "com.twitchkit.networkpath")
+    private var monitor: NWPathMonitor?
+    private var stream: AsyncStream<NetworkPathStatus>
+    private var continuation: AsyncStream<NetworkPathStatus>.Continuation
+    private var isCancelled = false
 
     public init() {
-        (pathUpdates, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
-        monitor.pathUpdateHandler = { [continuation] path in
-            continuation.yield(path.status == .satisfied ? .satisfied : .unsatisfied)
+        (stream, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
+    }
+
+    public var pathUpdates: AsyncStream<NetworkPathStatus> {
+        withLock { stream }
+    }
+
+    public func start() {
+        withLock {
+            guard monitor == nil else { return }
+            if isCancelled {
+                (stream, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
+                isCancelled = false
+            }
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { [continuation] path in
+                continuation.yield(path.status == .satisfied ? .satisfied : .unsatisfied)
+            }
+            monitor.start(queue: queue)
+            self.monitor = monitor
         }
     }
 
-    public func start() { monitor.start(queue: queue) }
-
     public func cancel() {
-        monitor.cancel()
-        continuation.finish()
+        withLock {
+            monitor?.cancel()
+            monitor = nil
+            isCancelled = true
+            continuation.finish()
+        }
+    }
+
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
     }
 }

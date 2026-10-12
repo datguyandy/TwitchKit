@@ -359,8 +359,10 @@ public struct HelixClient: Sendable {
             throw HelixError.unprocessable(apiError(from: data, status: response.statusCode, fallbackMessage: fallbackMessage))
         case 429:
             throw HelixError.rateLimited(rateLimit(from: response))
-        default:
+        case 500...599:
             throw HelixError.serverError(status: response.statusCode)
+        default:
+            throw HelixError.unexpectedStatus(status: response.statusCode, decodedAPIError(from: data))
         }
     }
 

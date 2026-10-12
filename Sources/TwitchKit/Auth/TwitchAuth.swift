@@ -415,7 +415,11 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
         try await tokenProvider.validateToken()
     }
 
-    public func logout() async throws {
-        try await tokenProvider.logout()
+    /// Signs out: deletes the stored token, then revokes it on Twitch.
+    ///
+    /// Revocation is best effort; see
+    /// ``TwitchTokenProvider/logout(revokingToken:)``.
+    public func logout(revokingToken: Bool = true) async throws {
+        try await tokenProvider.logout(revokingToken: revokingToken)
     }
 }
