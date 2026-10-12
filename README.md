@@ -168,6 +168,17 @@ EventSub reconnects automatically and re-creates desired subscriptions after a f
 
 Each access to `eventSub.events` returns its own stream, so several parts of an app (for example a chat view and a moderation panel) can iterate at the same time and each receives every event. Cancelling one loop, such as a SwiftUI `.task` whose view disappears, ends only that stream; iterate `events` again to resume. Events that arrive while nothing is iterating are buffered for the next consumer.
 
+To follow one channel, use `eventSub.events(for: broadcasterID)`. It yields only the events delivered by subscriptions that name that broadcaster (including raids targeting it), plus the channel's revocations and `.subscriptionFailed` events. Create the stream before subscribing so no early event is missed:
+
+```swift
+let channelEvents = twitch.eventSub.events(for: broadcasterID)
+try await twitch.eventSub.subscribe(.makeChannelChatMessage(broadcasterID: broadcasterID, userID: myUserID))
+
+for await event in channelEvents {
+    // only this channel's events
+}
+```
+
 ### Observing connection state
 
 `eventSub.connectionState` is an `AsyncStream<ConnectionState>` you can observe to drive UI such as a "Reconnecting…" indicator. Like `events`, each access returns an independent stream; it starts with the current state, so an observer that starts late still learns where the client is. `eventSub.currentConnectionState` reads the latest state synchronously.

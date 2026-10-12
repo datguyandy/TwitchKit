@@ -33,9 +33,40 @@ public actor EventSubClient {
     /// arrive while nobody is iterating are buffered (per the client's
     /// buffering policy) and delivered to the next consumer.
     public nonisolated var events: AsyncStream<EventSubEvent> {
-        eventBroadcaster.makeStream()
+        eventBroadcaster.makeStream { $0.event }
     }
-    private let eventBroadcaster: AsyncBroadcaster<EventSubEvent>
+
+    /// A new stream of the events that belong to one broadcaster's channel.
+    ///
+    /// An event belongs to the channel when the subscription that delivered
+    /// it names the broadcaster in its condition (`broadcaster_user_id`, or
+    /// either side of a raid or shoutout). That covers every subscription
+    /// type, including ones TwitchKit doesn't model yet, and includes the
+    /// channel's revocations and ``EventSubEvent/subscriptionFailed(_:_:)``
+    /// events. Each call returns an independent stream, like ``events``;
+    /// create it before subscribing so no early event is missed.
+    ///
+    /// - Parameter broadcasterID: The broadcaster's user ID.
+    public nonisolated func events(for broadcasterID: String) -> AsyncStream<EventSubEvent> {
+        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.event : nil }
+    }
+
+    private let eventBroadcaster: AsyncBroadcaster<RoutedEvent>
+
+    /// An event with the condition of the subscription that delivered it,
+    /// which is what `events(for:)` routes on.
+    struct RoutedEvent: Sendable {
+        let event: EventSubEvent
+        let condition: [String: String]
+
+        private static let broadcasterConditionKeys = [
+            "broadcaster_user_id", "to_broadcaster_user_id", "from_broadcaster_user_id",
+        ]
+
+        func belongs(to broadcasterID: String) -> Bool {
+            Self.broadcasterConditionKeys.contains { condition[$0] == broadcasterID }
+        }
+    }
 
     /// A new stream of connection-state transitions, suitable for driving UI
     /// such as a "Reconnecting…" indicator.
@@ -124,8 +155,8 @@ public actor EventSubClient {
         self.pathMonitor = pathMonitor
         self.socketFactory = socketFactory
         eventBroadcaster = AsyncBroadcaster(
-            bufferingPolicy: eventBufferingPolicy,
-            backlogPolicy: eventBufferingPolicy,
+            bufferingPolicy: convertBufferingPolicy(eventBufferingPolicy),
+            backlogPolicy: convertBufferingPolicy(eventBufferingPolicy),
             replaysLatest: false
         )
         // Transitions are few, but an app that never observes them must not
@@ -561,7 +592,7 @@ public actor EventSubClient {
             let subType = envelope.metadata.subscriptionType ?? "unknown"
             logger.debug("EventSub notification: \(subType)")
             let event = parseNotificationEvent(type: subType, envelopeData: data)
-            eventBroadcaster.yield(event)
+            eventBroadcaster.yield(RoutedEvent(event: event, condition: envelope.payload.subscription?.condition ?? [:]))
 
         case "session_reconnect":
             if webSocketTask === task,
@@ -579,7 +610,7 @@ public actor EventSubClient {
         case "revocation":
             if let revocation = envelope.payload.subscription {
                 forgetRevokedSubscription(revocation)
-                eventBroadcaster.yield(.revocation(revocation))
+                eventBroadcaster.yield(RoutedEvent(event: .revocation(revocation), condition: revocation.condition))
             }
 
         default:
@@ -936,7 +967,7 @@ public actor EventSubClient {
                 guard desiredSubscriptions.contains(subscription) else { continue }
                 logger.error("❌ EventSub: Twitch rejected \(subscription.type) on resubscribe; dropping it: \(error.localizedDescription)")
                 forget(subscription)
-                eventBroadcaster.yield(.subscriptionFailed(subscription, error))
+                eventBroadcaster.yield(RoutedEvent(event: .subscriptionFailed(subscription, error), condition: subscription.condition))
                 continue
             }
             // Reentrancy check: unsubscribe() may have run while the

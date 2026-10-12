@@ -60,6 +60,14 @@ for await event in eventSub.events {
 }
 ```
 
+To follow a single channel, iterate ``TwitchKit/EventSubClient/events(for:)`` instead. It yields only events delivered by subscriptions that name that broadcaster, so a chat screen per channel doesn't need its own routing:
+
+```swift
+for await event in eventSub.events(for: "<#Broadcaster ID#>") {
+    // this channel's chat messages, deletions, notifications, …
+}
+```
+
 ## Manage Subscriptions
 
 Use Helix when you need to inspect or clean up subscriptions created by your app:

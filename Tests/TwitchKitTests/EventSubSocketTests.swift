@@ -846,6 +846,97 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 13. events(for:) routes by the delivering subscription's condition
+
+    func test_eventsForBroadcasterReceivesOnlyThatChannelsEvents() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+
+        let channelA = client.events(for: "a")
+        let channelB = client.events(for: "b")
+        let collectorA = Task { await collectEventTypes(from: channelA) }
+        let collectorB = Task { await collectEventTypes(from: channelB) }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageId: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        // An incoming raid names channel A as the target, not as broadcaster_user_id.
+        socket.push(text: routedNotificationJSON(messageId: "m3", type: "test.event.raid", condition: ["to_broadcaster_user_id": "a", "from_broadcaster_user_id": ""]))
+        // No broadcaster in the condition: belongs to no channel stream.
+        socket.push(text: routedNotificationJSON(messageId: "m4", type: "test.event.user", condition: ["user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageId: "m5", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a"]))
+        socket.push(text: routedNotificationJSON(messageId: "m6", type: "test.event.sentinel", condition: ["broadcaster_user_id": "b"]))
+
+        let typesA = await collectorA.value
+        let typesB = await collectorB.value
+        XCTAssertEqual(typesA, ["test.event.chat", "test.event.raid", "test.event.sentinel"])
+        XCTAssertEqual(typesB, ["test.event.chat", "test.event.sentinel"])
+
+        await client.disconnect()
+    }
+
+    func test_eventsForBroadcasterIncludesTheChannelsRevocations() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+
+        let channel = client.events(for: "b")
+        let collector = Task { () -> EventSubRevocation? in
+            for await event in channel {
+                if case .revocation(let revocation) = event { return revocation }
+            }
+            return nil
+        }
+
+        try await connectDeliveringWelcome(
+            client,
+            via: socket,
+            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+        )
+        // revocationJSON's condition is ["broadcaster_user_id": "b"].
+        socket.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
+
+        let revocation = await collector.value
+        XCTAssertEqual(revocation?.id, "sub-1")
+
+        await client.disconnect()
+    }
+}
+
+/// A notification whose envelope carries the delivering subscription, as
+/// Twitch's do, so `events(for:)` can route it by condition.
+private func routedNotificationJSON(messageId: String, type: String, condition: [String: String]) -> String {
+    let conditionJSON = condition
+        .sorted { $0.key < $1.key }
+        .map { "\"\($0.key)\": \"\($0.value)\"" }
+        .joined(separator: ", ")
+    return """
+    {
+      "metadata": {
+        "message_id": "\(messageId)",
+        "message_type": "notification",
+        "message_timestamp": "2024-01-01T00:00:01Z",
+        "subscription_type": "\(type)"
+      },
+      "payload": {
+        "subscription": {
+          "id": "sub-\(messageId)",
+          "status": "enabled",
+          "type": "\(type)",
+          "version": "1",
+          "condition": { \(conditionJSON) },
+          "transport": { "method": "websocket", "session_id": "session-1" },
+          "created_at": "2024-01-01T00:00:00Z",
+          "cost": 0
+        },
+        "event": { "value": 1 }
+      }
+    }
+    """
 }
 
 /// Collects `.unknown` event types until the sentinel arrives or the stream ends.

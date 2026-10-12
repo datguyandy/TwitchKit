@@ -93,6 +93,40 @@ final class AsyncBroadcasterTests: XCTestCase {
         XCTAssertEqual(broadcaster.latestValue, 3)
     }
 
+    func testFilteredConsumerReceivesOnlyWhatItWants() async {
+        let broadcaster = makeBroadcaster()
+        let evens = broadcaster.makeStream { $0 % 2 == 0 ? $0 : nil }
+        let all = broadcaster.makeStream()
+
+        for value in 1...4 {
+            broadcaster.yield(value)
+        }
+
+        let evenValues = await collect(evens, count: 2)
+        let allValues = await collect(all, count: 4)
+        XCTAssertEqual(evenValues, [2, 4])
+        XCTAssertEqual(allValues, [1, 2, 3, 4])
+    }
+
+    func testUnwantedValuesWaitForAConsumerThatWantsThem() async {
+        let broadcaster = makeBroadcaster(backlog: .bufferingNewest(10))
+        // Only odd values have a taker; even ones nobody wants yet.
+        let odds = broadcaster.makeStream { $0 % 2 == 1 ? $0 : nil }
+
+        for value in 1...4 {
+            broadcaster.yield(value)
+        }
+        // A later consumer that wants even values receives the ones it missed,
+        // and doesn't take values no consumer of its kind wanted.
+        let evens = broadcaster.makeStream { $0 % 2 == 0 ? $0 : nil }
+        broadcaster.yield(6)
+
+        let oddValues = await collect(odds, count: 2)
+        let evenValues = await collect(evens, count: 3)
+        XCTAssertEqual(oddValues, [1, 3])
+        XCTAssertEqual(evenValues, [2, 4, 6])
+    }
+
     func testFinishEndsStreamsAndLaterStreamsFinishImmediately() async {
         let broadcaster = makeBroadcaster()
         let stream = broadcaster.makeStream()
