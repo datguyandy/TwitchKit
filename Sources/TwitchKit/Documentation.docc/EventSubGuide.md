@@ -163,7 +163,8 @@ try await client.appAPI!.createEventSubSubscription(
 For webhook transports, ``TwitchKit/EventSubWebhookVerifier/message(headers:body:maxAge:now:)`` checks Twitch's request signature and timestamp, then decodes the request into an ``TwitchKit/EventSubWebhookMessage``. Use the raw HTTP request body bytes exactly as received.
 
 ```swift
-let verifier = EventSubWebhookVerifier(secret: eventSubSecret)
+// Throws `EventSubWebhookSecretError` unless the secret is 10–100 ASCII characters.
+let verifier = try EventSubWebhookVerifier(secret: eventSubSecret)
 
 switch try verifier.message(headers: request.headers, body: requestBody) {
 case .verification(let challenge, _):
@@ -179,6 +180,8 @@ A request whose signature doesn't match, or whose timestamp is older than `maxAg
 Notifications are ``TwitchKit/EventSubNotification`` values, the same type ``TwitchKit/EventSubClient/notifications`` yields for the WebSocket transport, so one handler can serve both.
 
 Twitch can deliver a message more than once. Before applying side effects, atomically check and record the notification's ``TwitchKit/EventSubMetadata/messageID`` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
+
+If you verify requests yourself, ``TwitchKit/EventSubWebhookVerifier/isValid(messageID:timestamp:body:signature:maxAge:now:)`` checks both the signature and the timestamp; ``TwitchKit/EventSubWebhookVerifier/isSignatureValid(messageID:timestamp:body:signature:)`` checks only the signature and must be paired with your own freshness check.
 
 To decode an event you received some other way, call ``TwitchKit/EventSubEvent/decode(type:event:)`` with its subscription type and the JSON of its `event` object.
 
