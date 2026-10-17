@@ -113,8 +113,9 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
     public func refreshIfNeeded() async throws {
         // Coalesce concurrent callers onto the in-flight attempt: they
         // succeed together or fail with the same underlying error.
+        // A cancelled caller stops waiting; the refresh carries on for the rest.
         if let inFlightRefresh {
-            try await inFlightRefresh.value
+            try await inFlightRefresh.resultUnlessCancelled().get()
             return
         }
 
@@ -123,17 +124,21 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         // caller — a cancelled initiator must not tear the refresh out
         // from under the coalesced waiters.
         let attempt = Task {
+            // Cleared when the refresh ends, not when its first caller
+            // returns: a cancelled caller returns early, and clearing then
+            // would let a second refresh race this one with the same
+            // single-use refresh token.
+            defer { inFlightRefresh = nil }
             try await performRefresh()
         }
         inFlightRefresh = attempt
-        defer { inFlightRefresh = nil }
-        try await attempt.value
+        try await attempt.resultUnlessCancelled().get()
     }
 
     public func refreshIfNeeded(rejectedAccessToken: String) async throws {
         // A refresh already in flight will replace the rejected token: share it.
         if let inFlightRefresh {
-            try await inFlightRefresh.value
+            try await inFlightRefresh.resultUnlessCancelled().get()
             return
         }
         // The rejected token was already replaced (another request refreshed

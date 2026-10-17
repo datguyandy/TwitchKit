@@ -371,9 +371,10 @@ public actor EventSubClient {
             return
         }
         // Coalesce concurrent callers onto the in-flight attempt: they
-        // succeed together or fail with the same underlying error.
+        // succeed together or fail with the same underlying error. A caller
+        // that's cancelled stops waiting; the attempt carries on for the rest.
         if let inFlightConnect {
-            try await inFlightConnect.value
+            try await inFlightConnect.resultUnlessCancelled().get()
             return
         }
 
@@ -394,6 +395,13 @@ public actor EventSubClient {
         // caller — a cancelled initiator must not tear the handshake out
         // from under the coalesced waiters.
         let attempt = Task {
+            // Cleared when the attempt ends, not when its first caller
+            // returns: a cancelled caller returns early, and clearing then
+            // would let the next connect() start a second, racing attempt.
+            defer {
+                inFlightConnect = nil
+                isConnecting = false
+            }
             if let interruptedLadder {
                 await interruptedLadder.value
                 // disconnect() may have run while the ladder wound down.
@@ -428,11 +436,7 @@ public actor EventSubClient {
             }
         }
         inFlightConnect = attempt
-        defer {
-            inFlightConnect = nil
-            isConnecting = false
-        }
-        try await attempt.value
+        try await attempt.resultUnlessCancelled().get()
     }
 
     /// Marks the client as intending to be connected and begins path monitoring,
