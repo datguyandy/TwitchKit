@@ -21,9 +21,16 @@ extension Task {
                 }
             }
         } onCancel: {
-            outcome.finish(.failure(CancellationError()))
+            outcome.finish(.failure(cancellationError()))
         }
     }
+}
+
+/// Built outside the `Task` extension: inside it, `CancellationError()`
+/// resolves to `Task`'s deprecated static method of that name instead of
+/// the error type.
+private func cancellationError() -> any Error {
+    CancellationError()
 }
 
 /// Resumes a continuation with whichever outcome arrives first; later ones
