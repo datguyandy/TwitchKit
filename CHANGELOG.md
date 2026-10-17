@@ -6,6 +6,10 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+### Added
+
+- EventSub: `lastDisconnectReason` says why the connection last ended, as an `EventSubDisconnectReason`: `.closedByServer(EventSubCloseCode, reason:)` with Twitch's close code (4000 internal server error through 4007 invalid reconnect, for example `.connectionUnused` when no subscription was created within 10 seconds, or `.other(Int)`), `.connectionLost`, `.keepaliveTimeout`, `.reconnectFailed`, `.untrustedReconnectURL` or `.requested`. It's set before `connectionState` moves to `.reconnecting`, `.waitingForNetwork` or `.disconnected`, and is logged. `EventSubWebSocket` gains `serverCloseCode` and `serverCloseReason`, with defaults returning `nil` so custom sockets keep compiling; `URLSessionWebSocketTask` reports Twitch's codes through them.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added

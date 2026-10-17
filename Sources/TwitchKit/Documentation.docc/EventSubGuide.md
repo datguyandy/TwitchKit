@@ -97,6 +97,10 @@ try await room.leave()
 
 Joining is all-or-nothing: if Twitch rejects any subscription, the ones just created are removed and ``TwitchKit/JoinChatError`` lists each failure. Rooms on the same channel share subscriptions, so a chat view and a mini-player can each hold a room and leave independently. A subscription you created with `subscribe` before joining is never removed by a room. Pass `additionalSubscriptions` for anything else the room needs, such as `EventSubSubscription.Chat.userMessageHold`.
 
+### Why the connection dropped
+
+When ``TwitchKit/EventSubClient/connectionState`` moves to `.reconnecting`, `.waitingForNetwork` or `.disconnected`, ``TwitchKit/EventSubClient/lastDisconnectReason`` holds an ``TwitchKit/EventSubDisconnectReason``. For a close from Twitch it carries the ``TwitchKit/EventSubCloseCode``: for example `.connectionUnused` (4003) when no subscription was created within 10 seconds of connecting, or `.networkTimeout` (4005) for a transient failure. Other reasons are a lost connection, a keepalive timeout, a failed `session_reconnect` handoff, and your own `disconnect()`.
+
 ## Manage Subscriptions
 
 Use Helix when you need to inspect or clean up subscriptions created by your app:

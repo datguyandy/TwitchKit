@@ -251,6 +251,14 @@ Task {
 try await twitch.eventSub.connect()
 ```
 
+When the state moves to `.reconnecting`, `.waitingForNetwork` or `.disconnected`, `eventSub.lastDisconnectReason` says why: a close code from Twitch (for example `.closedByServer(.connectionUnused, reason:)` when no subscription was created within 10 seconds), a lost connection, a keepalive timeout, a failed `session_reconnect` handoff, or your own `disconnect()`:
+
+```swift
+for await state in twitch.eventSub.connectionState where state == .reconnecting {
+    print("Reconnecting:", twitch.eventSub.lastDisconnectReason?.description ?? "unknown")
+}
+```
+
 The network monitor is injectable for testing via the defaulted `pathMonitor:` parameter on `TwitchClient`/`EventSubClient` (any `NetworkPathMonitoring`); it defaults to an `NWPathMonitor`-backed implementation.
 
 If your app needs a different EventSub buffering tradeoff, configure the client at initialization:
