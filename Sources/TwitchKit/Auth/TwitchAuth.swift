@@ -385,18 +385,19 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     /// Every scope known to this package as raw Twitch scope strings.
     public static let allScopes = allScopeCases.map(\.rawValue)
 
-    /// A small starter set used by TwitchKit's current convenience APIs.
+    /// The minimal set used when an OAuth helper is called without explicit scopes:
+    /// reading and sending chat, which ``EventSubClient/joinChat(broadcasterID:userID:additionalSubscriptions:)`` and Send Chat Message need.
+    ///
+    /// Twitch asks apps to request only the scopes they use, so anything beyond chat —
+    /// email, followers, subscriptions, channel management, the stream key — must be
+    /// requested explicitly, for example
+    /// `scopes: TwitchAuth.defaultScopeCases + [.moderatorReadFollowers]`.
     public static let defaultScopeCases: [TwitchScope] = [
-        .userReadEmail,
         .userReadChat,
         .userWriteChat,
-        .moderatorReadFollowers,
-        .channelReadSubscriptions,
-        .channelManageBroadcast,
-        .channelReadStreamKey,
     ]
 
-    /// A small starter set used by TwitchKit's current convenience APIs as raw Twitch scope strings.
+    /// ``defaultScopeCases`` as raw Twitch scope strings.
     public static let defaultScopes = defaultScopeCases.map(\.rawValue)
 
     public init(

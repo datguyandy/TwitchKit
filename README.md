@@ -410,7 +410,7 @@ let twitch = TwitchClient(
 
 `TwitchScope` includes the current Twitch API, EventSub, IRC chat, and PubSub-specific scope strings documented by Twitch.
 
-Use `TwitchAuth.defaultScopes` for the small starter set used by TwitchKit convenience APIs, or `TwitchAuth.allScopes` when you need the complete catalog. OAuth helper methods take `[TwitchScope]`. `TwitchScope` is a struct, so a scope Twitch adds before TwitchKit lists it works as a string literal or `TwitchScope("…")`, mixed with the listed ones: `scopes: [.userReadChat, "user:read:new_thing"]`.
+`TwitchAuth.defaultScopes` — used when an OAuth helper is called without explicit scopes — is deliberately minimal: `user:read:chat` and `user:write:chat`, enough for `joinChat`. Request everything else explicitly (`scopes: TwitchAuth.defaultScopeCases + [.moderatorReadFollowers]`). `TwitchAuth.allScopes` is the complete catalog, for reference rather than for requesting. OAuth helper methods take `[TwitchScope]`. `TwitchScope` is a struct, so a scope Twitch adds before TwitchKit lists it works as a string literal or `TwitchScope("…")`, mixed with the listed ones: `scopes: [.userReadChat, "user:read:new_thing"]`.
 
 Request only the scopes your app needs. Twitch warns that requesting unnecessary scopes can put API access at risk.
 

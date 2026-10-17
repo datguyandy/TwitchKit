@@ -4,7 +4,8 @@ import XCTest
 final class APIDesignTests: XCTestCase {
     func test_authScopesSeparateDefaultsFromCompleteCatalog() {
         XCTAssertTrue(TwitchAuth.allScopes.contains("analytics:read:extensions"))
-        XCTAssertTrue(TwitchAuth.defaultScopes.contains("user:read:email"))
+        XCTAssertEqual(TwitchAuth.defaultScopes, ["user:read:chat", "user:write:chat"])
+        XCTAssertFalse(TwitchAuth.defaultScopes.contains("channel:read:stream_key"))
         XCTAssertFalse(TwitchAuth.defaultScopes.contains("analytics:read:extensions"))
         XCTAssertLessThan(TwitchAuth.defaultScopes.count, TwitchAuth.allScopes.count)
     }
