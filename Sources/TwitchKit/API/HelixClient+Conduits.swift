@@ -92,6 +92,9 @@ extension HelixClient {
         guard (1...100).contains(shards.count) else {
             throw HelixError.badRequest(.fallback(status: 400, message: "Between 1 and 100 conduit shards are required"))
         }
+        for shard in shards {
+            try shard.transport.validate()
+        }
         let data = try await requestRawData(
             endpoint: "eventsub/conduits/shards",
             method: "PATCH",
@@ -230,5 +233,47 @@ public struct EventSubConduitShardTransport: Codable, Sendable, Equatable {
         self.callback = callback
         self.secret = secret
         self.sessionId = sessionID
+    }
+
+    /// Applies the same callback and secret rules as subscription transports, so a
+    /// bad webhook shard fails locally instead of as a per-shard Twitch error.
+    func validate() throws {
+        switch method {
+        case .webhook:
+            guard let callback else {
+                throw HelixError.badRequest(.fallback(status: 400, message: "Webhook callback URL is required"))
+            }
+            try EventSubSubscriptionTransport.webhook(callback: callback, secret: secret ?? "").validate()
+        case .websocket:
+            try EventSubSubscriptionTransport.websocket(sessionID: sessionId ?? "").validate()
+        case .conduit, .unknown:
+            break
+        }
+    }
+}
+
+/// The webhook secret never appears in `description`, `debugDescription` or `dump(_:)` output.
+extension EventSubConduitShardTransport: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        var fields = ["method: \(method.rawValue)"]
+        if let callback { fields.append("callback: \(callback.absoluteString)") }
+        if secret != nil { fields.append("secret: \(redactedPlaceholder)") }
+        if let sessionId { fields.append("sessionID: \(sessionId)") }
+        return "EventSubConduitShardTransport(\(fields.joined(separator: ", ")))"
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "method": method,
+                "callback": callback as Any,
+                "secret": secret == nil ? "nil" : redactedPlaceholder,
+                "sessionId": sessionId as Any,
+            ],
+            displayStyle: .struct
+        )
     }
 }

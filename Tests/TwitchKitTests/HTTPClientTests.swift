@@ -1857,6 +1857,43 @@ final class HTTPClientTests: XCTestCase {
 
     // MARK: - Conduit shard updates
 
+    func test_updateConduitShardsRejectsInvalidWebhookShardBeforeSending() async throws {
+        let transport = MockHTTPClient(responses: [])
+        let auth = makeAuth()
+        try await auth.setToken(OAuthToken(accessToken: "access-token"))
+        let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
+
+        for shardTransport in [
+            EventSubConduitShardTransport(method: .webhook, callback: URL(string: "http://example.com/cb"), secret: "long-enough-secret"),
+            EventSubConduitShardTransport(method: .webhook, callback: URL(string: "https://example.com/cb"), secret: "short"),
+            EventSubConduitShardTransport(method: .webhook, callback: nil, secret: "long-enough-secret"),
+        ] {
+            do {
+                _ = try await api.updateConduitShards(
+                    conduitID: "conduit-1",
+                    shards: [EventSubConduitShardUpdate(id: "0", transport: shardTransport)]
+                )
+                XCTFail("Expected \(shardTransport) to be rejected")
+            } catch HelixError.badRequest {
+            }
+        }
+        let requests = await transport.recordedRequests()
+        XCTAssertTrue(requests.isEmpty)
+    }
+
+    func test_conduitShardTransportRedactsSecret() {
+        let shardTransport = EventSubConduitShardTransport(
+            method: .webhook,
+            callback: URL(string: "https://example.com/cb"),
+            secret: "super-secret-value"
+        )
+        var dumped = ""
+        dump(shardTransport, to: &dumped)
+        for output in [shardTransport.description, String(reflecting: shardTransport), dumped] {
+            XCTAssertFalse(output.contains("super-secret-value"), output)
+        }
+    }
+
     func test_updateConduitShardsSurfacesPerShardErrors() async throws {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 202, body: #"{"data":[{"id":"0","status":"enabled","transport":{"method":"webhook","callback":"https://example.com/callback"}}],"errors":[{"id":"1","message":"The shard id is outside the conduit's range","code":"invalid_parameter"}]}"#)
@@ -1873,7 +1910,7 @@ final class HTTPClientTests: XCTestCase {
                     transport: EventSubConduitShardTransport(
                         method: .webhook,
                         callback: URL(string: "https://example.com/callback"),
-                        secret: "s3cre7"
+                        secret: "s3cre7-shard-secret"
                     )
                 )
             ]
