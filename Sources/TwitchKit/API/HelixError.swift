@@ -163,7 +163,7 @@ public struct TwitchOAuthError: Decodable, Sendable, Equatable {
         case errorDescription
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let error = try container.decodeIfPresent(String.self, forKey: .error) ?? "oauth_error"
         let status = try container.decodeIfPresent(Int.self, forKey: .status)
@@ -241,7 +241,7 @@ public struct HelixResponse<T: Decodable & Sendable>: Decodable, Sendable {
         case maxTotalCost
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         data = try container.decode([T].self, forKey: .data)
         pagination = try container.decodeIfPresent(Pagination.self, forKey: .pagination)
@@ -275,7 +275,7 @@ public struct Pagination: Decodable, Sendable, Equatable {
 
     /// Normalizes `"cursor": ""` to `nil`. Sending an empty cursor back as
     /// `after=` restarts at the first page, so a paged sequence would loop.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(cursor: try container.decodeIfPresent(String.self, forKey: .cursor))
     }
@@ -416,39 +416,18 @@ extension JSONEncoder {
 }
 
 enum TwitchDateParser {
-    private static let cache = TwitchISO8601DateFormatterCache()
+    // `Date.ISO8601FormatStyle` is a Sendable value type, so it needs none of the
+    // locking the old `ISO8601DateFormatter` cache did. Twitch sends anywhere from
+    // zero to nine fractional digits; the fractional style accepts all of them, and
+    // the whole-second style is a defensive fallback.
+    private static let fractional = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    private static let standard = Date.ISO8601FormatStyle()
 
     static func date(from value: String) -> Date? {
-        cache.date(from: value)
+        (try? fractional.parse(value)) ?? (try? standard.parse(value))
     }
 
     static func string(from date: Date) -> String {
-        cache.string(from: date)
-    }
-}
-
-private final class TwitchISO8601DateFormatterCache: @unchecked Sendable {
-    // ISO8601DateFormatter is mutable and not Sendable; the lock serializes all access.
-    private let lock = NSLock()
-    private let fractionalFormatter: ISO8601DateFormatter
-    private let standardFormatter: ISO8601DateFormatter
-
-    init() {
-        fractionalFormatter = ISO8601DateFormatter()
-        fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        standardFormatter = ISO8601DateFormatter()
-        standardFormatter.formatOptions = [.withInternetDateTime]
-    }
-
-    func date(from value: String) -> Date? {
-        lock.lock()
-        defer { lock.unlock() }
-        return fractionalFormatter.date(from: value) ?? standardFormatter.date(from: value)
-    }
-
-    func string(from date: Date) -> String {
-        lock.lock()
-        defer { lock.unlock() }
-        return fractionalFormatter.string(from: date)
+        fractional.format(date)
     }
 }

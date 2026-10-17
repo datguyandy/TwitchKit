@@ -48,6 +48,7 @@ public struct HelixClient: Sendable {
         )
     }
 
+    @concurrent
     func request<T: Decodable & Sendable>(
         endpoint: String,
         method: String = "GET",
@@ -63,6 +64,7 @@ public struct HelixClient: Sendable {
         return try decodeHelixResponse(T.self, from: response.data, response: response.httpResponse)
     }
 
+    @concurrent
     func requestNoContent(
         endpoint: String,
         method: String,
@@ -83,6 +85,7 @@ public struct HelixClient: Sendable {
         )
     }
 
+    @concurrent
     func requestRawData(
         endpoint: String,
         method: String = "GET",
@@ -106,6 +109,7 @@ public struct HelixClient: Sendable {
         return response.data
     }
 
+    @concurrent
     func requestAccepted(
         endpoint: String,
         method: String,
@@ -287,12 +291,19 @@ public struct HelixClient: Sendable {
     }
 
     /// Parses an HTTP-date (RFC 9110 IMF-fixdate), e.g. `Sun, 11 Oct 2026 08:00:00 GMT`.
-    private static func httpDate(from value: String) -> Date? {
+    // `DateFormatter` is thread-safe for parsing, so one shared instance
+    // replaces the allocation previously paid on every rate-limited response.
+    // (`Date.HTTPFormatStyle` parsing needs iOS/macOS 26.)
+    private static let httpDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "GMT")
         formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-        return formatter.date(from: value)
+        return formatter
+    }()
+
+    private static func httpDate(from value: String) -> Date? {
+        httpDateFormatter.date(from: value)
     }
 
     private func decodeHelixResponse<T: Decodable & Sendable>(

@@ -108,7 +108,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
     /// rotates refresh tokens on use, so the loser would clobber the fresh
     /// token and kill the session. Concurrent callers await this task and
     /// share its outcome instead of issuing a second refresh.
-    private var inFlightRefresh: Task<Void, Error>?
+    private var inFlightRefresh: Task<Void, any Error>?
 
     public func refreshIfNeeded() async throws {
         // Coalesce concurrent callers onto the in-flight attempt: they

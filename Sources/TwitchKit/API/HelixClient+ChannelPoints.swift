@@ -270,7 +270,7 @@ public struct CustomRewardLimitSetting: Codable, Sendable, Equatable {
         case maxPerUserPerStream
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
         value = try container.decodeIfPresent(Int.self, forKey: .maxPerStream)
@@ -278,7 +278,7 @@ public struct CustomRewardLimitSetting: Codable, Sendable, Equatable {
             ?? container.decodeIfPresent(Int.self, forKey: .value)
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encodeIfPresent(value, forKey: .value)

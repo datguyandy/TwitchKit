@@ -14,6 +14,7 @@ public struct URLSessionHTTPClient: HTTPClient {
         self.session = session
     }
 
+    @concurrent
     public func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await session.data(for: request)
     }

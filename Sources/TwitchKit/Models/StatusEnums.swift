@@ -52,11 +52,11 @@ public enum TwitchPollStatus: Codable, RawRepresentable, Sendable, Hashable, Exp
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -99,11 +99,11 @@ public enum TwitchPredictionStatus: Codable, RawRepresentable, Sendable, Hashabl
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -145,11 +145,11 @@ public enum UnbanRequestStatus: Codable, RawRepresentable, Sendable, Hashable, E
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -182,11 +182,11 @@ public enum DropsEntitlementFulfillmentStatus: Codable, RawRepresentable, Sendab
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -233,11 +233,11 @@ public enum DropsEntitlementUpdateStatus: Codable, RawRepresentable, Sendable, H
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -276,11 +276,11 @@ public enum SuspiciousUserStatus: Codable, RawRepresentable, Sendable, Hashable,
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -343,11 +343,11 @@ public enum ConduitShardStatus: Codable, RawRepresentable, Sendable, Hashable, E
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -398,11 +398,11 @@ public enum GuestStarGuestState: Codable, RawRepresentable, Sendable, Hashable, 
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -456,11 +456,11 @@ public enum ExtensionState: Codable, RawRepresentable, Sendable, Hashable, Expre
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -496,11 +496,11 @@ public enum AutoModMessageStatus: Codable, RawRepresentable, Sendable, Hashable,
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -536,11 +536,11 @@ public enum ChatUserMessageStatus: Codable, RawRepresentable, Sendable, Hashable
         self.init(rawValue: value)
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }

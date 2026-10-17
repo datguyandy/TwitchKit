@@ -242,7 +242,7 @@ public struct ExtensionLiveChannelsPage: Decodable, Sendable, Equatable {
         case pagination
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let data = try container.decode([ExtensionLiveChannel].self, forKey: .data)
 

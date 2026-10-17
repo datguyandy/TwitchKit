@@ -144,7 +144,7 @@ public struct SearchChannel: Decodable, Sendable, Equatable {
     /// strategy would try to parse "" and throw, failing the whole
     /// search page whenever any result is offline. Decode the raw string
     /// and map non-parsing values (incl. empty) to nil instead.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         broadcasterLanguage = try container.decode(String.self, forKey: .broadcasterLanguage)
         broadcasterLogin = try container.decode(String.self, forKey: .broadcasterLogin)

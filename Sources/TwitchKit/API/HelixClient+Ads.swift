@@ -94,7 +94,7 @@ public struct AdSchedule: Decodable, Sendable, Equatable {
     /// keys are present, so `Date?` + the date strategy would try to parse
     /// "" and throw. Decode the raw strings and map non-parsing values
     /// (incl. empty) to nil instead.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         snoozeCount = try container.decodeIfPresent(Int.self, forKey: .snoozeCount)
         snoozeRefreshAt = try container.decodeIfPresent(String.self, forKey: .snoozeRefreshAt)
@@ -132,7 +132,7 @@ public struct AdSnooze: Decodable, Sendable, Equatable {
 
     // Same Twitch quirk `AdSchedule` tolerates: date fields can arrive as
     // empty strings, which must not fail the whole decode.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         snoozeCount = try container.decode(Int.self, forKey: .snoozeCount)
         snoozeRefreshAt = try container.decodeIfPresent(String.self, forKey: .snoozeRefreshAt)

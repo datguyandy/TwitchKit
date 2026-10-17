@@ -23,7 +23,7 @@ public actor TwitchAppTokenProvider: TwitchAccessTokenProvider {
     private let scopes: [TwitchScope]
     private let renewalMargin: TimeInterval
     private var token: OAuthToken?
-    private var inFlightRequest: Task<OAuthToken, Error>?
+    private var inFlightRequest: Task<OAuthToken, any Error>?
     /// Bumped by `revoke()`, so a request that started earlier isn't cached.
     private var revision: UInt64 = 0
 

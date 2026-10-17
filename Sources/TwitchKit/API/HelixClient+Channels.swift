@@ -306,7 +306,7 @@ public struct ChannelInfoUpdate: Encodable, Sendable, Equatable {
         case isBrandedContent
     }
 
-    public func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(title, forKey: .title)
         try container.encodeIfPresent(gameId, forKey: .gameId)

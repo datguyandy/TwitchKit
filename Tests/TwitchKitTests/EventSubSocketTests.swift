@@ -1337,8 +1337,8 @@ private func collectEventTypes(from stream: AsyncStream<EventSubEvent>) async ->
 /// matches the client's one-receive-loop-per-socket invariant.
 final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
     private let lock = NSLock()
-    private var queuedResults: [Result<URLSessionWebSocketTask.Message, Error>] = []
-    private var pendingReceive: CheckedContinuation<URLSessionWebSocketTask.Message, Error>?
+    private var queuedResults: [Result<URLSessionWebSocketTask.Message, any Error>] = []
+    private var pendingReceive: CheckedContinuation<URLSessionWebSocketTask.Message, any Error>?
     private var resumeCount = 0
     private var recordedCancels: [URLSessionWebSocketTask.CloseCode] = []
 
@@ -1351,7 +1351,7 @@ final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
     }
 
     func cancel(with closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        let parked: CheckedContinuation<URLSessionWebSocketTask.Message, Error>? = withLock {
+        let parked: CheckedContinuation<URLSessionWebSocketTask.Message, any Error>? = withLock {
             recordedCancels.append(closeCode)
             let parked = pendingReceive
             pendingReceive = nil
@@ -1364,7 +1364,7 @@ final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
 
     func receive() async throws -> URLSessionWebSocketTask.Message {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URLSessionWebSocketTask.Message, Error>) in
-            let queued: Result<URLSessionWebSocketTask.Message, Error>? = withLock {
+            let queued: Result<URLSessionWebSocketTask.Message, any Error>? = withLock {
                 guard queuedResults.isEmpty else {
                     return queuedResults.removeFirst()
                 }
@@ -1384,12 +1384,12 @@ final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
     }
 
     /// Ends the receive loop the way a dropped connection does.
-    func failReceive(with error: Error) {
+    func failReceive(with error: any Error) {
         deliver(.failure(error))
     }
 
-    private func deliver(_ result: Result<URLSessionWebSocketTask.Message, Error>) {
-        let parked: CheckedContinuation<URLSessionWebSocketTask.Message, Error>? = withLock {
+    private func deliver(_ result: Result<URLSessionWebSocketTask.Message, any Error>) {
+        let parked: CheckedContinuation<URLSessionWebSocketTask.Message, any Error>? = withLock {
             if let parked = pendingReceive {
                 pendingReceive = nil
                 return parked

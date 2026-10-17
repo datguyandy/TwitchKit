@@ -1,28 +1,6 @@
 import Foundation
 
 extension HelixClient {
-    /// Gets all stream tags or a subset by tag ID.
-    @available(*, deprecated, message: "Twitch deprecated stream tags in 2023; the endpoint returns empty data and is scheduled for removal.")
-    public func fetchAllStreamTags(tagIDs: [String] = [], first: Int? = nil, after cursor: String? = nil) async throws -> HelixPage<StreamTag> {
-        var queryItems = HelixQuery.items("tag_id", values: tagIDs)
-        try HelixQuery.appendPagination(to: &queryItems, first: first, after: cursor)
-        let response: HelixResponse<StreamTag> = try await request(
-            endpoint: "tags/streams",
-            queryItems: queryItems.isEmpty ? nil : queryItems
-        )
-        return response.page
-    }
-
-    /// Gets stream tags set on a broadcaster's channel.
-    @available(*, deprecated, message: "Twitch deprecated stream tags in 2023; the endpoint returns empty data and is scheduled for removal.")
-    public func fetchStreamTags(broadcasterID: String) async throws -> [StreamTag] {
-        let response: HelixResponse<StreamTag> = try await request(
-            endpoint: "streams/tags",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
-        )
-        return response.data
-    }
-
     /// Gets teams that a broadcaster belongs to.
     public func fetchChannelTeams(broadcasterID: String) async throws -> [ChannelTeam] {
         let response: HelixResponse<ChannelTeam> = try await request(
@@ -175,26 +153,6 @@ private struct WhisperRequest: Encodable {
     let message: String
 }
 
-public struct StreamTag: Decodable, Sendable, Equatable {
-    public let tagId: String
-    public let isAuto: Bool
-    public let localizationNames: [String: String]
-    public let localizationDescriptions: [String: String]
-
-    /// Creates a value directly, for example in tests or SwiftUI previews.
-    public init(
-        tagId: String,
-        isAuto: Bool,
-        localizationNames: [String: String],
-        localizationDescriptions: [String: String]
-    ) {
-        self.tagId = tagId
-        self.isAuto = isAuto
-        self.localizationNames = localizationNames
-        self.localizationDescriptions = localizationDescriptions
-    }
-}
-
 public struct ChannelTeam: Decodable, Sendable, Equatable {
     public let broadcasterId: String
     public let broadcasterName: String
@@ -296,8 +254,6 @@ public struct TwitchTeam: Decodable, Sendable, Equatable {
 
 public struct UserAuthorization: Decodable, Sendable, Equatable {
     public let hasAuthorized: Bool
-    @available(*, deprecated, message: "Twitch does not return client_id for this endpoint")
-    public let clientId: String?
     public let userId: String
     public let userLogin: String?
     public let userName: String?
@@ -306,14 +262,12 @@ public struct UserAuthorization: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         hasAuthorized: Bool,
-        clientId: String? = nil,
         userId: String,
         userLogin: String? = nil,
         userName: String? = nil,
         scopes: [String]
     ) {
         self.hasAuthorized = hasAuthorized
-        self.clientId = clientId
         self.userId = userId
         self.userLogin = userLogin
         self.userName = userName

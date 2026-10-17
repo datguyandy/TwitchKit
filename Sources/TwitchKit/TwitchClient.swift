@@ -57,7 +57,7 @@ public final class TwitchClient: Sendable {
         responseMetadataHandler: (@Sendable (HelixResponseMetadata) -> Void)? = nil,
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
         shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { true },
-        pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
+        pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
     ) {
         self.clientID = clientId

@@ -790,7 +790,7 @@ public struct BanUserResponse: Decodable, Sendable, Equatable {
 
     /// Custom decoding solely for `endTime`: Twitch sends `null` for a
     /// permanent ban. Decoding the raw string also tolerates an empty string.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         broadcasterId = try container.decode(String.self, forKey: .broadcasterId)
         moderatorId = try container.decode(String.self, forKey: .moderatorId)
@@ -984,7 +984,7 @@ public struct ShieldModeStatus: Decodable, Sendable, Equatable {
     /// Mode has never been activated. The key is present, so `Date?` + the
     /// date strategy would try to parse "" and throw. Decode the raw string
     /// and map non-parsing values (incl. empty) to nil instead.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         isActive = try container.decode(Bool.self, forKey: .isActive)
         moderatorId = try container.decode(String.self, forKey: .moderatorId)

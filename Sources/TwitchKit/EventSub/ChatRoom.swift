@@ -162,7 +162,7 @@ extension EventSubClient {
         // Claim every subscription before the first await, so a concurrent
         // join of the same channel shares this join's creates instead of
         // racing them into 409 conflicts.
-        var pending: [(EventSubSubscription, Task<Void, Error>)] = []
+        var pending: [(EventSubSubscription, Task<Void, any Error>)] = []
         for subscription in subscriptions {
             let claims = chatRoomClaims[subscription, default: 0]
             chatRoomClaims[subscription] = claims + 1

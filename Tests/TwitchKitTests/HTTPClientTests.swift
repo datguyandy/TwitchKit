@@ -1725,7 +1725,6 @@ final class HTTPClientTests: XCTestCase {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 200, body: #"{"data":[{"length":60,"message":"ok","retry_after":480}]}"#),
             .json(statusCode: 200, body: #"{"data":[{"prefix":"Cheer","tiers":[],"type":"global_first_party","order":1,"last_updated":"2024-01-01T00:00:00Z","is_charitable":false}]}"#),
-            .json(statusCode: 200, body: #"{"data":[],"pagination":{"cursor":"next"}}"#),
             .json(statusCode: 204, body: ""),
         ])
         let auth = makeAuth()
@@ -1734,16 +1733,14 @@ final class HTTPClientTests: XCTestCase {
 
         _ = try await api.startCommercial(broadcasterID: "broadcaster", length: 60)
         _ = try await api.fetchCheermotes(broadcasterID: "broadcaster")
-        _ = try await api.fetchAllStreamTags(tagIDs: ["tag"], first: 10, after: "cursor")
         try await api.sendWhisper(fromUserID: "from", toUserID: "to", message: "hello")
 
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests[0].httpMethod, "POST")
         XCTAssertEqual(requests[0].url?.absoluteString, "https://api.twitch.tv/helix/channels/commercial")
         XCTAssertEqual(requests[1].url?.absoluteString, "https://api.twitch.tv/helix/bits/cheermotes?broadcaster_id=broadcaster")
-        XCTAssertEqual(requests[2].url?.absoluteString, "https://api.twitch.tv/helix/tags/streams?tag_id=tag&first=10&after=cursor")
-        XCTAssertEqual(requests[3].httpMethod, "POST")
-        XCTAssertEqual(requests[3].url?.absoluteString, "https://api.twitch.tv/helix/whispers?from_user_id=from&to_user_id=to")
+        XCTAssertEqual(requests[2].httpMethod, "POST")
+        XCTAssertEqual(requests[2].url?.absoluteString, "https://api.twitch.tv/helix/whispers?from_user_id=from&to_user_id=to")
     }
 
     func test_newHelixCoverageUsesExpectedConduitAndEntitlementEndpoints() async throws {

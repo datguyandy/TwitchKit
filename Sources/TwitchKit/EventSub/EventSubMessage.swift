@@ -3,7 +3,7 @@ import os
 
 private let eventSubMessageLogger = Logger(subsystem: "com.twitchkit", category: "eventsub")
 
-func eventSubDecodingErrorDescription(_ error: Error) -> String {
+func eventSubDecodingErrorDescription(_ error: any Error) -> String {
     switch error {
     case DecodingError.keyNotFound(let key, let context):
         return "keyNotFound(\(eventSubCodingPath(context.codingPath + [key]))): \(context.debugDescription)"
@@ -18,7 +18,7 @@ func eventSubDecodingErrorDescription(_ error: Error) -> String {
     }
 }
 
-private func eventSubCodingPath(_ path: [CodingKey]) -> String {
+private func eventSubCodingPath(_ path: [any CodingKey]) -> String {
     guard !path.isEmpty else { return "<root>" }
     return path.map(\.stringValue).joined(separator: ".")
 }

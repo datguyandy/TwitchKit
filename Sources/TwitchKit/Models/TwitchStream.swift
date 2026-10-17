@@ -84,7 +84,7 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
         case tags, viewerCount, startedAt, language, thumbnailUrl, isMature
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         userId = try container.decode(String.self, forKey: .userId)

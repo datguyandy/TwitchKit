@@ -109,7 +109,7 @@ public actor EventSubClient {
 
     private let api: HelixClient
     nonisolated let shouldKeepReconnecting: @Sendable () async -> Bool
-    private let pathMonitor: NetworkPathMonitoring
+    private let pathMonitor: any NetworkPathMonitoring
     private var pathMonitorTask: Task<Void, Never>?
     private var isNetworkAvailable = true   // optimistic until told otherwise
 
@@ -146,9 +146,9 @@ public actor EventSubClient {
     /// Subscriptions a room created, which the last leaving room removes.
     var chatRoomCreatedSubscriptions: Set<EventSubSubscription> = []
     /// In-flight creates, shared by concurrent joins of the same channel.
-    var chatRoomInFlightCreates: [EventSubSubscription: Task<Void, Error>] = [:]
+    var chatRoomInFlightCreates: [EventSubSubscription: Task<Void, any Error>] = [:]
     /// In-flight deletes from rooms leaving, which a new join waits out.
-    var chatRoomInFlightDeletes: [EventSubSubscription: Task<Void, Error>] = [:]
+    var chatRoomInFlightDeletes: [EventSubSubscription: Task<Void, any Error>] = [:]
 
     /// Whether the client currently wants `subscription`, however it was added.
     func isDesired(_ subscription: EventSubSubscription) -> Bool {
@@ -186,7 +186,7 @@ public actor EventSubClient {
     public init(
         api: HelixClient,
         shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { true },
-        pathMonitor: NetworkPathMonitoring = NWPathNetworkMonitor(),
+        pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
         socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)
     ) {
@@ -225,7 +225,7 @@ public actor EventSubClient {
     // MARK: - Public
 
     /// Continuation used to make connect() wait for session_welcome before returning.
-    private var welcomeContinuation: CheckedContinuation<Void, Error>?
+    private var welcomeContinuation: CheckedContinuation<Void, any Error>?
 
     /// Monotonic counter handing each welcome wait a unique identity token.
     private var nextWelcomeWaitID: UInt64 = 0
@@ -278,7 +278,7 @@ public actor EventSubClient {
     /// channel), so a second connect() landing while the first is
     /// mid-handshake is normal operation — those callers await this task
     /// and share its outcome instead of erroring.
-    private var inFlightConnect: Task<Void, Error>?
+    private var inFlightConnect: Task<Void, any Error>?
 
     /// Bumped by `disconnect(forgettingSubscriptions: true)`, so a
     /// `subscribe()` that was in flight doesn't record its subscription for
@@ -653,7 +653,7 @@ public actor EventSubClient {
         }
     }
 
-    private func receiveLoopDidEnd(for task: any EventSubWebSocket, error: Error) {
+    private func receiveLoopDidEnd(for task: any EventSubWebSocket, error: any Error) {
         receiveTasks.removeValue(forKey: ObjectIdentifier(task as AnyObject))
         guard !Task.isCancelled else { return }
         guard webSocketTask === task else { return }
@@ -1009,7 +1009,7 @@ public actor EventSubClient {
         }
     }
 
-    private func cleanupFailedConnection(task: any EventSubWebSocket, error: Error) {
+    private func cleanupFailedConnection(task: any EventSubWebSocket, error: any Error) {
         cancelReceiveTasks()
         keepaliveTask?.cancel()
         keepaliveTask = nil

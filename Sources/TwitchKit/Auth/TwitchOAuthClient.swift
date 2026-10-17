@@ -288,6 +288,7 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// The body of a 200 from `/oauth2/validate`, or `nil` for a 401.
+    @concurrent
     private func validationResponse(for accessToken: String) async throws -> Data? {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/validate")!)
         request.setValue("OAuth \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -306,6 +307,7 @@ public struct TwitchOAuthClient: Sendable {
     ///
     /// A token Twitch already considers invalid (expired, or revoked
     /// earlier) counts as revoked.
+    @concurrent
     public func revokeToken(_ accessToken: String) async throws {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/revoke")!)
         request.httpMethod = "POST"
@@ -335,6 +337,7 @@ public struct TwitchOAuthClient: Sendable {
         return error.message.lowercased().contains("invalid token")
     }
 
+    @concurrent
     private func postTokenRequest(fields: [String: String]) async throws -> OAuthToken {
         var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/token")!)
         request.httpMethod = "POST"
@@ -353,6 +356,7 @@ public struct TwitchOAuthClient: Sendable {
     /// `HelixError.transport` so callers can pattern-match one error type
     /// across the whole SDK (offline vs. timeout vs. TLS) instead of
     /// special-casing raw `URLError`s from the token endpoints.
+    @concurrent
     private func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await httpClient.data(for: request)

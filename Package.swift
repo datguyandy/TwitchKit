@@ -1,10 +1,18 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
+let strictSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("MemberImportVisibility"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+]
+
 let package = Package(
     name: "TwitchKit",
-    platforms: [.iOS(.v16), .macOS(.v13)],
+    platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         .library(name: "TwitchKit", targets: ["TwitchKit"]),
         .executable(name: "TwitchKitSmokeTest", targets: ["TwitchKitSmokeTest"]),
@@ -16,18 +24,19 @@ let package = Package(
         .target(
             name: "TwitchKit",
             path: "Sources/TwitchKit",
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            swiftSettings: strictSettings
         ),
         .executableTarget(
             name: "TwitchKitSmokeTest",
             dependencies: ["TwitchKit"],
             path: "Examples/SmokeTest",
-            swiftSettings: [.swiftLanguageMode(.v6)]
+            swiftSettings: strictSettings
         ),
         .testTarget(
             name: "TwitchKitTests",
             dependencies: ["TwitchKit"],
-            path: "Tests/TwitchKitTests"
+            path: "Tests/TwitchKitTests",
+            swiftSettings: strictSettings
         ),
     ]
 )

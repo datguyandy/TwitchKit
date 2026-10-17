@@ -184,7 +184,7 @@ public struct AnalyticsReport: Decodable, Sendable, Equatable {
         case url
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         extensionId = try container.decodeIfPresent(String.self, forKey: .extensionId)
         gameId = try container.decodeIfPresent(String.self, forKey: .gameId)
@@ -241,7 +241,7 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
             case startedAt, endedAt
         }
 
-        public init(from decoder: Decoder) throws {
+        public init(from decoder: any Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             startedAt = try container.decodeIfPresent(String.self, forKey: .startedAt)
                 .flatMap(TwitchDateParser.date(from:))

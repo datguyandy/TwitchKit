@@ -27,7 +27,7 @@ final class EventSubLifecycleTests: XCTestCase {
     func test_clientDeallocatesWhilePathMonitorStreamIsParked() async throws {
         let mock = MockNetworkPathMonitor()
         var client: EventSubClient? = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: mock)
-        weak var weakClient = client
+        weak let weakClient = client
 
         // Spawns the path-monitor task, which parks on the (never-ending)
         // update stream. Drive one update through so the loop has demonstrably
@@ -68,7 +68,7 @@ final class EventSubLifecycleTests: XCTestCase {
             shouldKeepReconnecting: { false },
             pathMonitor: MockNetworkPathMonitor()
         )
-        weak var weakClient = client
+        weak let weakClient = client
 
         // Arms the watchdog: it computes a deadline ~15s out (default
         // keepalive 10s + 5s grace) and suspends in its sleep.
@@ -93,8 +93,8 @@ final class EventSubLifecycleTests: XCTestCase {
         let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let finishedFlag = CompletionFlag()
-        let waiter = Task { () -> Result<Void, Error> in
-            let result: Result<Void, Error>
+        let waiter = Task { () -> Result<Void, any Error> in
+            let result: Result<Void, any Error>
             do {
                 try await client.waitForWelcomeForTesting(timeout: .milliseconds(50))
                 result = .success(())
@@ -130,8 +130,8 @@ final class EventSubLifecycleTests: XCTestCase {
         let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
         let finishedFlag = CompletionFlag()
-        let waiter = Task { () -> Result<Void, Error> in
-            let result: Result<Void, Error>
+        let waiter = Task { () -> Result<Void, any Error> in
+            let result: Result<Void, any Error>
             do {
                 try await client.waitForWelcomeForTesting(timeout: .seconds(60))
                 result = .success(())
@@ -189,7 +189,7 @@ final class EventSubLifecycleTests: XCTestCase {
     func test_cancellingSupersededWaitDoesNotKillActiveWait() async throws {
         let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: MockNetworkPathMonitor())
 
-        let first = Task { () -> Result<Void, Error> in
+        let first = Task { () -> Result<Void, any Error> in
             do {
                 try await client.waitForWelcomeForTesting(timeout: .seconds(60))
                 return .success(())
