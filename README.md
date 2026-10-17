@@ -36,21 +36,46 @@ Then add the product to your target:
 import TwitchKit
 
 let twitch = TwitchClient(
-    clientID: "<your client id>",
+    clientID: "<your client id>",   // registered with Client Type "Public"
     tokenNamespace: "primary-account"
 )
 
-let authURL = twitch.auth.implicitGrantURL(
-    scopes: [
-        .userReadEmail,
-        .userReadChat,
-        .userWriteChat,
-    ],
-    state: "<csrf token>"
+// Recommended on iOS/macOS: the device code flow. No client secret, and
+// you still get refresh tokens.
+let authorization = try await twitch.auth.startDeviceCodeFlow(
+    scopes: [.userReadChat, .userWriteChat]
 )
+// Show authorization.userCode and open authorization.verificationURL, then:
+_ = try await twitch.auth.pollDeviceCode(authorization, scopes: [.userReadChat, .userWriteChat])
 ```
 
-For server-backed apps that can protect a client secret:
+`pollDeviceCode` waits through Twitch's `authorization_pending` and `slow_down` responses, and throws `HelixError.deviceCodeRejected` when the user denies access or the code expires; start a new flow then.
+
+If you use a browser flow instead (the legacy implicit grant has no refresh token), present it with `ASWebAuthenticationSession` and check the `state` on the way back:
+
+```swift
+let state = TwitchOAuthClient.makeState()
+let url = twitch.auth.implicitGrantURL(scopes: [.userReadChat], state: state)
+
+let session = ASWebAuthenticationSession(
+    url: url,
+    callback: .https(host: "auth.example.com", path: "/twitch/callback") // iOS 17.4+ / macOS 14.4+
+) { callbackURL, error in
+    guard let callbackURL else { return }
+    Task {
+        // Checks state in constant time, validates the token, rejects tokens
+        // issued to another client ID, then stores it.
+        try await twitch.auth.authenticate(withCallbackURL: callbackURL, expectedState: state)
+    }
+}
+session.prefersEphemeralWebBrowserSession = true // don't share Twitch cookies with Safari
+session.presentationContextProvider = contextProvider
+session.start()
+```
+
+`TwitchOAuthClient.parseCallback(_:expectedState:)` does the parsing and state check alone, returning the token or authorization code. Prefer an HTTPS (universal link) callback over a custom URL scheme, which another app can claim.
+
+For server-backed apps that can protect a client secret (never ship a client secret in an app):
 
 ```swift
 let twitch = TwitchClient(
@@ -269,7 +294,8 @@ let deletedCount = try await twitch.api.deleteAllEventSubSubscriptions(
 `EventSubWebhookVerifier.message(headers:body:)` checks Twitch's signature and timestamp, then decodes the request into the same typed events the WebSocket client yields. Pass the exact raw request body bytes you received:
 
 ```swift
-let verifier = EventSubWebhookVerifier(secret: eventSubSecret)
+// Throws EventSubWebhookSecretError unless the secret is 10–100 ASCII characters.
+let verifier = try EventSubWebhookVerifier(secret: eventSubSecret)
 
 do {
     switch try verifier.message(headers: request.headers, body: requestBody) {
@@ -290,7 +316,9 @@ If your server framework has its own header type, use `verifier.message(body:) {
 
 Twitch can deliver a message more than once. Before applying side effects, atomically check and record `notification.metadata.messageID` in your handler’s deduplication store. Ignore an ID already processed, and retain IDs for the full accepted timestamp window (the 600-second maximum age plus the verifier’s 300-second future-clock tolerance). Signature and timestamp checks alone do not prevent duplicate delivery within that window.
 
-The lower-level `isValid(messageID:timestamp:body:signature:maxAge:)` and `EventSubWebhookVerifier.challenge(from:)` remain available.
+The lower-level `isValid(messageID:timestamp:body:signature:)` checks the signature **and** rejects timestamps older than 10 minutes (pass `maxAge:` to change that); `isSignatureValid(messageID:timestamp:body:signature:)` checks the signature alone, for callers that enforce freshness themselves. `EventSubWebhookVerifier.challenge(from:)` remains available.
+
+When you create a webhook subscription, `EventSubSubscriptionTransport.webhook(callback:secret:)` must use an `https` callback on port 443 and a 10–100 character ASCII secret; anything else throws `HelixError.badRequest` before a request is sent.
 
 ## Supported APIs
 
@@ -335,7 +363,16 @@ TwitchKit exposes helpers for Twitch-supported OAuth flows:
 - OAuth device code grant
 - Token injection for apps that manage OAuth outside the package
 
-For iOS apps, avoid shipping a client secret in the app bundle. Prefer implicit grant, device code flow, or a backend-owned authorization code exchange depending on your app model.
+Choosing a flow for an iOS or macOS app:
+
+- **Device code flow with a "Public" client** is the recommended on-device path. Register the app with Client Type *Public* in the Twitch developer console: it needs no client secret and still gets (single-use) refresh tokens. Twitch doesn't support PKCE, so this is the only flow that safely gives a shipped app a refresh token.
+- **Implicit grant** is legacy: no refresh token, and the access token arrives in the redirect URL. If you use it, present it with `ASWebAuthenticationSession` (`prefersEphemeralWebBrowserSession = true`, HTTPS callback via `.https(host:path:)` on iOS 17.4+/macOS 14.4+), send `TwitchOAuthClient.makeState()`, and check it with `authenticate(withCallbackURL:expectedState:)` or `TwitchOAuthClient.parseCallback(_:expectedState:)`. The URL builders add a random `state` when you don't pass one, but only a state you kept can be checked.
+- **Never ship a client secret in an app.** Anything in the bundle can be extracted. Run the authorization code and client credentials flows on a server.
+- **OIDC `id_token`s are not verified by TwitchKit.** If you use one for sign-in, verify its signature against Twitch's JWKS (`https://id.twitch.tv/oauth2/keys`), `iss` (`https://id.twitch.tv/oauth2`), `aud` (your client ID), `exp`, and that `nonce` matches the one you sent.
+
+A token Twitch issued to a different app still validates. Before trusting a token you didn't obtain yourself (from a backend, a deep link, a paste), check it with `oauthClient.validateOwnToken(_:)` or `TwitchTokenInfo.verifyClientID(_:)`, which throw `HelixError.tokenClientMismatch`.
+
+Privacy defaults: `URLSessionHTTPClient()` uses a dedicated ephemeral `URLSession` with no URL cache, cookie storage or credential storage, and every Helix and OAuth request sets `cachePolicy = .reloadIgnoringLocalCacheData`, so stream keys, emails and `/oauth2/validate` responses never land in an on-disk cache. `KeychainTokenStore` stores tokens with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` (never synced or migrated to another device); pass `accessGroup:` to share them with an extension, and check `KeychainError.isInteractionNotAllowed` for reads attempted before first unlock. `OAuthToken`, `TwitchOAuthClient`, `DeviceCodeAuthorization`, `TwitchOAuthCallback`, `EventSubWebhookVerifier` and `EventSubSubscriptionTransport` redact their secrets from `print`, `debugPrint` and `dump`. The package ships a `PrivacyInfo.xcprivacy` declaring no tracking, no collected data and no required-reason APIs.
 
 OAuth is split into composable pieces:
 

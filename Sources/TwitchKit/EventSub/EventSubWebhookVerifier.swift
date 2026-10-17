@@ -1,25 +1,107 @@
 import CryptoKit
 import Foundation
 
-/// Verifies Twitch EventSub webhook signatures and callback verification challenges.
-public struct EventSubWebhookVerifier: Sendable {
-    public let secret: String
+/// Why ``EventSubWebhookVerifier/init(secret:)`` or a webhook transport
+/// rejected a webhook secret.
+///
+/// Twitch requires the secret to be an ASCII string 10 to 100 characters long.
+public enum EventSubWebhookSecretError: Error, Sendable, Equatable, LocalizedError {
+    /// The secret is shorter than 10 or longer than 100 characters. Carries the length.
+    case invalidLength(Int)
+    /// The secret contains a non-ASCII character.
+    case nonASCII
 
-    public init(secret: String) {
-        self.secret = secret
+    public var errorDescription: String? {
+        switch self {
+        case .invalidLength(let length):
+            "EventSub webhook secret must be 10–100 ASCII characters; got \(length)"
+        case .nonASCII:
+            "EventSub webhook secret must contain only ASCII characters"
+        }
+    }
+}
+
+/// Verifies Twitch EventSub webhook signatures and callback verification challenges.
+///
+/// The secret never appears in `description`, `debugDescription` or
+/// `dump(_:)` output.
+public struct EventSubWebhookVerifier: Sendable {
+    private let secretValue: String
+
+    /// The webhook secret.
+    @available(*, deprecated, message: "The verifier no longer exposes its secret. Keep your own copy if you need it.")
+    public var secret: String { secretValue }
+
+    /// Creates a verifier for the secret you passed when creating the webhook subscription.
+    ///
+    /// - Throws: ``EventSubWebhookSecretError`` when the secret isn't 10–100
+    ///   ASCII characters, the range Twitch accepts.
+    public init(secret: String) throws {
+        try Self.validateSecret(secret)
+        self.secretValue = secret
     }
 
-    /// Returns `true` when the EventSub webhook request signature matches the request body.
+    /// Checks that `secret` is a webhook secret Twitch accepts: 10 to 100 ASCII characters.
+    ///
+    /// - Throws: ``EventSubWebhookSecretError``.
+    public static func validateSecret(_ secret: String) throws {
+        guard secret.unicodeScalars.allSatisfy(\.isASCII) else {
+            throw EventSubWebhookSecretError.nonASCII
+        }
+        let length = secret.utf8.count
+        guard (10...100).contains(length) else {
+            throw EventSubWebhookSecretError.invalidLength(length)
+        }
+    }
+
+    /// Returns `true` when the EventSub webhook request signature matches the request body
+    /// **and** the message timestamp is fresh.
     ///
     /// Build `messageID`, `timestamp`, and `signature` from Twitch's
     /// `Twitch-Eventsub-Message-Id`, `Twitch-Eventsub-Message-Timestamp`, and
     /// `Twitch-Eventsub-Message-Signature` headers. Pass the exact raw HTTP body bytes as `body`.
-    public func isValid(messageID: String, timestamp: String, body: Data, signature: String) -> Bool {
-        Self.isValid(messageID: messageID, timestamp: timestamp, body: body, signature: signature, secret: secret)
+    ///
+    /// A captured webhook request carries a signature that stays valid forever, so an attacker
+    /// can replay it long after Twitch sent it. Checking freshness alongside the signature
+    /// closes that gap; Twitch recommends rejecting messages older than 10 minutes, which is
+    /// the default `maxAge`. See ``isTimestampFresh(_:maxAge:now:)`` for the freshness rules.
+    /// Use ``isSignatureValid(messageID:timestamp:body:signature:)`` only when you check
+    /// freshness yourself.
+    public func isValid(
+        messageID: String,
+        timestamp: String,
+        body: Data,
+        signature: String,
+        maxAge: Duration = .seconds(600),
+        now: Date = .now
+    ) -> Bool {
+        Self.isValid(
+            messageID: messageID,
+            timestamp: timestamp,
+            body: body,
+            signature: signature,
+            secret: secretValue,
+            maxAge: maxAge,
+            now: now
+        )
     }
 
-    /// Returns `true` when the EventSub webhook request signature matches the request body.
-    public static func isValid(
+    /// Returns `true` when the EventSub webhook request signature matches the request body,
+    /// **without** checking that the timestamp is fresh.
+    ///
+    /// A signature alone doesn't stop a replayed request. Prefer
+    /// ``isValid(messageID:timestamp:body:signature:maxAge:now:)``, which also
+    /// rejects stale timestamps.
+    public func isSignatureValid(messageID: String, timestamp: String, body: Data, signature: String) -> Bool {
+        Self.isSignatureValid(messageID: messageID, timestamp: timestamp, body: body, signature: signature, secret: secretValue)
+    }
+
+    /// Returns `true` when the EventSub webhook request signature matches the request body,
+    /// **without** checking that the timestamp is fresh.
+    ///
+    /// Prefer ``isValid(messageID:timestamp:body:signature:secret:maxAge:now:)``,
+    /// which also rejects stale timestamps.
+    public static func isSignatureValid(
         messageID: String,
         timestamp: String,
         body: Data,
@@ -45,32 +127,6 @@ public struct EventSubWebhookVerifier: Sendable {
     /// can replay it long after Twitch sent it. Checking freshness alongside the signature
     /// closes that gap; Twitch recommends rejecting messages older than 10 minutes, which is
     /// the default `maxAge`. See ``isTimestampFresh(_:maxAge:now:)`` for the freshness rules.
-    public func isValid(
-        messageID: String,
-        timestamp: String,
-        body: Data,
-        signature: String,
-        maxAge: Duration = .seconds(600),
-        now: Date = .now
-    ) -> Bool {
-        Self.isValid(
-            messageID: messageID,
-            timestamp: timestamp,
-            body: body,
-            signature: signature,
-            secret: secret,
-            maxAge: maxAge,
-            now: now
-        )
-    }
-
-    /// Returns `true` when the EventSub webhook request signature matches the request body
-    /// **and** the message timestamp is fresh.
-    ///
-    /// A captured webhook request carries a signature that stays valid forever, so an attacker
-    /// can replay it long after Twitch sent it. Checking freshness alongside the signature
-    /// closes that gap; Twitch recommends rejecting messages older than 10 minutes, which is
-    /// the default `maxAge`. See ``isTimestampFresh(_:maxAge:now:)`` for the freshness rules.
     public static func isValid(
         messageID: String,
         timestamp: String,
@@ -81,7 +137,7 @@ public struct EventSubWebhookVerifier: Sendable {
         now: Date = .now
     ) -> Bool {
         guard isTimestampFresh(timestamp, maxAge: maxAge, now: now) else { return false }
-        return isValid(messageID: messageID, timestamp: timestamp, body: body, signature: signature, secret: secret)
+        return isSignatureValid(messageID: messageID, timestamp: timestamp, body: body, signature: signature, secret: secret)
     }
 
     /// Returns `true` when a `Twitch-Eventsub-Message-Timestamp` header value is recent
@@ -154,6 +210,14 @@ public struct EventSubWebhookVerifier: Sendable {
             difference |= left ^ right
         }
         return difference == 0
+    }
+}
+
+extension EventSubWebhookVerifier: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String { "EventSubWebhookVerifier(secret: \(redactedPlaceholder))" }
+    public var debugDescription: String { description }
+    public var customMirror: Mirror {
+        Mirror(self, children: ["secret": redactedPlaceholder], displayStyle: .struct)
     }
 }
 

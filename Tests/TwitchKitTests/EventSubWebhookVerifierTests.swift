@@ -3,26 +3,78 @@ import XCTest
 @testable import TwitchKit
 
 final class EventSubWebhookVerifierTests: XCTestCase {
+    static let secret = "webhook-secret-123"
+    static let signature = "sha256=f89fc14bd80522e9bcdc3171460cd0cf4b724944f4c05df48fafc288b4def211"
+
     func test_eventSubWebhookVerifierValidatesSignature() throws {
         let body = Data(#"{"subscription":{"id":"sub"},"challenge":"abc123"}"#.utf8)
-        let verifier = EventSubWebhookVerifier(secret: "secret")
+        let verifier = try EventSubWebhookVerifier(secret: Self.secret)
 
         XCTAssertTrue(
-            verifier.isValid(
+            verifier.isSignatureValid(
                 messageID: "msg-1",
                 timestamp: "2024-01-01T00:00:00Z",
                 body: body,
-                signature: "sha256=ee5636024ec838b2bccd0e7b35bb8d7785529a3b250f063f69eabe841e040d6c"
+                signature: Self.signature
             )
         )
         XCTAssertFalse(
-            verifier.isValid(
+            verifier.isSignatureValid(
                 messageID: "msg-1",
                 timestamp: "2024-01-01T00:00:00Z",
                 body: body,
                 signature: "sha256=invalid"
             )
         )
+    }
+
+    /// The four-argument `isValid` spelling used to resolve to a
+    /// signature-only overload and accepted a replayed 2024 message.
+    func test_defaultSpelledIsValidRejectsStaleTimestamp() throws {
+        let body = Data(#"{"subscription":{"id":"sub"},"challenge":"abc123"}"#.utf8)
+        let verifier = try EventSubWebhookVerifier(secret: Self.secret)
+
+        XCTAssertFalse(
+            verifier.isValid(
+                messageID: "msg-1",
+                timestamp: "2024-01-01T00:00:00Z",
+                body: body,
+                signature: Self.signature
+            )
+        )
+        XCTAssertFalse(
+            EventSubWebhookVerifier.isValid(
+                messageID: "msg-1",
+                timestamp: "2024-01-01T00:00:00Z",
+                body: body,
+                signature: Self.signature,
+                secret: Self.secret
+            )
+        )
+    }
+
+    func test_verifierRejectsSecretsTwitchWouldRefuse() throws {
+        XCTAssertThrowsError(try EventSubWebhookVerifier(secret: "short")) { error in
+            XCTAssertEqual(error as? EventSubWebhookSecretError, .invalidLength(5))
+        }
+        XCTAssertThrowsError(try EventSubWebhookVerifier(secret: String(repeating: "a", count: 101))) { error in
+            XCTAssertEqual(error as? EventSubWebhookSecretError, .invalidLength(101))
+        }
+        XCTAssertThrowsError(try EventSubWebhookVerifier(secret: "sécret-sécret")) { error in
+            XCTAssertEqual(error as? EventSubWebhookSecretError, .nonASCII)
+        }
+        XCTAssertNoThrow(try EventSubWebhookVerifier(secret: String(repeating: "a", count: 10)))
+        XCTAssertNoThrow(try EventSubWebhookVerifier(secret: String(repeating: "a", count: 100)))
+    }
+
+    func test_verifierRedactsSecret() throws {
+        let verifier = try EventSubWebhookVerifier(secret: Self.secret)
+        var dumped = ""
+        dump(verifier, to: &dumped)
+
+        for output in [String(describing: verifier), String(reflecting: verifier), "\(verifier)", dumped] {
+            XCTAssertFalse(output.contains(Self.secret), output)
+        }
     }
 
     func test_eventSubWebhookVerifierExtractsChallenge() throws {
@@ -97,7 +149,7 @@ final class EventSubWebhookVerifierTests: XCTestCase {
 
     func test_eventSubWebhookVerifierValidatesSignatureAndFreshness() {
         let body = Data(#"{"subscription":{"id":"sub"},"challenge":"abc123"}"#.utf8)
-        let verifier = EventSubWebhookVerifier(secret: "secret")
+        let verifier = try! EventSubWebhookVerifier(secret: Self.secret)
         // 2024-01-01T00:00:00Z, matching the timestamp signed below.
         let sent = Date(timeIntervalSince1970: 1_704_067_200)
 
@@ -107,7 +159,7 @@ final class EventSubWebhookVerifierTests: XCTestCase {
                 messageID: "msg-1",
                 timestamp: "2024-01-01T00:00:00Z",
                 body: body,
-                signature: "sha256=ee5636024ec838b2bccd0e7b35bb8d7785529a3b250f063f69eabe841e040d6c",
+                signature: Self.signature,
                 now: sent.addingTimeInterval(60)
             )
         )
@@ -117,7 +169,7 @@ final class EventSubWebhookVerifierTests: XCTestCase {
                 messageID: "msg-1",
                 timestamp: "2024-01-01T00:00:00Z",
                 body: body,
-                signature: "sha256=ee5636024ec838b2bccd0e7b35bb8d7785529a3b250f063f69eabe841e040d6c",
+                signature: Self.signature,
                 now: sent.addingTimeInterval(660)
             )
         )
@@ -137,8 +189,8 @@ final class EventSubWebhookVerifierTests: XCTestCase {
                 messageID: "msg-1",
                 timestamp: "2024-01-01T00:00:00Z",
                 body: body,
-                signature: "sha256=ee5636024ec838b2bccd0e7b35bb8d7785529a3b250f063f69eabe841e040d6c",
-                secret: "secret",
+                signature: Self.signature,
+                secret: Self.secret,
                 now: sent.addingTimeInterval(660)
             )
         )

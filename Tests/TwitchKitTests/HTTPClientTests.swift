@@ -951,7 +951,7 @@ final class HTTPClientTests: XCTestCase {
             type: "user.update",
             version: "1",
             condition: ["user_id": "1234"],
-            transport: .webhook(callback: URL(string: "https://example.com/eventsub")!, secret: "secret")
+            transport: .webhook(callback: URL(string: "https://example.com/eventsub")!, secret: "webhook-secret")
         )
 
         let requests = await transport.recordedRequests()
@@ -961,7 +961,7 @@ final class HTTPClientTests: XCTestCase {
         let transportBody = try XCTUnwrap(object["transport"] as? [String: Any])
         XCTAssertEqual(transportBody["method"] as? String, "webhook")
         XCTAssertEqual(transportBody["callback"] as? String, "https://example.com/eventsub")
-        XCTAssertEqual(transportBody["secret"] as? String, "secret")
+        XCTAssertEqual(transportBody["secret"] as? String, "webhook-secret")
     }
 
     func test_eventSubSubscriptionSupportsBatchingFlag() async throws {
@@ -976,7 +976,7 @@ final class HTTPClientTests: XCTestCase {
             type: "drop.entitlement.grant",
             version: "1",
             condition: ["organization_id": "organization"],
-            transport: .webhook(callback: URL(string: "https://example.com/eventsub")!, secret: "secret"),
+            transport: .webhook(callback: URL(string: "https://example.com/eventsub")!, secret: "webhook-secret"),
             isBatchingEnabled: true
         )
 

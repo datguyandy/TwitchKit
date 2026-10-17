@@ -20,6 +20,21 @@ public enum HelixError: Error, Sendable, LocalizedError {
     case rateLimited(HelixRateLimit)
     case oauth(TwitchOAuthError)
 
+    /// Twitch no longer accepts the device code: the user denied access, the
+    /// code expired, or it was already redeemed. Start a new device code
+    /// flow. Carries Twitch's error body (for example
+    /// `{"status":400,"message":"invalid device code"}`).
+    case deviceCodeRejected(TwitchOAuthError)
+
+    /// An OAuth redirect's `state` didn't match the value your app sent, so
+    /// the redirect may be forged (CSRF). Ignore it.
+    case oauthStateMismatch
+
+    /// Twitch reports that an access token was issued to a different client
+    /// ID than this app's. Using it would act on behalf of another app (token
+    /// substitution), so reject it.
+    case tokenClientMismatch(expected: String, actual: String?)
+
     /// An HTTP status TwitchKit has no dedicated case for, outside 5xx: for
     /// example 410 for a retired endpoint, or 405. Carries Twitch's error
     /// body when one could be parsed.
@@ -64,6 +79,10 @@ public enum HelixError: Error, Sendable, LocalizedError {
                 "Rate limited"
             }
         case .oauth(let error): "OAuth error: \(error.message)"
+        case .deviceCodeRejected(let error): "Device code rejected: \(error.message)"
+        case .oauthStateMismatch: "OAuth redirect state doesn't match the state that was sent"
+        case .tokenClientMismatch(let expected, let actual):
+            "Access token belongs to client ID \(actual ?? "(none)"), not \(expected)"
         case .unexpectedStatus(let status, let error):
             if let error {
                 "Unexpected HTTP \(status): \(error.message)"
@@ -174,6 +193,27 @@ public struct TwitchOAuthError: Decodable, Sendable, Equatable {
 
     static func fallback(status: Int, message: String) -> Self {
         Self(error: "HTTP \(status)", status: status, message: message)
+    }
+
+    /// Whether Twitch reports `code`, in either the `error` or the `message`
+    /// field, case-insensitively. Twitch's device code flow puts its codes in
+    /// `message` alone (`{"status":400,"message":"authorization_pending"}`),
+    /// while standard OAuth bodies use `error`.
+    func reports(_ code: String) -> Bool {
+        error.caseInsensitiveCompare(code) == .orderedSame
+            || message.caseInsensitiveCompare(code) == .orderedSame
+    }
+
+    /// The user hasn't finished authorizing a device code yet; poll again.
+    public var isAuthorizationPending: Bool { reports("authorization_pending") }
+
+    /// Twitch asks the device code poller to slow down.
+    public var isSlowDown: Bool { reports("slow_down") }
+
+    /// Twitch no longer accepts the device code: it expired, was denied, or
+    /// was already redeemed.
+    public var isDeviceCodeRejected: Bool {
+        reports("invalid device code") || reports("expired_token") || reports("access_denied")
     }
 }
 

@@ -472,7 +472,7 @@ public enum EventSubEvent: Sendable {
             return map(try decoder.decode(T.self, from: data))
         } catch {
             eventSubMessageLogger.error(
-                "EventSub: failed to decode \(type, privacy: .public) as \(String(describing: T.self), privacy: .public): \(eventSubDecodingErrorDescription(error), privacy: .public)"
+                "EventSub: failed to decode \(type, privacy: .public) as \(String(describing: T.self), privacy: .public): \(eventSubDecodingErrorDescription(error), privacy: .private)"
             )
             return fallbackEvent(type: type, payload: data)
         }
@@ -495,7 +495,7 @@ public enum EventSubEvent: Sendable {
             }
         } catch {
             eventSubMessageLogger.error(
-                "EventSub: failed to decode notification \(type, privacy: .public) as \(String(describing: T.self), privacy: .public): \(eventSubDecodingErrorDescription(error), privacy: .public)"
+                "EventSub: failed to decode notification \(type, privacy: .public) as \(String(describing: T.self), privacy: .public): \(eventSubDecodingErrorDescription(error), privacy: .private)"
             )
             return fallbackEvent(type: type, payload: rawEventPayload(from: data, shape: shape) ?? data)
         }

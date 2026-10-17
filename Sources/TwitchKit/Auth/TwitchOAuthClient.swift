@@ -1,6 +1,54 @@
 import Foundation
+import Security
 
 /// Builds Twitch OAuth URLs and exchanges OAuth grants for tokens.
+///
+/// ## Choosing a flow for an iOS or macOS app
+///
+/// - **Device code flow with a "Public" client type** is the recommended
+///   on-device flow. Register the app in the Twitch developer console with
+///   Client Type *Public*; it then needs no client secret, gets refresh
+///   tokens, and refreshes without a secret. Twitch has no PKCE, so this is
+///   the only flow that gives a shipped app refresh tokens safely. See
+///   ``startDeviceCodeFlow(scopes:)`` and ``pollDeviceCode(_:scopes:)``.
+/// - **Implicit grant** is a legacy option for apps without a backend: it
+///   returns the access token in the redirect URL's fragment and has no
+///   refresh token. See ``implicitGrantURL(scopes:state:forceVerify:)``.
+/// - **Authorization code grant** needs the client secret to exchange the
+///   code, so run the exchange on your server. **Never ship a client secret
+///   in an app**: anything in the bundle can be extracted.
+///
+/// For the browser-based flows, present the URL with
+/// `ASWebAuthenticationSession`, set `prefersEphemeralWebBrowserSession = true`
+/// so no Twitch cookies are shared with Safari, and use an HTTPS callback
+/// (iOS 17.4+/macOS 14.4+) rather than a custom URL scheme another app could
+/// claim. Always send a fresh ``makeState()`` and check it with
+/// ``parseCallback(_:expectedState:)``:
+///
+/// ```swift
+/// let state = TwitchOAuthClient.makeState()
+/// let url = oauth.implicitGrantURL(scopes: [.userReadChat], state: state)
+/// let session = ASWebAuthenticationSession(
+///     url: url,
+///     callback: .https(host: "auth.example.com", path: "/twitch/callback")
+/// ) { callbackURL, error in
+///     guard let callbackURL else { return }
+///     let result = try? TwitchOAuthClient.parseCallback(callbackURL, expectedState: state)
+///     // …
+/// }
+/// session.prefersEphemeralWebBrowserSession = true
+/// session.presentationContextProvider = contextProvider
+/// session.start()
+/// ```
+///
+/// The OIDC URL builders return an `id_token` that TwitchKit doesn't verify.
+/// If you rely on it for sign-in, verify it yourself: its signature against
+/// Twitch's JWKS (`https://id.twitch.tv/oauth2/keys`), `iss`
+/// (`https://id.twitch.tv/oauth2`), `aud` (your client ID), `exp`, and that
+/// `nonce` matches the one you sent.
+///
+/// The client secret never appears in `description`, `debugDescription` or
+/// `dump(_:)` output.
 public struct TwitchOAuthClient: Sendable {
     private let clientId: String
     private let clientSecret: String?
@@ -9,6 +57,9 @@ public struct TwitchOAuthClient: Sendable {
 
     /// Redirect URI used when one is not supplied.
     public static let defaultRedirectURI = "https://localhost"
+
+    /// The client ID tokens are requested for.
+    public var clientID: String { clientId }
 
     public init(
         clientID clientId: String,
@@ -23,6 +74,15 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Builds an OAuth implicit grant URL for public mobile/client apps without refresh tokens.
+    ///
+    /// The implicit flow is legacy: it has no refresh token and returns the
+    /// access token in the redirect URL. On iOS and macOS, prefer the device
+    /// code flow with a Public client.
+    ///
+    /// - Parameter state: The CSRF token Twitch echoes back. Pass a fresh
+    ///   ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
+    ///   When `nil`, a random state is generated and included anyway; read it
+    ///   back from the URL's `state` query item if you need to check it.
     public func implicitGrantURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         state: String? = nil,
@@ -42,6 +102,13 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Builds an authorization code URL for apps that can exchange the code safely.
+    ///
+    /// Exchanging the code needs the client secret, so do it on a server;
+    /// never ship a client secret in an app.
+    ///
+    /// - Parameter state: The CSRF token Twitch echoes back. Pass a fresh
+    ///   ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
+    ///   When `nil`, a random state is generated and included anyway.
     public func authorizationCodeURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         state: String? = nil,
@@ -61,6 +128,10 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Builds an OIDC implicit grant URL when the app also needs an ID token for sign-in.
+    ///
+    /// TwitchKit doesn't verify the returned `id_token`; verify its signature
+    /// (Twitch's JWKS), `iss`, `aud`, `exp` and `nonce` before trusting it.
+    /// When `state` is `nil`, a random state is generated and included.
     public func oidcImplicitGrantURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         claims: String? = nil,
@@ -91,6 +162,10 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Builds an OIDC authorization code URL for sign-in plus Twitch API access.
+    ///
+    /// TwitchKit doesn't verify the returned `id_token`; verify its signature
+    /// (Twitch's JWKS), `iss`, `aud`, `exp` and `nonce` before trusting it.
+    /// When `state` is `nil`, a random state is generated and included.
     public func oidcAuthorizationCodeURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         claims: String? = nil,
@@ -149,9 +224,18 @@ public struct TwitchOAuthClient: Sendable {
         try await requestAppAccessToken(scopes: rawScopes.map { TwitchScope($0) })
     }
 
-    /// Starts Twitch's device code flow for clients with limited text input.
+    /// Starts Twitch's device code flow.
+    ///
+    /// This is the recommended sign-in flow for iOS and macOS apps: register
+    /// the app with Client Type *Public* so it needs no client secret and
+    /// still gets refresh tokens. Show the user ``DeviceCodeAuthorization/userCode``
+    /// and open ``DeviceCodeAuthorization/verificationURL``, then call
+    /// ``pollDeviceCode(_:scopes:)``.
     public func startDeviceCodeFlow(scopes: [TwitchScope] = TwitchAuth.defaultScopeCases) async throws -> DeviceCodeAuthorization {
-        var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/device")!)
+        var request = URLRequest(
+            url: URL(string: "https://id.twitch.tv/oauth2/device")!,
+            cachePolicy: .reloadIgnoringLocalCacheData
+        )
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded([
@@ -174,6 +258,13 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Polls Twitch for device-code completion using an authorization response.
+    ///
+    /// Waits through Twitch's `authorization_pending` and `slow_down`
+    /// responses until the user finishes authorizing.
+    ///
+    /// - Throws: ``HelixError/deviceCodeRejected(_:)`` when the user denied
+    ///   access or the code expired (start a new flow), or another
+    ///   ``HelixError`` for other failures.
     public func pollDeviceCode(
         _ authorization: DeviceCodeAuthorization,
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases
@@ -200,14 +291,14 @@ public struct TwitchOAuthClient: Sendable {
         while true {
             try Task.checkCancellation()
             if clock.now >= deadline {
-                throw HelixError.oauth(TwitchOAuthError(error: "expired_token", message: "Device code expired"))
+                throw HelixError.deviceCodeRejected(TwitchOAuthError(error: "expired_token", message: "Device code expired"))
             }
 
             do {
                 return try await exchangeDeviceCode(deviceCode: deviceCode, scopes: scopes)
-            } catch HelixError.oauth(let error) where error.error == "authorization_pending" {
+            } catch HelixError.oauth(let error) where error.isAuthorizationPending {
                 try await Task.sleep(for: .seconds(pollingInterval))
-            } catch HelixError.oauth(let error) where error.error == "slow_down" {
+            } catch HelixError.oauth(let error) where error.isSlowDown {
                 pollingInterval += 5
                 try await Task.sleep(for: .seconds(pollingInterval))
             }
@@ -231,13 +322,24 @@ public struct TwitchOAuthClient: Sendable {
     }
 
     /// Performs one device-code token exchange request.
+    ///
+    /// - Throws: ``HelixError/oauth(_:)`` with
+    ///   ``TwitchOAuthError/isAuthorizationPending`` or
+    ///   ``TwitchOAuthError/isSlowDown`` while the user hasn't finished, and
+    ///   ``HelixError/deviceCodeRejected(_:)`` once Twitch no longer accepts
+    ///   the code (denied, expired or already redeemed).
     public func exchangeDeviceCode(deviceCode: String, scopes: [TwitchScope] = TwitchAuth.defaultScopeCases) async throws -> OAuthToken {
-        try await postTokenRequest(fields: [
-            "client_id": clientId,
-            "scope": Self.joined(scopes),
-            "device_code": deviceCode,
-            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-        ])
+        do {
+            // Twitch's device code token request names the field `scopes`.
+            return try await postTokenRequest(fields: [
+                "client_id": clientId,
+                "scopes": Self.joined(scopes),
+                "device_code": deviceCode,
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            ])
+        } catch HelixError.oauth(let error) where error.isDeviceCodeRejected {
+            throw HelixError.deviceCodeRejected(error)
+        }
     }
 
     /// Performs one device-code token exchange request with raw scope strings.
@@ -281,6 +383,28 @@ public struct TwitchOAuthClient: Sendable {
         }
     }
 
+    /// Throws ``HelixError/tokenClientMismatch(expected:actual:)`` unless
+    /// `info` says the token was issued to this client's ID.
+    ///
+    /// A token issued to another app's client ID still validates, so an app
+    /// that accepts tokens from outside (a backend, a deep link, a paste)
+    /// must check this to avoid acting with a substituted token.
+    public func verifyClientID(of info: TwitchTokenInfo) throws {
+        try info.verifyClientID(clientId)
+    }
+
+    /// Validates an access token and checks it was issued to this client's ID.
+    ///
+    /// - Returns: The token info, or `nil` when Twitch reports the token as
+    ///   invalid or expired.
+    /// - Throws: ``HelixError/tokenClientMismatch(expected:actual:)`` when
+    ///   the token belongs to another client ID.
+    public func validateOwnToken(_ accessToken: String) async throws -> TwitchTokenInfo? {
+        guard let info = try await validate(accessToken) else { return nil }
+        try verifyClientID(of: info)
+        return info
+    }
+
     /// Returns whether the access token is valid according to Twitch.
     /// ``validate(_:)`` also returns the token's user, scopes and expiry.
     public func validateAccessToken(_ accessToken: String) async throws -> Bool {
@@ -290,7 +414,10 @@ public struct TwitchOAuthClient: Sendable {
     /// The body of a 200 from `/oauth2/validate`, or `nil` for a 401.
     @concurrent
     private func validationResponse(for accessToken: String) async throws -> Data? {
-        var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/validate")!)
+        var request = URLRequest(
+            url: URL(string: "https://id.twitch.tv/oauth2/validate")!,
+            cachePolicy: .reloadIgnoringLocalCacheData
+        )
         request.setValue("OAuth \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await perform(request)
@@ -309,7 +436,10 @@ public struct TwitchOAuthClient: Sendable {
     /// earlier) counts as revoked.
     @concurrent
     public func revokeToken(_ accessToken: String) async throws {
-        var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/revoke")!)
+        var request = URLRequest(
+            url: URL(string: "https://id.twitch.tv/oauth2/revoke")!,
+            cachePolicy: .reloadIgnoringLocalCacheData
+        )
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded(["client_id": clientId, "token": accessToken])
@@ -339,7 +469,10 @@ public struct TwitchOAuthClient: Sendable {
 
     @concurrent
     private func postTokenRequest(fields: [String: String]) async throws -> OAuthToken {
-        var request = URLRequest(url: URL(string: "https://id.twitch.tv/oauth2/token")!)
+        var request = URLRequest(
+            url: URL(string: "https://id.twitch.tv/oauth2/token")!,
+            cachePolicy: .reloadIgnoringLocalCacheData
+        )
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded(fields)
@@ -391,9 +524,9 @@ public struct TwitchOAuthClient: Sendable {
             URLQueryItem(name: "scope", value: scopes.joined(separator: " ")),
             URLQueryItem(name: "force_verify", value: forceVerify ? "true" : "false"),
         ]
-        if let state {
-            queryItems.append(URLQueryItem(name: "state", value: state))
-        }
+        // Always send a state: Twitch echoes it back, so a caller that
+        // checks it gets CSRF protection, and one that doesn't loses nothing.
+        queryItems.append(URLQueryItem(name: "state", value: state ?? Self.makeState()))
         if let nonce {
             queryItems.append(URLQueryItem(name: "nonce", value: nonce))
         }
@@ -408,6 +541,167 @@ public struct TwitchOAuthClient: Sendable {
 
     private func oidcScopes(_ scopes: [String]) -> [String] {
         scopes.contains("openid") ? scopes : ["openid"] + scopes
+    }
+}
+
+// MARK: - State and redirect handling
+
+extension TwitchOAuthClient {
+    /// Returns a fresh, unguessable OAuth `state` value: 32 random bytes,
+    /// base64url-encoded without padding.
+    ///
+    /// Generate one per authorization request, keep it until the redirect
+    /// arrives, and check it with ``parseCallback(_:expectedState:)``. It
+    /// works as an OIDC `nonce` too.
+    public static func makeState() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        if SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) != errSecSuccess {
+            // SystemRandomNumberGenerator is cryptographically secure on
+            // Apple platforms; it's only a fallback here.
+            var generator = SystemRandomNumberGenerator()
+            for index in bytes.indices {
+                bytes[index] = UInt8.random(in: .min ... .max, using: &generator)
+            }
+        }
+        return Data(bytes).base64EncodedString()
+            .replacing("+", with: "-")
+            .replacing("/", with: "_")
+            .replacing("=", with: "")
+    }
+
+    /// Parses the redirect Twitch sends after an implicit-grant or
+    /// authorization-code request, after checking its `state`.
+    ///
+    /// Reads parameters from both the query (authorization code, errors) and
+    /// the fragment (implicit grant tokens). The `state` is compared with
+    /// `expectedState` in constant time before anything else is read.
+    ///
+    /// - Parameters:
+    ///   - url: The redirect URL, for example from `ASWebAuthenticationSession`.
+    ///   - expectedState: The `state` you put in the authorization URL,
+    ///     usually from ``makeState()``.
+    /// - Returns: The access token (implicit grant) or authorization code.
+    /// - Throws: ``HelixError/oauthStateMismatch`` when `state` is missing or
+    ///   differs (ignore the redirect); ``HelixError/oauth(_:)`` when Twitch
+    ///   reports an `error` such as `access_denied`;
+    ///   ``HelixError/invalidResponse`` when the URL carries neither a token
+    ///   nor a code.
+    public static func parseCallback(_ url: URL, expectedState: String) throws -> TwitchOAuthCallback {
+        let parameters = callbackParameters(from: url)
+
+        guard !expectedState.isEmpty,
+              let state = parameters["state"],
+              constantTimeEquals(state, expectedState)
+        else {
+            throw HelixError.oauthStateMismatch
+        }
+
+        if let error = parameters["error"] {
+            throw HelixError.oauth(TwitchOAuthError(error: error, message: parameters["error_description"]))
+        }
+
+        let scopes = parameters["scope"]?
+            .split(separator: " ")
+            .map { TwitchScope(String($0)) } ?? []
+
+        if let accessToken = parameters["access_token"], !accessToken.isEmpty {
+            let token = OAuthToken(
+                accessToken: accessToken,
+                expiresIn: parameters["expires_in"].flatMap(Int.init),
+                scope: scopes.map(\.rawValue),
+                tokenType: parameters["token_type"]
+            )
+            return .accessToken(token, idToken: parameters["id_token"])
+        }
+        if let code = parameters["code"], !code.isEmpty {
+            return .authorizationCode(code, scopes: scopes)
+        }
+        throw HelixError.invalidResponse
+    }
+
+    /// Query and fragment parameters, fragment winning on duplicates. `+`
+    /// is decoded as a space, as Twitch encodes the scope list that way.
+    private static func callbackParameters(from url: URL) -> [String: String] {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return [:] }
+        var parameters: [String: String] = [:]
+        for encoded in [components.percentEncodedQuery, components.percentEncodedFragment] {
+            guard let encoded, !encoded.isEmpty else { continue }
+            var parser = URLComponents()
+            parser.percentEncodedQuery = encoded.replacing("+", with: "%20")
+            for item in parser.queryItems ?? [] {
+                parameters[item.name] = item.value ?? ""
+            }
+        }
+        return parameters
+    }
+
+    /// Compares two strings without returning early on the first differing byte.
+    static func constantTimeEquals(_ lhs: String, _ rhs: String) -> Bool {
+        let left = Array(lhs.utf8)
+        let right = Array(rhs.utf8)
+        var difference: UInt8 = left.count == right.count ? 0 : 1
+        for index in 0..<max(left.count, right.count) {
+            let leftByte = index < left.count ? left[index] : 0
+            let rightByte = index < right.count ? right[index] : 0
+            difference |= leftByte ^ rightByte
+        }
+        return difference == 0
+    }
+}
+
+/// What an OAuth redirect carried, from ``TwitchOAuthClient/parseCallback(_:expectedState:)``.
+///
+/// Tokens and codes are redacted from `description`, `debugDescription` and `dump(_:)`.
+public enum TwitchOAuthCallback: Sendable, Equatable {
+    /// An implicit-grant redirect: the access token, plus the OIDC `id_token`
+    /// when one was requested. TwitchKit doesn't verify the `id_token`;
+    /// verify its signature, `iss`, `aud`, `exp` and `nonce` before trusting it.
+    case accessToken(OAuthToken, idToken: String?)
+
+    /// An authorization-code redirect: exchange the code for tokens (on
+    /// your server, as it needs the client secret).
+    case authorizationCode(String, scopes: [TwitchScope])
+}
+
+extension TwitchOAuthCallback: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        switch self {
+        case .accessToken(let token, let idToken):
+            "accessToken(\(token), idToken: \(idToken == nil ? "nil" : redactedPlaceholder))"
+        case .authorizationCode(_, let scopes):
+            "authorizationCode(\(redactedPlaceholder), scopes: \(scopes))"
+        }
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        switch self {
+        case .accessToken(let token, let idToken):
+            Mirror(self, children: ["token": token, "idToken": idToken == nil ? "nil" : redactedPlaceholder], displayStyle: .enum)
+        case .authorizationCode(_, let scopes):
+            Mirror(self, children: ["code": redactedPlaceholder, "scopes": scopes], displayStyle: .enum)
+        }
+    }
+}
+
+extension TwitchOAuthClient: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        "TwitchOAuthClient(clientID: \(clientId), clientSecret: \(clientSecret == nil ? "nil" : redactedPlaceholder), redirectURI: \(redirectUri))"
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "clientID": clientId,
+                "clientSecret": clientSecret == nil ? "nil" : redactedPlaceholder,
+                "redirectURI": redirectUri,
+            ],
+            displayStyle: .struct
+        )
     }
 }
 

@@ -13,16 +13,33 @@ public protocol TwitchTokenStore: Sendable {
 }
 
 /// A Keychain-backed token store for Apple platforms.
+///
+/// Tokens are stored as generic passwords with
+/// `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`: readable by
+/// background work after the first unlock, never synced to iCloud Keychain
+/// or restored onto another device. Before the first unlock after a reboot,
+/// loads and saves throw a ``KeychainError`` whose
+/// ``KeychainError/isInteractionNotAllowed`` is `true`.
 public actor KeychainTokenStore: TwitchTokenStore {
     private let tokenKey: String
+    private let accessGroup: String?
 
     /// Creates a Keychain token store scoped to a Twitch app and optional account namespace.
-    public init(clientID clientId: String, namespace: String? = nil) {
+    ///
+    /// - Parameters:
+    ///   - clientID: Your Twitch client ID.
+    ///   - namespace: Separates tokens for several accounts.
+    ///   - accessGroup: A Keychain access group (from your app's
+    ///     `keychain-access-groups` entitlement) to share the token with
+    ///     extensions or other apps from your team. `nil` uses the app's
+    ///     default group. Tokens stored in one group aren't found in another.
+    public init(clientID clientId: String, namespace: String? = nil, accessGroup: String? = nil) {
         tokenKey = "com.twitchkit.\(clientId).\(namespace ?? "default").oauthToken"
+        self.accessGroup = accessGroup
     }
 
     public func loadToken() async throws -> OAuthToken? {
-        guard let data = try KeychainStore.load(key: tokenKey) else {
+        guard let data = try KeychainStore.load(key: tokenKey, accessGroup: accessGroup) else {
             return nil
         }
         return try JSONDecoder.twitch().decode(OAuthToken.self, from: data)
@@ -30,11 +47,11 @@ public actor KeychainTokenStore: TwitchTokenStore {
 
     public func saveToken(_ token: OAuthToken) async throws {
         let data = try JSONEncoder.twitch().encode(token)
-        try KeychainStore.save(key: tokenKey, data: data)
+        try KeychainStore.save(key: tokenKey, data: data, accessGroup: accessGroup)
     }
 
     public func deleteToken() async throws {
-        KeychainStore.delete(key: tokenKey)
+        KeychainStore.delete(key: tokenKey, accessGroup: accessGroup)
     }
 }
 

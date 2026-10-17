@@ -24,6 +24,7 @@ let package = Package(
         .target(
             name: "TwitchKit",
             path: "Sources/TwitchKit",
+            resources: [.copy("PrivacyInfo.xcprivacy")],
             swiftSettings: strictSettings
         ),
         .executableTarget(

@@ -7,11 +7,33 @@ public protocol HTTPClient: Sendable {
 }
 
 /// Default HTTP transport backed by `URLSession`.
+///
+/// By default it uses ``ephemeralSession``, which keeps no disk cache, no
+/// cookies and no credentials, so authenticated responses (a stream key, a
+/// user's email, `/oauth2/validate`) and `id.twitch.tv` cookies never touch
+/// disk. Pass your own `URLSession` to change that.
 public struct URLSessionHTTPClient: HTTPClient {
-    private let session: URLSession
+    let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = URLSessionHTTPClient.ephemeralSession) {
         self.session = session
+    }
+
+    /// A shared session with no URL cache, cookie storage or credential
+    /// storage, that ignores locally cached data.
+    public static let ephemeralSession: URLSession = URLSession(configuration: ephemeralConfiguration())
+
+    /// The configuration behind ``ephemeralSession``: start from it to build
+    /// a session of your own that keeps the same privacy properties.
+    public static func ephemeralConfiguration() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieAcceptPolicy = .never
+        configuration.urlCredentialStorage = nil
+        return configuration
     }
 
     @concurrent

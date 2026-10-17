@@ -157,7 +157,10 @@ public struct HelixClient: Sendable {
         var components = URLComponents(string: Self.baseURL + endpoint)!
         components.setFormSafeQueryItems(queryItems)
 
-        var urlRequest = URLRequest(url: components.url!)
+        // Never answer from, or rely on, a local cache: Helix responses can
+        // carry secrets (a stream key, a user's email), and a custom
+        // HTTPClient may sit on a caching URLSession.
+        var urlRequest = URLRequest(url: components.url!, cachePolicy: .reloadIgnoringLocalCacheData)
         urlRequest.httpMethod = method
         urlRequest.httpBody = body
         if let timeoutInterval = requestConfiguration.timeoutInterval {
@@ -179,10 +182,10 @@ public struct HelixClient: Sendable {
                 guard Self.isTokenRejection(unauthorizedError) else {
                     // A new token can't fix a missing scope or an ID
                     // mismatch; surface Twitch's message instead.
-                    logger.warning("Helix \(endpoint) returned 401 that a token refresh can't fix")
+                    logger.warning("Helix \(method, privacy: .public) \(endpoint, privacy: .public) returned 401 that a token refresh can't fix")
                     throw HelixError.unauthorized(unauthorizedError)
                 }
-                logger.warning("Helix \(endpoint) returned 401; refreshing token and retrying")
+                logger.warning("Helix \(method, privacy: .public) \(endpoint, privacy: .public) returned 401; refreshing token and retrying")
                 do {
                     try await tokenProvider.refreshIfNeeded(rejectedAccessToken: token)
                 } catch HelixError.unauthorized(.none) {
@@ -204,7 +207,7 @@ public struct HelixClient: Sendable {
                     // Twitch didn't process a rate-limited request, so any
                     // method can be retried once the bucket has refilled.
                     rateLimitRetries += 1
-                    logger.warning("Helix \(endpoint) returned 429; retrying in \(delay.components.seconds)s")
+                    logger.warning("Helix \(method, privacy: .public) \(endpoint, privacy: .public) returned 429; retrying in \(delay.components.seconds, privacy: .public)s")
                     try await Task.sleep(for: delay)
                     (data, httpResponse) = try await send(urlRequest)
                     continue
@@ -214,7 +217,7 @@ public struct HelixClient: Sendable {
                    !retriedServiceUnavailable,
                    retryPolicy.shouldRetryServiceUnavailable(method: method) {
                     retriedServiceUnavailable = true
-                    logger.warning("Helix \(endpoint) returned 503; retrying once")
+                    logger.warning("Helix \(method, privacy: .public) \(endpoint, privacy: .public) returned 503; retrying once")
                     // Jittered pause before the retry: an immediate re-request
                     // means every client hammers an already-degraded service
                     // within milliseconds of the first 503, and the jitter keeps
@@ -334,7 +337,7 @@ public struct HelixClient: Sendable {
             // secret-bearing endpoints (stream key, extension secrets, conduit
             // shard secrets), so an explicit `.private` guards against a
             // schema drift writing live credentials to the unified log.
-            logger.error("Helix decode failed for \(String(describing: type)): \(error); JSON: \(rawJSON, privacy: .private)")
+            logger.error("Helix decode failed for \(String(describing: type), privacy: .public): \(error, privacy: .private); JSON: \(rawJSON, privacy: .private)")
             throw HelixError.decodingFailed(error.localizedDescription)
         }
     }

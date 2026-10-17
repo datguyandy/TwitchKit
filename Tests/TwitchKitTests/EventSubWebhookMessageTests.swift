@@ -89,7 +89,7 @@ final class EventSubWebhookMessageTests: XCTestCase {
         ]
     }
 
-    private let verifier = EventSubWebhookVerifier(secret: EventSubWebhookMessageTests.secret)
+    private let verifier = try! EventSubWebhookVerifier(secret: EventSubWebhookMessageTests.secret)
 
     func testNotificationDecodesTheTypedEventAndMetadata() throws {
         let body = Data(Self.streamOnlineBody.utf8)

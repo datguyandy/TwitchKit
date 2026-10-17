@@ -265,7 +265,43 @@ public struct OAuthToken: Codable, Sendable, Equatable {
     }
 }
 
+/// Placeholder printed in place of a secret by TwitchKit's
+/// `description`, `debugDescription` and `customMirror` implementations.
+let redactedPlaceholder = "<redacted>"
+
+/// `print`, string interpolation, `debugPrint` and `dump` never show the
+/// access or refresh token.
+extension OAuthToken: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        let refresh = refreshToken == nil ? "nil" : redactedPlaceholder
+        let scopes = scope.map { "\($0)" } ?? "nil"
+        let expires = expiresIn.map(String.init) ?? "nil"
+        return "OAuthToken(accessToken: \(redactedPlaceholder), refreshToken: \(refresh), expiresIn: \(expires), scope: \(scopes), tokenType: \(tokenType ?? "nil"))"
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "accessToken": redactedPlaceholder,
+                "refreshToken": refreshToken == nil ? "nil" : redactedPlaceholder,
+                "expiresIn": expiresIn as Any,
+                "scope": scope as Any,
+                "tokenType": tokenType as Any,
+                "obtainedAt": obtainedAt as Any,
+            ],
+            displayStyle: .struct
+        )
+    }
+}
+
 /// The initial response for Twitch's OAuth device code flow.
+///
+/// `deviceCode` can be exchanged for the user's tokens, so it's redacted
+/// from `description`, `debugDescription` and `dump(_:)`. `userCode` is meant
+/// to be shown to the user and is printed.
 public struct DeviceCodeAuthorization: Decodable, Sendable, Equatable {
     public let deviceCode: String
     public let expiresIn: Int
@@ -293,7 +329,49 @@ public struct DeviceCodeAuthorization: Decodable, Sendable, Equatable {
     }
 }
 
+extension DeviceCodeAuthorization: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        "DeviceCodeAuthorization(deviceCode: \(redactedPlaceholder), expiresIn: \(expiresIn), interval: \(interval), userCode: \(userCode), verificationUri: \(verificationUri))"
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "deviceCode": redactedPlaceholder,
+                "expiresIn": expiresIn,
+                "interval": interval,
+                "userCode": userCode,
+                "verificationUri": verificationUri,
+            ],
+            displayStyle: .struct
+        )
+    }
+}
+
 /// Convenience facade that composes OAuth URL/exchange helpers with token storage and refresh.
+///
+/// ## Signing in from an iOS or macOS app
+///
+/// - Prefer the **device code flow** with an app registered as Client Type
+///   *Public*: ``startDeviceCodeFlow(scopes:)`` then
+///   ``pollDeviceCode(_:scopes:)``. It needs no client secret and still gets
+///   refresh tokens; Twitch has no PKCE, so it's the only safe way for a
+///   shipped app to hold a refresh token.
+/// - The **implicit grant** (``implicitGrantURL(scopes:state:forceVerify:)``)
+///   is legacy: no refresh token, and the token arrives in a redirect URL.
+/// - **Never ship a client secret in an app.** Pass `clientSecret` only on a
+///   server, where the authorization code and client credentials flows run.
+///
+/// Present browser flows with `ASWebAuthenticationSession`
+/// (`prefersEphemeralWebBrowserSession = true`, and an HTTPS callback via
+/// `.https(host:path:)` on iOS 17.4+/macOS 14.4+), send a fresh
+/// ``TwitchOAuthClient/makeState()``, and hand the redirect to
+/// ``authenticate(withCallbackURL:expectedState:)``. See ``TwitchOAuthClient``
+/// for a full example. OIDC `id_token`s are not verified by TwitchKit;
+/// verify the signature (JWKS), `iss`, `aud`, `exp` and `nonce` yourself.
 public actor TwitchAuth: TwitchAccessTokenProvider {
     public nonisolated let oauthClient: TwitchOAuthClient
     public nonisolated let tokenProvider: TwitchTokenProvider
@@ -444,6 +522,29 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
         forceVerify: Bool = true
     ) -> URL {
         oauthClient.oidcAuthorizationCodeURL(rawScopes: rawScopes, claims: claims, state: state, nonce: nonce, forceVerify: forceVerify)
+    }
+
+    /// Handles an OAuth redirect: checks its `state`, then stores the
+    /// implicit-grant token or exchanges the authorization code.
+    ///
+    /// An implicit-grant token is validated with Twitch, and rejected unless
+    /// it was issued to this app's client ID, before it's stored.
+    ///
+    /// - Throws: ``HelixError/oauthStateMismatch`` for a forged or stale
+    ///   redirect, ``HelixError/oauth(_:)`` when the user denied access,
+    ///   ``HelixError/tokenClientMismatch(expected:actual:)`` for a token
+    ///   issued to another app, or ``HelixError/unauthorized(_:)`` when
+    ///   Twitch rejects the token.
+    public func authenticate(withCallbackURL url: URL, expectedState: String) async throws {
+        switch try TwitchOAuthClient.parseCallback(url, expectedState: expectedState) {
+        case .accessToken(let token, _):
+            guard try await oauthClient.validateOwnToken(token.accessToken) != nil else {
+                throw HelixError.unauthorized(nil)
+            }
+            try await tokenProvider.setToken(token)
+        case .authorizationCode(let code, _):
+            try await authenticate(withAuthorizationCode: code)
+        }
     }
 
     /// Exchanges an authorization code for tokens and stores them for future API requests.

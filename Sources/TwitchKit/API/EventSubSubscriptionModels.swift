@@ -239,6 +239,10 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
     }
 
     /// Delivers events to an HTTPS callback URL.
+    ///
+    /// Twitch requires an `https` callback on port 443 and a secret of 10–100
+    /// ASCII characters; subscribing with anything else throws
+    /// ``HelixError/badRequest(_:)`` before a request is sent.
     public static func webhook(callback: URL, secret: String) -> Self {
         Self(method: .webhook, callback: callback, secret: secret)
     }
@@ -256,8 +260,20 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
     func validate() throws {
         switch method {
         case .webhook:
-            guard callback != nil else {
+            guard let callback else {
                 throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: "Webhook callback URL is required"))
+            }
+            guard callback.scheme?.lowercased() == "https", callback.host?.isEmpty == false else {
+                throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: "Webhook callback URL must use https"))
+            }
+            if let port = callback.port, port != 443 {
+                throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: "Webhook callback URL must use port 443"))
+            }
+            do {
+                try EventSubWebhookVerifier.validateSecret(secret ?? "")
+            } catch {
+                let message = (error as? EventSubWebhookSecretError)?.errorDescription ?? "Invalid webhook secret"
+                throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: message))
             }
         case .websocket:
             guard sessionId?.isEmpty == false else {
@@ -278,5 +294,33 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
         case secret
         case sessionId = "session_id"
         case conduitId = "conduit_id"
+    }
+}
+
+/// The webhook secret never appears in `description`, `debugDescription` or `dump(_:)` output.
+extension EventSubSubscriptionTransport: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    public var description: String {
+        var fields = ["method: \(method.rawValue)"]
+        if let callback { fields.append("callback: \(callback.absoluteString)") }
+        if secret != nil { fields.append("secret: \(redactedPlaceholder)") }
+        if let sessionId { fields.append("sessionID: \(sessionId)") }
+        if let conduitId { fields.append("conduitID: \(conduitId)") }
+        return "EventSubSubscriptionTransport(\(fields.joined(separator: ", ")))"
+    }
+
+    public var debugDescription: String { description }
+
+    public var customMirror: Mirror {
+        Mirror(
+            self,
+            children: [
+                "method": method,
+                "callback": callback as Any,
+                "secret": secret == nil ? "nil" : redactedPlaceholder,
+                "sessionId": sessionId as Any,
+                "conduitId": conduitId as Any,
+            ],
+            displayStyle: .struct
+        )
     }
 }

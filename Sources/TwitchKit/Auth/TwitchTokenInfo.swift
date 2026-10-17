@@ -2,8 +2,12 @@ import Foundation
 
 /// What Twitch reports about an access token when it validates it.
 public struct TwitchTokenInfo: Sendable, Equatable {
-    /// The client ID the token was issued to.
-    public let clientID: String
+    /// The client ID the token was issued to, or `nil` when Twitch's
+    /// response didn't include one.
+    ///
+    /// Check it with ``verifyClientID(_:)`` before trusting a token you
+    /// didn't obtain yourself.
+    public let clientID: String?
 
     /// The user the token belongs to. `nil` for an app access token.
     public let userID: String?
@@ -22,7 +26,7 @@ public struct TwitchTokenInfo: Sendable, Equatable {
     public let validatedAt: Date
 
     public init(
-        clientID: String,
+        clientID: String?,
         userID: String? = nil,
         login: String? = nil,
         scopes: [TwitchScope] = [],
@@ -40,6 +44,23 @@ public struct TwitchTokenInfo: Sendable, Equatable {
     /// When the token expires, or `nil` for tokens that don't expire.
     public var expiresAt: Date? {
         expiresIn > 0 ? validatedAt.addingTimeInterval(TimeInterval(expiresIn)) : nil
+    }
+
+    /// Whether the token was issued to `clientID`. A missing client ID never matches.
+    public func isIssued(toClientID clientID: String) -> Bool {
+        guard let actual = self.clientID, !clientID.isEmpty else { return false }
+        return TwitchOAuthClient.constantTimeEquals(actual, clientID)
+    }
+
+    /// Throws ``HelixError/tokenClientMismatch(expected:actual:)`` unless the
+    /// token was issued to `expectedClientID`.
+    ///
+    /// A token issued to another app still validates, so accepting it would
+    /// let that app's token act as yours (token substitution).
+    public func verifyClientID(_ expectedClientID: String) throws {
+        guard isIssued(toClientID: expectedClientID) else {
+            throw HelixError.tokenClientMismatch(expected: expectedClientID, actual: clientID)
+        }
     }
 
     /// Whether the user granted `scope`.
@@ -60,7 +81,7 @@ public struct TwitchTokenInfo: Sendable, Equatable {
 
     init(validateResponse body: ValidateResponse, validatedAt: Date) {
         self.init(
-            clientID: body.clientId ?? "",
+            clientID: body.clientId,
             userID: body.userId,
             login: body.login,
             scopes: (body.scopes ?? []).map { TwitchScope($0) },
