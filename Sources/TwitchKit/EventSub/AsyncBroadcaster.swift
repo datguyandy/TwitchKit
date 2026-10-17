@@ -8,11 +8,15 @@ import Foundation
 /// SwiftUI `.task` whose view goes away) doesn't end delivery for anyone else
 /// or for consumers created later.
 ///
-/// A value that no current consumer wants is kept, bounded by `backlogPolicy`,
-/// and handed to the next consumer that wants it, matching what a single
-/// buffered `AsyncStream` did for a consumer that started iterating late. With
-/// `replaysLatest`, a consumer that receives nothing from the backlog first
-/// receives the most recent value.
+/// While there are no consumers at all, values are kept in a backlog, bounded
+/// by `backlogPolicy` and by age (`maximumBacklogAge`), and handed to the next
+/// consumer that replays the backlog, matching what a single buffered
+/// `AsyncStream` did for a consumer that started iterating late. The backlog
+/// is emptied as soon as any consumer registers: once one exists, values it
+/// doesn't want are dropped rather than kept for later consumers, which would
+/// otherwise receive stale values long after the fact. With `replaysLatest`, a
+/// consumer that receives nothing from the backlog first receives the most
+/// recent value.
 ///
 /// Lock-protected rather than an actor so a `nonisolated` property can create
 /// streams synchronously.
@@ -27,10 +31,12 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
     private let bufferingPolicy: AsyncStream<Element>.Continuation.BufferingPolicy
     private let backlogPolicy: AsyncStream<Element>.Continuation.BufferingPolicy
     private let replaysLatest: Bool
+    private let maximumBacklogAge: Duration
+    private let now: @Sendable () -> ContinuousClock.Instant
 
     private var consumers: [UInt64: Consumer] = [:]
     private var nextID: UInt64 = 0
-    private var backlog: [Element] = []
+    private var backlog: [(value: Element, sentAt: ContinuousClock.Instant)] = []
     private var latest: Element?
     private var isFinished = false
 
@@ -38,14 +44,20 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
     ///   - bufferingPolicy: Buffering for each consumer's stream.
     ///   - backlogPolicy: Bound on values kept while no consumer wants them.
     ///   - replaysLatest: Whether a new consumer starts with the most recent value.
+    ///   - maximumBacklogAge: How long a backlogged value is kept.
+    ///   - now: The clock reading; tests inject one to age the backlog.
     init(
         bufferingPolicy: AsyncStream<Element>.Continuation.BufferingPolicy,
         backlogPolicy: AsyncStream<Element>.Continuation.BufferingPolicy,
-        replaysLatest: Bool
+        replaysLatest: Bool,
+        maximumBacklogAge: Duration = .seconds(30),
+        now: @escaping @Sendable () -> ContinuousClock.Instant = { ContinuousClock.now }
     ) {
         self.bufferingPolicy = bufferingPolicy
         self.backlogPolicy = backlogPolicy
         self.replaysLatest = replaysLatest
+        self.maximumBacklogAge = maximumBacklogAge
+        self.now = now
     }
 
     /// The most recently sent value, when `replaysLatest` is enabled.
@@ -66,7 +78,12 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
 
     /// Returns a new stream of `transform`'s non-`nil` results for values sent
     /// from now on. Values `transform` maps to `nil` are not this consumer's.
+    ///
+    /// - Parameter replayingBacklog: Whether the stream starts with the values
+    ///   backlogged while there were no consumers. Pass `false` for filtered
+    ///   streams, which are meant to see only what is sent after they exist.
     func makeStream<Output: Sendable>(
+        replayingBacklog: Bool = true,
         _ transform: @escaping @Sendable (Element) -> Output?
     ) -> AsyncStream<Output> {
         let (stream, continuation) = AsyncStream.makeStream(
@@ -83,18 +100,17 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
         )
         let id: UInt64? = withLock {
             guard !isFinished else { return nil }
-            // Hand over the backlogged values this consumer wants, in order,
-            // and keep the rest for consumers that want them.
-            var remaining: [Element] = []
+            // Hand over the (recent) backlogged values this consumer wants, in
+            // order. The backlog exists only while there are no consumers, so
+            // it ends here either way.
+            pruneBacklog()
             var receivedBacklog = false
-            for value in backlog {
-                if consumer.deliver(value) {
+            if replayingBacklog {
+                for entry in backlog where consumer.deliver(entry.value) {
                     receivedBacklog = true
-                } else {
-                    remaining.append(value)
                 }
             }
-            backlog = remaining
+            backlog.removeAll()
             if !receivedBacklog, replaysLatest, let latest {
                 _ = consumer.deliver(latest)
             }
@@ -113,19 +129,19 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
     }
 
     /// Sends `value` to every consumer that wants it, or to the backlog when
-    /// none does.
+    /// there are no consumers.
     func yield(_ value: Element) {
         withLock {
             guard !isFinished else { return }
             if replaysLatest {
                 latest = value
             }
-            var delivered = false
-            for consumer in consumers.values where consumer.deliver(value) {
-                delivered = true
-            }
-            if !delivered {
+            guard !consumers.isEmpty else {
                 appendToBacklog(value)
+                return
+            }
+            for consumer in consumers.values {
+                _ = consumer.deliver(value)
             }
         }
     }
@@ -153,21 +169,34 @@ final class AsyncBroadcaster<Element: Sendable>: @unchecked Sendable {
 
     /// Caller holds the lock.
     private func appendToBacklog(_ value: Element) {
+        pruneBacklog()
+        let entry = (value: value, sentAt: now())
         switch backlogPolicy {
         case .unbounded:
-            backlog.append(value)
+            backlog.append(entry)
         case .bufferingOldest(let limit):
             if backlog.count < limit {
-                backlog.append(value)
+                backlog.append(entry)
             }
         case .bufferingNewest(let limit):
             guard limit > 0 else { return }
-            backlog.append(value)
+            backlog.append(entry)
             if backlog.count > limit {
                 backlog.removeFirst(backlog.count - limit)
             }
         @unknown default:
-            backlog.append(value)
+            backlog.append(entry)
+        }
+    }
+
+    /// Drops backlogged values older than `maximumBacklogAge`. Caller holds
+    /// the lock.
+    private func pruneBacklog() {
+        let cutoff = now() - maximumBacklogAge
+        if let firstRecent = backlog.firstIndex(where: { $0.sentAt >= cutoff }) {
+            backlog.removeFirst(firstRecent)
+        } else {
+            backlog.removeAll()
         }
     }
 

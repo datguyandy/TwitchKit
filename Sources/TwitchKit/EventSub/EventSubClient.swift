@@ -30,8 +30,9 @@ public actor EventSubClient {
     /// can iterate at once and each receives every event. Cancelling one
     /// consumer (for example a SwiftUI `.task` whose view disappears) ends only
     /// that stream; accessing `events` again starts a fresh one. Events that
-    /// arrive while nobody is iterating are buffered (per the client's
-    /// buffering policy) and delivered to the next consumer.
+    /// arrive while no stream of the client exists at all are buffered (per
+    /// the client's buffering policy, for up to 30 seconds) and delivered to
+    /// the next ``events`` or ``notifications`` consumer.
     public nonisolated var events: AsyncStream<EventSubEvent> {
         eventBroadcaster.makeStream { $0.notification.event }
     }
@@ -55,12 +56,13 @@ public actor EventSubClient {
     /// either side of a raid or shoutout). That covers every subscription
     /// type, including ones TwitchKit doesn't model yet, and includes the
     /// channel's revocations and ``EventSubEvent/subscriptionFailed(_:_:)``
-    /// events. Each call returns an independent stream, like ``events``;
-    /// create it before subscribing so no early event is missed.
+    /// events. Each call returns an independent stream, like ``events``, but
+    /// it receives only events sent after it was created (nothing buffered
+    /// earlier), so create it before subscribing.
     ///
     /// - Parameter broadcasterID: The broadcaster's user ID.
     public nonisolated func events(for broadcasterID: String) -> AsyncStream<EventSubEvent> {
-        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.notification.event : nil }
+        eventBroadcaster.makeStream(replayingBacklog: false) { $0.belongs(to: broadcasterID) ? $0.notification.event : nil }
     }
 
     /// A new stream of one broadcaster's events with Twitch's metadata. Routes
@@ -68,7 +70,7 @@ public actor EventSubClient {
     ///
     /// - Parameter broadcasterID: The broadcaster's user ID.
     public nonisolated func notifications(for broadcasterID: String) -> AsyncStream<EventSubNotification> {
-        eventBroadcaster.makeStream { $0.belongs(to: broadcasterID) ? $0.notification : nil }
+        eventBroadcaster.makeStream(replayingBacklog: false) { $0.belongs(to: broadcasterID) ? $0.notification : nil }
     }
 
     private let eventBroadcaster: AsyncBroadcaster<RoutedEvent>
@@ -264,6 +266,18 @@ public actor EventSubClient {
         welcomeContinuation = nil
     }
 
+    /// Internal, for tests only — whether a reconnect ladder task exists.
+    var hasReconnectTaskForTesting: Bool { reconnectTask != nil }
+
+    /// Internal, for tests only — the last network path status handled.
+    var isNetworkAvailableForTesting: Bool { isNetworkAvailable }
+
+    /// Internal, for tests only — failed reconnect attempts in this outage.
+    var reconnectAttemptsForTesting: Int { reconnectAttempts }
+
+    /// Internal, for tests only — record ids active on the current session.
+    var activeSubscriptionIDsForTesting: Set<String> { Set(activeSubscriptionsById.keys) }
+
     /// Internal, for tests only — true while a welcome wait is parked.
     var hasWelcomeWaiterForTesting: Bool { welcomeContinuation != nil }
 
@@ -283,7 +297,7 @@ public actor EventSubClient {
     /// Bumped by `disconnect(forgettingSubscriptions: true)`, so a
     /// `subscribe()` that was in flight doesn't record its subscription for
     /// the next session (the next account's, after a switch).
-    private var subscriptionGeneration: UInt64 = 0
+    private(set) var subscriptionGeneration: UInt64 = 0
 
     /// Connects to EventSub and waits for the session to be established.
     ///
@@ -328,6 +342,10 @@ public actor EventSubClient {
         let attempt = Task {
             if let interruptedLadder {
                 await interruptedLadder.value
+                // disconnect() may have run while the ladder wound down.
+                guard shouldReconnect else {
+                    throw HelixError.networkError("EventSub disconnected")
+                }
                 if sessionId != nil {
                     // The ladder connected before it stopped; finish its work.
                     emit(.connected)
@@ -386,13 +404,18 @@ public actor EventSubClient {
     private func startPathMonitorIfNeeded() {
         guard pathMonitorTask == nil else { return }
         pathMonitor.start()
-        // Capture the (Sendable) monitor itself, not the client, to iterate
-        // the never-ending update stream: a single `guard let self` before
-        // the loop would pin the client alive while suspended on the stream,
-        // making deinit unreachable. Instead, self is re-acquired per update,
-        // so a strong reference exists only while one update is handled.
-        pathMonitorTask = Task { [weak self, pathMonitor] in
-            for await status in pathMonitor.pathUpdates {
+        // Read the stream now, right after start(): each start after a
+        // cancel makes a new one, so a task reading it later (after a quick
+        // disconnect and connect) would iterate the NEXT session's stream,
+        // and, being cancelled, finish it.
+        let updates = pathMonitor.pathUpdates
+        // Capture the stream, not the client, to iterate it: a single
+        // `guard let self` before the loop would pin the client alive while
+        // suspended on the stream, making deinit unreachable. Instead, self
+        // is re-acquired per update, so a strong reference exists only while
+        // one update is handled.
+        pathMonitorTask = Task { [weak self] in
+            for await status in updates {
                 guard let self else { return }
                 await self.handlePathStatus(status)
             }
@@ -413,6 +436,13 @@ public actor EventSubClient {
             // Reconnect immediately if we *want* to be connected but aren't.
             if wasOffline, shouldReconnect, sessionId == nil {
                 reconnectAttempts = 0           // reset backoff — restore is "attempt 1"
+                // A connect() in flight is already connecting; a ladder would
+                // supersede its welcome wait. Let it finish (its failure is
+                // the caller's to handle).
+                guard inFlightConnect == nil else {
+                    emit(.connecting)
+                    return
+                }
                 reconnectTask?.cancel()
                 emit(.reconnecting)
                 reconnectTask = makeReconnectTask()
@@ -425,10 +455,13 @@ public actor EventSubClient {
         resetReconnectAttempts: Bool,
         timeout: Duration
     ) async throws {
+        guard shouldReconnect else {
+            throw HelixError.networkError("EventSub disconnected")
+        }
         if sessionId != nil {
             return
         }
-        logger.info("🔌 EventSub: connecting to \(url.absoluteString)")
+        logger.info("🔌 EventSub: connecting to \(url.host() ?? "unknown host", privacy: .public)")
         let task = socketFactory(url)
         webSocketTask = task
         task.resume()
@@ -502,16 +535,30 @@ public actor EventSubClient {
     public func subscribe(_ subscription: EventSubSubscription) async throws -> EventSubSubscriptionRecord {
         let generation = subscriptionGeneration
         try await connect()
-        let record = try await createSubscription(subscription)
+        var created = try await createSubscription(subscription)
+        // The session changed while the request was in flight, and a new one
+        // is up. Its resubscribe round didn't know about this subscription
+        // (it wasn't desired yet), so create it there too.
+        while !created.onCurrentSession, sessionId != nil, generation == subscriptionGeneration {
+            do {
+                created = try await createSubscription(subscription)
+            } catch HelixError.conflict(let apiError) where apiError.id != nil {
+                // Already live on this session; createSubscription recorded its id.
+                break
+            }
+        }
         guard generation == subscriptionGeneration else {
             // disconnect(forgettingSubscriptions:) ran meanwhile; the record
             // belongs to the closed session, so don't carry it forward.
-            activeSubscriptionsById[record.id] = nil
+            activeSubscriptionsById[created.record.id] = nil
             throw HelixError.networkError("EventSub disconnected while subscribing")
         }
+        // Desired even when there's no session right now (the socket dropped
+        // or disconnect() ran during the request): the next resubscribe
+        // round, on reconnect or connect(), creates it.
         desiredSubscriptions.insert(subscription)
-        desiredSubscriptionsById[record.id] = subscription
-        return record
+        desiredSubscriptionsById[created.record.id] = subscription
+        return created.record
     }
 
     @discardableResult
@@ -604,24 +651,48 @@ public actor EventSubClient {
         }
     }
 
-    private func createSubscription(_ subscription: EventSubSubscription) async throws -> EventSubSubscriptionRecord {
-        guard let sessionId else {
+    /// Creates `subscription` on the current session and records it as
+    /// active there.
+    ///
+    /// `onCurrentSession` is `false` when the session changed while the
+    /// request was in flight. The record then belongs to a session that has
+    /// ended or been replaced, so it isn't recorded as active, and the caller
+    /// must make sure the subscription is created on the current session.
+    ///
+    /// On a 409, Twitch names the existing subscription in the error body;
+    /// its id is recorded as active so it can be unsubscribed later.
+    private func createSubscription(
+        _ subscription: EventSubSubscription
+    ) async throws -> (record: EventSubSubscriptionRecord, onCurrentSession: Bool) {
+        guard let session = sessionId else {
             logger.error("❌ EventSub: no session ID — can't subscribe")
             throw HelixError.badRequest(
                 TwitchAPIError.fallback(status: 400, message: "No EventSub session: it ended before the subscription was created")
             )
         }
-        logger.info("📡 EventSub: subscribing to \(subscription.type) v\(subscription.version) with session \(sessionId)")
-        let record = try await api.createEventSubSubscription(
-            type: subscription.type,
-            version: subscription.version,
-            condition: subscription.condition,
-            sessionID: sessionId,
-            isBatchingEnabled: subscription.isBatchingEnabled
-        )
+        logger.info("📡 EventSub: subscribing to \(subscription.type, privacy: .public) v\(subscription.version, privacy: .public) with session \(session)")
+        let record: EventSubSubscriptionRecord
+        do {
+            record = try await api.createEventSubSubscription(
+                type: subscription.type,
+                version: subscription.version,
+                condition: subscription.condition,
+                sessionID: session,
+                isBatchingEnabled: subscription.isBatchingEnabled
+            )
+        } catch HelixError.conflict(let apiError) {
+            if let id = apiError.id, sessionId == session {
+                activeSubscriptionsById[id] = subscription
+            }
+            throw HelixError.conflict(apiError)
+        }
+        guard sessionId == session else {
+            logger.warning("⚠️ EventSub: session changed while subscribing to \(subscription.type, privacy: .public)")
+            return (record, false)
+        }
         activeSubscriptionsById[record.id] = subscription
-        logger.info("✅ EventSub: subscribed to \(subscription.type)")
-        return record
+        logger.info("✅ EventSub: subscribed to \(subscription.type, privacy: .public)")
+        return (record, true)
     }
 
     // MARK: - Receive Loop
@@ -645,7 +716,7 @@ public actor EventSubClient {
                     guard let self else { return }
                     await self.handleMessage(message, from: task)
                 } catch {
-                    logger.error("❌ EventSub: receive error: \(error.localizedDescription)")
+                    logger.error("❌ EventSub: receive error: \(error.localizedDescription, privacy: .public)")
                     await self?.receiveLoopDidEnd(for: task, error: error)
                     return
                 }
@@ -686,6 +757,8 @@ public actor EventSubClient {
         case "session_welcome":
             sessionId = envelope.payload.session?.id
             keepaliveTimeout = envelope.payload.session?.keepaliveTimeoutSeconds ?? 10
+            // A new session ends the outage: the next one gets a full ladder.
+            reconnectAttempts = 0
             logger.info("🟢 EventSub: session_welcome — id=\(self.sessionId ?? "nil"), keepalive=\(self.keepaliveTimeout)s")
             updateKeepaliveDeadline()
             emit(.connected)
@@ -699,7 +772,7 @@ public actor EventSubClient {
         case "notification":
             updateKeepaliveDeadline()
             let subType = envelope.metadata.subscriptionType ?? "unknown"
-            logger.debug("EventSub notification: \(subType)")
+            logger.debug("EventSub notification: \(subType, privacy: .public)")
             let event = parseNotificationEvent(type: subType, envelopeData: data)
             eventBroadcaster.yield(RoutedEvent(
                 notification: EventSubNotification(event: event, metadata: Self.metadata(for: envelope)),
@@ -710,6 +783,14 @@ public actor EventSubClient {
             if webSocketTask === task,
                let newUrl = envelope.payload.session?.reconnectUrl,
                let url = URL(string: newUrl) {
+                guard Self.isTrustedReconnectURL(url) else {
+                    // Only Twitch's own hosts get the session (and its
+                    // subscriptions' events). Fall back to a fresh connection
+                    // on the normal ladder, as for a failed handoff.
+                    logger.error("❌ EventSub: ignoring session_reconnect to untrusted URL (host \(url.host() ?? "none", privacy: .public)); reconnecting normally")
+                    handleDisconnect()
+                    return
+                }
                 reconnectTask?.cancel()
                 // [weak self] like every other stored task: a strong capture here
                 // would pin the client between task creation and completion even
@@ -731,6 +812,15 @@ public actor EventSubClient {
         default:
             break
         }
+    }
+
+    /// Whether a `session_reconnect` URL may be followed: `wss` to
+    /// `twitch.tv` or one of its subdomains.
+    static func isTrustedReconnectURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "wss", let host = url.host()?.lowercased() else {
+            return false
+        }
+        return host == "twitch.tv" || host.hasSuffix(".twitch.tv")
     }
 
     /// Twitch's metadata for a notification or revocation message.
@@ -940,6 +1030,7 @@ public actor EventSubClient {
         do {
             try await openConnection(to: Self.websocketURL, resetReconnectAttempts: false, timeout: .seconds(15))
             try await resubscribeAll()
+            reconnectAttempts = 0
             return true
         } catch {
             return false
@@ -1076,16 +1167,21 @@ public actor EventSubClient {
             guard let session = sessionId else {
                 throw HelixError.networkError("EventSub session ended during resubscribe")
             }
-            let record: EventSubSubscriptionRecord
+            let created: (record: EventSubSubscriptionRecord, onCurrentSession: Bool)
             do {
-                record = try await createSubscription(subscription)
-            } catch HelixError.conflict {
+                created = try await createSubscription(subscription)
+            } catch HelixError.conflict(let apiError) {
                 // 409 conflict: the subscription already exists on this
                 // session (e.g. a previous pass created it but we lost the
-                // response). It is live server-side; we just never learned its
-                // record id, so there is nothing to store — treat it as
+                // response). It is live server-side, so treat it as
                 // already-subscribed rather than failing the whole round.
-                logger.warning("⚠️ EventSub: \(subscription.type) already subscribed on this session (409) — continuing")
+                // createSubscription recorded the id Twitch names in the 409.
+                logger.warning("⚠️ EventSub: \(subscription.type, privacy: .public) already subscribed on this session (409) — continuing")
+                // Unsubscribed while the create was in flight: delete it.
+                if let id = apiError.id, sessionId == session, !desiredSubscriptions.contains(subscription) {
+                    pendingSubscriptionDeletes.insert(id)
+                    try await retryPendingSubscriptionDeletes()
+                }
                 continue
             } catch let error as HelixError where Self.isPermanentSubscriptionFailure(error) {
                 // A rejection that raced a session change may be about the old
@@ -1093,7 +1189,7 @@ public actor EventSubClient {
                 guard sessionId == session else { throw error }
                 // Unsubscribed while the create was in flight: nothing to report.
                 guard desiredSubscriptions.contains(subscription) else { continue }
-                logger.error("❌ EventSub: Twitch rejected \(subscription.type) on resubscribe; dropping it: \(error.localizedDescription)")
+                logger.error("❌ EventSub: Twitch rejected \(subscription.type, privacy: .public) on resubscribe; dropping it: \(error.localizedDescription, privacy: .public)")
                 forget(subscription)
                 eventBroadcaster.yield(RoutedEvent(
                     notification: EventSubNotification(event: .subscriptionFailed(subscription, error), metadata: nil),
@@ -1101,13 +1197,18 @@ public actor EventSubClient {
                 ))
                 continue
             }
+            // The session changed mid-request: the record belongs to the old
+            // one and wasn't recorded. Let the ladder run the round again.
+            guard created.onCurrentSession else {
+                throw HelixError.networkError("EventSub session changed during resubscribe")
+            }
             // Reentrancy check: unsubscribe() may have run while the
             // create above was in flight (the actor suspends at every
             // await). Writing the record back would resurrect the
             // subscription locally and leak it live on Twitch's side —
             // undo the create instead of recording it.
             guard desiredSubscriptions.contains(subscription) else {
-                pendingSubscriptionDeletes.insert(record.id)
+                pendingSubscriptionDeletes.insert(created.record.id)
                 try await retryPendingSubscriptionDeletes()
                 continue
             }
@@ -1123,7 +1224,7 @@ public actor EventSubClient {
             try await resubscribeAll()
         } catch {
             guard shouldReconnect, !(error is CancellationError) else { return }
-            logger.warning("⚠️ EventSub: re-creating subscriptions after connect failed (\(error.localizedDescription)); retrying")
+            logger.warning("⚠️ EventSub: re-creating subscriptions after connect failed (\(error.localizedDescription, privacy: .public)); retrying")
             reconnectTask?.cancel()
             reconnectTask = makeReconnectTask()
         }

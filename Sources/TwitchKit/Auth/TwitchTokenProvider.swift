@@ -292,6 +292,17 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         do {
             try await refreshIfNeeded(rejectedAccessToken: token.accessToken)
         } catch let error where Self.isDefinitiveRefreshRejection(error) {
+            // Twitch requires apps to stop using a token it rejects. A
+            // rejected refresh already logged out; without a refresh token
+            // nothing did, so forget the token here (locally: Twitch already
+            // considers it invalid), unless it was replaced meanwhile.
+            if tokenRevision == revision {
+                do {
+                    try await logout(revokingToken: false)
+                } catch {
+                    tokenProviderLogger.warning("Couldn't delete the rejected token from storage: \(error.localizedDescription, privacy: .public)")
+                }
+            }
             return .invalid(error)
         }
         guard let refreshed = try await currentToken() else { return .signedOut }

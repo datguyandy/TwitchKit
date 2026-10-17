@@ -108,6 +108,27 @@ final class TokenValidationTests: XCTestCase {
         }
     }
 
+    func testARejectedTokenWithoutARefreshTokenIsForgotten() async throws {
+        let store = InMemoryTokenStore(token: OAuthToken(accessToken: "token"))
+        let transport = MockHTTPClient(responses: [.json(statusCode: 401, body: Self.invalidJSON)])
+        let provider = TwitchTokenProvider(
+            oauthClient: TwitchOAuthClient(clientID: "client", clientSecret: "secret", httpClient: transport),
+            tokenStore: store
+        )
+
+        _ = try? await provider.validateToken()
+
+        // Twitch requires apps to stop using a token it rejects.
+        do {
+            _ = try await provider.accessToken()
+            XCTFail("A rejected token must not be handed out again")
+        } catch HelixError.notAuthenticated {
+            // Expected.
+        }
+        let stored = try await store.loadToken()
+        XCTAssertNil(stored, "the rejected token is deleted from storage too")
+    }
+
     // MARK: - validations(every:)
 
     func testValidationsRunNowAndThenOnEveryInterval() async throws {

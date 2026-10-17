@@ -76,6 +76,21 @@ final class EventSubConnectionStateTests: XCTestCase {
         XCTAssertEqual(observed, [.connecting, .waitingForNetwork, .disconnected, .connecting, .waitingForNetwork, .reconnecting])
     }
 
+    /// The update stream must be read right after `start()`, not later by
+    /// the monitoring task: after a quick disconnect and connect, a late read
+    /// gets the NEXT session's stream, and the cancelled task finishes it.
+    func test_pathUpdatesAreReadWhenMonitoringStarts() async throws {
+        let monitor = ReadRecordingPathMonitor()
+        let client = EventSubClient(api: makeDummyAPI(), shouldKeepReconnecting: { false }, pathMonitor: monitor)
+        let testTask = withUnsafeCurrentTask { $0?.hashValue }
+
+        await client.startConnectionLifecycle()
+
+        XCTAssertNotNil(testTask)
+        XCTAssertEqual(monitor.readingTasks, [testTask], "pathUpdates must be read synchronously by startConnectionLifecycle()")
+        await client.disconnect()
+    }
+
     func test_nwPathMonitorReportsAgainAfterRestart() async throws {
         let monitor = NWPathNetworkMonitor()
         monitor.start()
@@ -217,6 +232,38 @@ final class MockNetworkPathMonitor: NetworkPathMonitoring, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return body()
+    }
+}
+
+/// A path monitor that records which task read `pathUpdates`.
+private final class ReadRecordingPathMonitor: NetworkPathMonitoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private let stream: AsyncStream<NetworkPathStatus>
+    private let continuation: AsyncStream<NetworkPathStatus>.Continuation
+    private var readers: [Int?] = []
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(of: NetworkPathStatus.self)
+    }
+
+    var readingTasks: [Int?] {
+        lock.lock()
+        defer { lock.unlock() }
+        return readers
+    }
+
+    var pathUpdates: AsyncStream<NetworkPathStatus> {
+        let reader = withUnsafeCurrentTask { $0?.hashValue }
+        lock.lock()
+        defer { lock.unlock() }
+        readers.append(reader)
+        return stream
+    }
+
+    func start() {}
+
+    func cancel() {
+        continuation.finish()
     }
 }
 

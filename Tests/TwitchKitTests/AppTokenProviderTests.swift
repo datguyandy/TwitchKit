@@ -131,6 +131,35 @@ final class AppTokenProviderTests: XCTestCase {
         XCTAssertTrue(bodyString(requests[1]).contains("token=app-1"))
     }
 
+    func testATokenRequestedWhileRevokingIsRevokedAndNotHandedOut() async throws {
+        let gate = ResponseGate()
+        let transport = RoutingTokenTransport(gatedTokenRequest: 2, gate: gate)
+        // A renewal margin longer than the token's life: every accessToken()
+        // requests a new token, so one can be in flight while app-1 is cached.
+        let provider = TwitchAppTokenProvider(
+            oauthClient: TwitchOAuthClient(clientID: "client", clientSecret: "secret", httpClient: transport),
+            renewalMargin: .seconds(10_000_000)
+        )
+        let first = try await provider.accessToken()
+        XCTAssertEqual(first, "app-1")
+
+        // app-2 is being requested when revoke() starts.
+        let requesting = Task { try await provider.accessToken() }
+        let requested = await waitFor { await transport.tokenRequestCount == 2 }
+        XCTAssertTrue(requested)
+        let revoking = Task { try await provider.revoke() }
+        let revokedCurrent = await waitFor { await transport.revokedTokens == ["app-1"] }
+        XCTAssertTrue(revokedCurrent)
+        await gate.open()
+
+        let token = try await requesting.value
+        try await revoking.value
+
+        XCTAssertEqual(token, "app-3", "a token issued after revoke() began must not be handed out")
+        let revoked = await transport.revokedTokens
+        XCTAssertEqual(revoked, ["app-1", "app-2"], "the token issued after revoke() began must be revoked")
+    }
+
     func testTwitchClientBuildsAppAPIOnlyWithASecret() async throws {
         let withoutSecret = TwitchClient(clientID: "client", tokenStore: InMemoryTokenStore(), pathMonitor: MockNetworkPathMonitor())
         XCTAssertNil(withoutSecret.appAPI)
@@ -152,5 +181,51 @@ final class AppTokenProviderTests: XCTestCase {
 
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests.last?.value(forHTTPHeaderField: "Authorization"), "Bearer app-1")
+    }
+}
+
+/// Polls (~5s) until `condition` holds.
+private func waitFor(_ condition: @Sendable () async -> Bool) async -> Bool {
+    for _ in 0..<500 {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+    return await condition()
+}
+
+/// Answers by endpoint rather than in order: token requests get `app-1`,
+/// `app-2`, … (request number `gatedTokenRequest` held until `gate` opens),
+/// and revokes succeed and are recorded.
+private actor RoutingTokenTransport: HTTPClient {
+    private let gatedTokenRequest: Int
+    private let gate: ResponseGate
+    private(set) var tokenRequestCount = 0
+    private(set) var revokedTokens: [String] = []
+
+    init(gatedTokenRequest: Int, gate: ResponseGate) {
+        self.gatedTokenRequest = gatedTokenRequest
+        self.gate = gate
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        let url = request.url ?? URL(string: "https://example.com")!
+        let body: String
+        if url.path().hasSuffix("/revoke") {
+            let form = request.httpBody.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+            let token = form.split(separator: "&")
+                .first { $0.hasPrefix("token=") }
+                .map { String($0.dropFirst("token=".count)) } ?? ""
+            revokedTokens.append(token)
+            body = ""
+        } else {
+            tokenRequestCount += 1
+            let number = tokenRequestCount
+            if number == gatedTokenRequest {
+                await gate.wait()
+            }
+            body = #"{"access_token":"app-\#(number)","expires_in":5011271,"token_type":"bearer"}"#
+        }
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [:])!
+        return (Data(body.utf8), response)
     }
 }

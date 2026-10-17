@@ -24,7 +24,8 @@ public actor TwitchAppTokenProvider: TwitchAccessTokenProvider {
     private let renewalMargin: TimeInterval
     private var token: OAuthToken?
     private var inFlightRequest: Task<OAuthToken, any Error>?
-    /// Bumped by `revoke()`, so a request that started earlier isn't cached.
+    /// Bumped by `revoke()`, so a token from a request that started earlier
+    /// is neither cached nor handed out.
     private var revision: UInt64 = 0
 
     /// - Parameters:
@@ -85,19 +86,56 @@ public actor TwitchAppTokenProvider: TwitchAccessTokenProvider {
 
     /// Revokes the current token on Twitch and forgets it. The next request
     /// gets a new token.
+    ///
+    /// A token request already in flight is revoked too, once Twitch issues
+    /// it, and its callers get a new token instead.
     public func revoke() async throws {
         revision &+= 1
-        guard let current = token else { return }
+        let current = token
         token = nil
-        try await oauthClient.revokeToken(current.accessToken)
+        // Later callers mustn't join the request that revoke() is discarding.
+        let pending = inFlightRequest
+        inFlightRequest = nil
+
+        var firstError: (any Error)?
+        if let current {
+            do {
+                try await oauthClient.revokeToken(current.accessToken)
+            } catch {
+                firstError = error
+            }
+        }
+        if let pending, let issued = try? await pending.value {
+            do {
+                try await oauthClient.revokeToken(issued.accessToken)
+            } catch {
+                firstError = firstError ?? error
+            }
+        }
+        if let firstError {
+            throw firstError
+        }
     }
 
     /// Requests a token, joining a request that is already in flight.
     private func requestToken() async throws -> OAuthToken {
-        if let inFlightRequest {
-            return try await inFlightRequest.value
+        while true {
+            let startRevision = revision
+            let request = inFlightRequest ?? startRequest()
+            let result = await request.result
+            if inFlightRequest == request {
+                inFlightRequest = nil
+            }
+            let requested = try result.get()
+            // revoke() ran while the request was in flight and revokes this
+            // token: don't hand it out, request another.
+            guard revision == startRevision else { continue }
+            token = requested
+            return requested
         }
-        let startRevision = revision
+    }
+
+    private func startRequest() -> Task<OAuthToken, any Error> {
         let request = Task { [oauthClient, scopes] in
             let response = try await oauthClient.requestAppAccessToken(scopes: scopes)
             return OAuthToken(
@@ -109,12 +147,7 @@ public actor TwitchAppTokenProvider: TwitchAccessTokenProvider {
             )
         }
         inFlightRequest = request
-        defer { inFlightRequest = nil }
-        let requested = try await request.value
-        if revision == startRevision {
-            token = requested
-        }
-        return requested
+        return request
     }
 
     private func isExpiring(_ token: OAuthToken) -> Bool {

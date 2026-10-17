@@ -1271,6 +1271,320 @@ final class EventSubSocketTests: XCTestCase {
 
         await client.disconnect()
     }
+
+    // MARK: - 17. Lifecycle races
+
+    private static let followCondition = ["broadcaster_user_id": "b", "moderator_user_id": "m"]
+
+    /// The `session_id` each subscription create was sent with.
+    private func postedSessionIDs(_ requests: [URLRequest]) throws -> [String] {
+        try requests.filter { $0.httpMethod == "POST" }.map { request in
+            let body = try XCTUnwrap(request.httpBody)
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let transport = try XCTUnwrap(object["transport"] as? [String: Any])
+            return try XCTUnwrap(transport["session_id"] as? String)
+        }
+    }
+
+    private func deletedQueries(_ requests: [URLRequest]) -> [String] {
+        requests.filter { $0.httpMethod == "DELETE" }.compactMap { $0.url?.query() }
+    }
+
+    /// Drops `socket` and waits for the reconnect ladder (1s backoff) to dial
+    /// the next socket, then delivers that session's welcome.
+    private func reconnect(
+        _ client: EventSubClient,
+        dropping socket: FakeWebSocket,
+        to next: FakeWebSocket,
+        factory: FakeSocketFactory,
+        sessionId: String
+    ) async throws {
+        let dialsBefore = factory.requestedURLs.count
+        socket.failReceive(with: HelixError.networkError("dropped"))
+        let dialed = await waitUntil { factory.requestedURLs.count == dialsBefore + 1 }
+        XCTAssertTrue(dialed, "the ladder should dial a new socket")
+        let waiting = await pollWelcomeWaiter(on: client)
+        XCTAssertTrue(waiting)
+        next.push(text: welcomeJSON(messageId: "welcome-\(sessionId)", sessionId: sessionId))
+        let connected = await waitUntil { client.currentConnectionState == .connected }
+        XCTAssertTrue(connected)
+    }
+
+    func test_subscribeThatOutlivesItsSessionIsCreatedOnTheNextOne() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let gate = ResponseGate()
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+            ]
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        let subscribing = Task {
+            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+        }
+        let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
+        XCTAssertTrue(sent)
+        // Not forgetting: the subscription is still wanted on the next session.
+        await client.disconnect()
+        await gate.open()
+        _ = try await subscribing.value
+
+        let active = await client.activeSubscriptionIDsForTesting
+        XCTAssertTrue(active.isEmpty, "a record from the closed session must not count as active")
+
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(try postedSessionIDs(requests), ["session-1", "session-2"], "the subscription must be created on the new session")
+
+        await client.disconnect()
+    }
+
+    func test_subscribeInFlightAcrossAReconnectIsCreatedOnTheNewSession() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let gate = ResponseGate()
+        let (client, factory, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+            ]
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        let subscribing = Task {
+            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+        }
+        let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
+        XCTAssertTrue(sent)
+        // The socket drops and the ladder reconnects (its resubscribe round
+        // has nothing to do: the subscription isn't desired yet).
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+        await gate.open()
+        let record = try await subscribing.value
+
+        XCTAssertEqual(record.id, "sub-2")
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(try postedSessionIDs(requests), ["session-1", "session-2"])
+        let active = await client.activeSubscriptionIDsForTesting
+        XCTAssertEqual(active, ["sub-2"])
+
+        await client.disconnect()
+    }
+
+    func test_leavingARoomJoinedBeforeForgettingLeavesNewerRoomsAlone() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: created(6) + created(6, startingAt: 7) + deleted(6)
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        let oldRoom = try await client.joinChat(broadcasterID: "a", userID: "me")
+
+        // Account switch, then the new user joins the same channel.
+        await client.disconnect(forgettingSubscriptions: true)
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        let newRoom = try await client.joinChat(broadcasterID: "a", userID: "me")
+
+        try await oldRoom.leave()
+        let afterOldLeave = await transport.recordedRequests()
+        XCTAssertEqual(deletedQueries(afterOldLeave), [], "the old room must not release the new room's claims")
+
+        try await newRoom.leave()
+        let afterNewLeave = await transport.recordedRequests()
+        XCTAssertEqual(Set(deletedQueries(afterNewLeave)), Set((7...12).map { "id=sub-\($0)" }))
+
+        await client.disconnect()
+    }
+
+    func test_aRoomDroppedWithoutLeavingReleasesItsSubscriptions() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, transport) = try await makeClient(sockets: [socket], responses: created(6) + deleted(6))
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        var room: ChatRoom? = try await client.joinChat(broadcasterID: "a", userID: "me")
+        XCTAssertNotNil(room)
+        room = nil
+
+        let released = await waitUntil { await transport.recordedRequests().filter { $0.httpMethod == "DELETE" }.count == 6 }
+        XCTAssertTrue(released, "a deallocated room must release its claims")
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(Set(deletedQueries(requests)), Set((1...6).map { "id=sub-\($0)" }))
+
+        await client.disconnect()
+    }
+
+    func test_networkRestoreDuringConnectDoesNotStartAReconnectLadder() async throws {
+        let monitor = MockNetworkPathMonitor()
+        let (client, factory, _) = try await makeClient(sockets: [], pathMonitor: monitor)
+        let (gate, gateContinuation) = AsyncStream.makeStream(of: Void.self)
+        await client.setConnectBodyForTesting {
+            var iterator = gate.makeAsyncIterator()
+            _ = await iterator.next()
+        }
+
+        let connecting = Task { try await client.connect() }
+        while await !(client.isConnectingForTesting) {
+            await Task.yield()
+        }
+        monitor.send(.unsatisfied)
+        let offline = await waitUntil { await !client.isNetworkAvailableForTesting }
+        monitor.send(.satisfied)
+        let online = await waitUntil { await client.isNetworkAvailableForTesting }
+        XCTAssertTrue(offline)
+        XCTAssertTrue(online)
+
+        let hasLadder = await client.hasReconnectTaskForTesting
+        XCTAssertFalse(hasLadder, "a ladder would supersede the connect() in flight")
+        XCTAssertEqual(client.currentConnectionState, .connecting)
+
+        gateContinuation.finish()
+        try await connecting.value
+        XCTAssertEqual(factory.requestedURLs, [])
+        await client.disconnect()
+    }
+
+    func test_aSuccessfulReconnectResetsTheAttemptCount() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let (client, factory, _) = try await makeClient(sockets: [socketA, socketB])
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+
+        // Otherwise every outage eats into the next one's 5 attempts.
+        let attempts = await client.reconnectAttemptsForTesting
+        XCTAssertEqual(attempts, 0)
+
+        await client.disconnect()
+    }
+
+    func test_disconnectStopsAConnectWaitingOnAnInterruptedLadder() async throws {
+        let socketA = FakeWebSocket()
+        let ladderAsking = Flag()
+        let ladderGate = ResponseGate()
+        let (client, factory, _) = try await makeClient(
+            sockets: [socketA],
+            shouldKeepReconnecting: {
+                await ladderAsking.mark()
+                await ladderGate.wait()
+                return false
+            }
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        // The ladder starts and is held before its first attempt.
+        socketA.failReceive(with: HelixError.networkError("dropped"))
+        let asking = await ladderAsking.poll()
+        XCTAssertTrue(asking)
+
+        // connect() interrupts the ladder and waits for it to wind down…
+        let connecting = Task { try await client.connect() }
+        while await !(client.isConnectingForTesting) {
+            await Task.yield()
+        }
+        // …and disconnect() lands meanwhile.
+        await client.disconnect()
+        await ladderGate.open()
+
+        do {
+            try await connecting.value
+            XCTFail("connect() must not outlive disconnect()")
+        } catch HelixError.networkError {
+            // Expected.
+        }
+        XCTAssertEqual(factory.requestedURLs.count, 1, "no socket may be opened after disconnect()")
+        XCTAssertEqual(client.currentConnectionState, .disconnected)
+    }
+
+    func test_subscribeConflictRecordsTheExistingSubscriptionSoItCanBeRemoved() async throws {
+        let socket = FakeWebSocket()
+        let conflict = MockHTTPClient.Response.json(
+            statusCode: 409,
+            body: #"{"error":"Conflict","status":409,"message":"subscription already exists","id":"existing-1"}"#
+        )
+        let (client, _, transport) = try await makeClient(sockets: [socket], responses: [conflict] + deleted(1))
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        let subscription = EventSubSubscription(type: "channel.follow", version: "2", condition: Self.followCondition)
+
+        do {
+            try await client.subscribe(subscription)
+            XCTFail("Expected a conflict")
+        } catch HelixError.conflict(let apiError) {
+            XCTAssertEqual(apiError.id, "existing-1")
+        }
+
+        try await client.unsubscribe(subscription)
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(deletedQueries(requests), ["id=existing-1"])
+
+        await client.disconnect()
+    }
+
+    func test_resubscribeConflictRecordsTheExistingSubscriptionSoItCanBeRemoved() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let conflict = MockHTTPClient.Response.json(
+            statusCode: 409,
+            body: #"{"error":"Conflict","status":409,"message":"subscription already exists","id":"existing-1"}"#
+        )
+        let (client, factory, transport) = try await makeClient(
+            sockets: [socketA, socketB],
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")), conflict] + deleted(1)
+        )
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        let subscription = EventSubSubscription(type: "channel.follow", version: "2", condition: Self.followCondition)
+        try await client.subscribe(subscription)
+
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+        let recorded = await waitUntil { await client.activeSubscriptionIDsForTesting == ["existing-1"] }
+        XCTAssertTrue(recorded, "the id Twitch names in the 409 is the live subscription")
+
+        try await client.unsubscribe(subscription)
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(deletedQueries(requests), ["id=existing-1"])
+
+        await client.disconnect()
+    }
+
+    func test_sessionReconnectToAnUntrustedHostFallsBackToTheLadder() async throws {
+        let socketA = FakeWebSocket()
+        let socketB = FakeWebSocket()
+        let (client, factory, _) = try await makeClient(sockets: [socketA, socketB])
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+
+        socketA.push(text: reconnectJSON(messageId: "reconnect-1", reconnectURL: "wss://eventsub.example.com/ws"))
+
+        let dialed = await waitUntil { factory.requestedURLs.count == 2 }
+        XCTAssertTrue(dialed)
+        XCTAssertEqual(
+            factory.requestedURLs.map(\.absoluteString),
+            ["wss://eventsub.wss.twitch.tv/ws", "wss://eventsub.wss.twitch.tv/ws"],
+            "an untrusted reconnect_url must never be dialed"
+        )
+        XCTAssertTrue(socketA.wasCancelled)
+
+        await client.disconnect()
+    }
+
+    func test_onlyTwitchWebSocketURLsAreTrustedForReconnect() {
+        func trusted(_ string: String) -> Bool {
+            EventSubClient.isTrustedReconnectURL(URL(string: string)!)
+        }
+        XCTAssertTrue(trusted("wss://eventsub.wss.twitch.tv/ws?challenge=abc"))
+        XCTAssertTrue(trusted("wss://twitch.tv/ws"))
+        XCTAssertTrue(trusted("WSS://EventSub.WSS.Twitch.TV/ws"))
+        XCTAssertFalse(trusted("ws://eventsub.wss.twitch.tv/ws"))
+        XCTAssertFalse(trusted("https://eventsub.wss.twitch.tv/ws"))
+        XCTAssertFalse(trusted("wss://eviltwitch.tv/ws"))
+        XCTAssertFalse(trusted("wss://twitch.tv.example.com/ws"))
+        XCTAssertFalse(trusted("wss://example.com/ws?host=twitch.tv"))
+    }
 }
 
 /// Polls (~5s) until `condition` holds.
@@ -1487,7 +1801,9 @@ private func pollWelcomeWaiter(on client: EventSubClient) async -> Bool {
 
 private func makeClient(
     sockets: [FakeWebSocket],
-    responses: [MockHTTPClient.Response] = []
+    responses: [MockHTTPClient.Response] = [],
+    shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { false },
+    pathMonitor: MockNetworkPathMonitor = MockNetworkPathMonitor()
 ) async throws -> (EventSubClient, FakeSocketFactory, MockHTTPClient) {
     let factory = FakeSocketFactory(sockets: sockets)
     let transport = MockHTTPClient(responses: responses)
@@ -1499,8 +1815,8 @@ private func makeClient(
     let api = HelixClient(auth: auth, clientID: "client-id", httpClient: transport)
     let client = EventSubClient(
         api: api,
-        shouldKeepReconnecting: { false },
-        pathMonitor: MockNetworkPathMonitor(),
+        shouldKeepReconnecting: shouldKeepReconnecting,
+        pathMonitor: pathMonitor,
         socketFactory: { factory.make($0) }
     )
     return (client, factory, transport)

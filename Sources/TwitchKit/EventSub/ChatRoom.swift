@@ -5,7 +5,9 @@ import Foundation
 ///
 /// Create one with ``EventSubClient/joinChat(broadcasterID:userID:additionalSubscriptions:)``
 /// and call ``leave()`` when the chat view goes away. Rooms on the same channel
-/// share subscriptions, so leaving one room doesn't affect another.
+/// share subscriptions, so leaving one room doesn't affect another. A room
+/// released without ``leave()`` gives up its subscriptions when it's
+/// deallocated.
 public actor ChatRoom {
     /// The subscriptions every chat room uses: messages, notifications (subs,
     /// raids, announcements), whole-chat clears, per-user clears (timeouts and
@@ -31,18 +33,24 @@ public actor ChatRoom {
     public nonisolated let subscriptions: [EventSubSubscription]
 
     private let client: EventSubClient
+    /// The client's subscription generation when the room joined. After
+    /// `disconnect(forgettingSubscriptions: true)` the client's claims belong
+    /// to newer rooms, so this room's release must not touch them.
+    private let generation: UInt64
     private let broadcaster: AsyncBroadcaster<EventSubNotification>
     private let pump: Task<Void, Never>
     private var hasLeft = false
 
     init(
         client: EventSubClient,
+        generation: UInt64,
         broadcasterID: String,
         userID: String,
         subscriptions: [EventSubSubscription],
         source: AsyncStream<EventSubNotification>
     ) {
         self.client = client
+        self.generation = generation
         self.broadcasterID = broadcasterID
         self.userID = userID
         self.subscriptions = subscriptions
@@ -65,6 +73,16 @@ public actor ChatRoom {
     deinit {
         pump.cancel()
         broadcaster.finish()
+        guard !hasLeft else { return }
+        // Dropped without leave(): release the claims anyway, or the room's
+        // subscriptions stay live for good. The task captures only what the
+        // release needs, not the room being deallocated.
+        let client = client
+        let generation = generation
+        let subscriptions = subscriptions
+        Task {
+            try? await client.releaseChatSubscriptions(subscriptions, generation: generation)
+        }
     }
 
     /// A new stream of this channel's events: chat messages, notifications,
@@ -101,7 +119,7 @@ public actor ChatRoom {
         hasLeft = true
         pump.cancel()
         broadcaster.finish()
-        try await client.releaseChatSubscriptions(subscriptions)
+        try await client.releaseChatSubscriptions(subscriptions, generation: generation)
     }
 }
 
@@ -158,6 +176,7 @@ extension EventSubClient {
         // Register the room's stream before any subscription exists, so the
         // first events can't arrive ahead of it.
         let source = notifications(for: broadcasterID)
+        let generation = subscriptionGeneration
 
         // Claim every subscription before the first await, so a concurrent
         // join of the same channel shares this join's creates instead of
@@ -199,12 +218,18 @@ extension EventSubClient {
             // Roll back: release this join's claims, which removes whatever
             // it created that no other room uses. The join error is the one
             // worth reporting, so a failed rollback delete isn't rethrown.
-            try? await releaseChatSubscriptions(subscriptions)
+            try? await releaseChatSubscriptions(subscriptions, generation: generation)
             throw JoinChatError(broadcasterID: broadcasterID, failures: failures)
+        }
+        // disconnect(forgettingSubscriptions: true) ran while joining: the
+        // claims were cleared, and the room would receive nothing.
+        guard generation == subscriptionGeneration else {
+            throw HelixError.networkError("EventSub disconnected while joining chat")
         }
 
         return ChatRoom(
             client: self,
+            generation: generation,
             broadcasterID: broadcasterID,
             userID: userID,
             subscriptions: subscriptions,
@@ -214,10 +239,16 @@ extension EventSubClient {
 
     /// Releases one room's claim on each subscription, deleting (in parallel)
     /// the ones a room created that no other room still uses.
-    func releaseChatSubscriptions(_ subscriptions: [EventSubSubscription]) async throws {
+    ///
+    /// Does nothing for a room from an earlier `generation`: its claims were
+    /// cleared by `disconnect(forgettingSubscriptions: true)`, and the claims
+    /// now held belong to rooms joined since.
+    func releaseChatSubscriptions(_ subscriptions: [EventSubSubscription], generation: UInt64) async throws {
+        guard generation == subscriptionGeneration else { return }
         var toRemove: [EventSubSubscription] = []
         for subscription in subscriptions {
-            let remaining = chatRoomClaims[subscription, default: 1] - 1
+            guard let claims = chatRoomClaims[subscription] else { continue }
+            let remaining = claims - 1
             if remaining > 0 {
                 chatRoomClaims[subscription] = remaining
                 continue

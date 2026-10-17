@@ -222,11 +222,16 @@ public struct TwitchAPIError: Decodable, Sendable, Equatable {
     public let error: String
     public let status: Int
     public let message: String
+    /// The id of the existing resource, when Twitch names one. A 409 from
+    /// Create EventSub Subscription carries the id of the subscription that
+    /// already exists.
+    public let id: String?
 
-    public init(error: String, status: Int, message: String) {
+    public init(error: String, status: Int, message: String, id: String? = nil) {
         self.error = error
         self.status = status
         self.message = message
+        self.id = id
     }
 
     static func fallback(status: Int, message: String) -> Self {

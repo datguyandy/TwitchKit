@@ -108,23 +108,70 @@ final class AsyncBroadcasterTests: XCTestCase {
         XCTAssertEqual(allValues, [1, 2, 3, 4])
     }
 
-    func testUnwantedValuesWaitForAConsumerThatWantsThem() async {
+    func testUnwantedValuesAreNotKeptWhileAConsumerExists() async {
         let broadcaster = makeBroadcaster(backlog: .bufferingNewest(10))
-        // Only odd values have a taker; even ones nobody wants yet.
+        // Only odd values have a taker; even ones nobody wants.
         let odds = broadcaster.makeStream { $0 % 2 == 1 ? $0 : nil }
 
         for value in 1...4 {
             broadcaster.yield(value)
         }
-        // A later consumer that wants even values receives the ones it missed,
-        // and doesn't take values no consumer of its kind wanted.
+        // A later consumer starts with what is sent after it exists: 2 and 4
+        // were sent while a consumer existed, so they weren't kept for it.
         let evens = broadcaster.makeStream { $0 % 2 == 0 ? $0 : nil }
         broadcaster.yield(6)
 
         let oddValues = await collect(odds, count: 2)
-        let evenValues = await collect(evens, count: 3)
+        let evenValues = await collect(evens, count: 1)
         XCTAssertEqual(oddValues, [1, 3])
-        XCTAssertEqual(evenValues, [2, 4, 6])
+        XCTAssertEqual(evenValues, [6])
+    }
+
+    func testStreamThatDoesNotReplayTheBacklogStartsWithNewValues() async {
+        let broadcaster = makeBroadcaster(backlog: .bufferingNewest(10))
+        broadcaster.yield(1)
+        broadcaster.yield(2)
+
+        let filtered = broadcaster.makeStream(replayingBacklog: false) { $0 }
+        broadcaster.yield(3)
+
+        let values = await collect(filtered, count: 1)
+        XCTAssertEqual(values, [3], "a filtered stream must not receive values sent before it existed")
+    }
+
+    func testBacklogEndsWhenAnyConsumerRegisters() async {
+        let broadcaster = makeBroadcaster(backlog: .bufferingNewest(10))
+        broadcaster.yield(1)
+
+        let filtered = broadcaster.makeStream(replayingBacklog: false) { $0 }
+        let later = broadcaster.makeStream()
+        broadcaster.yield(2)
+
+        let filteredValues = await collect(filtered, count: 1)
+        let laterValues = await collect(later, count: 1)
+        XCTAssertEqual(filteredValues, [2])
+        XCTAssertEqual(laterValues, [2], "the backlog belongs to the first consumer, replayed or not")
+    }
+
+    func testBacklogDropsValuesOlderThanTheMaximumAge() async {
+        let clock = TestClock()
+        let broadcaster = AsyncBroadcaster<Int>(
+            bufferingPolicy: .unbounded,
+            backlogPolicy: .unbounded,
+            replaysLatest: false,
+            maximumBacklogAge: .seconds(30),
+            now: { clock.now }
+        )
+
+        broadcaster.yield(1)
+        clock.advance(by: .seconds(20))
+        broadcaster.yield(2)
+        clock.advance(by: .seconds(15))   // 1 is 35s old, 2 is 15s old
+        let stream = broadcaster.makeStream()
+        broadcaster.yield(3)
+
+        let values = await collect(stream, count: 2)
+        XCTAssertEqual(values, [2, 3])
     }
 
     func testFinishEndsStreamsAndLaterStreamsFinishImmediately() async {
@@ -147,5 +194,23 @@ final class AsyncBroadcasterTests: XCTestCase {
         }
         XCTAssertEqual(lateValues, [])
         XCTAssertEqual(broadcaster.consumerCount, 0)
+    }
+}
+
+/// A manually advanced clock reading for backlog-age tests.
+private final class TestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current = ContinuousClock.now
+
+    var now: ContinuousClock.Instant {
+        lock.lock()
+        defer { lock.unlock() }
+        return current
+    }
+
+    func advance(by duration: Duration) {
+        lock.lock()
+        defer { lock.unlock() }
+        current = current.advanced(by: duration)
     }
 }
