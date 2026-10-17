@@ -285,7 +285,7 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         // A login, logout or refresh during the request: validate what's current.
         guard tokenRevision == revision else { return try await validateCurrentToken() }
         if let info {
-            return .valid(info)
+            return try await verifiedResult(for: info, revision: revision)
         }
 
         tokenProviderLogger.warning("Token validation failed; attempting refresh")
@@ -309,7 +309,26 @@ public actor TwitchTokenProvider: TwitchAccessTokenProvider {
         guard let refreshedInfo = try await oauthClient.validate(refreshed.accessToken) else {
             return .invalid(HelixError.unauthorized(nil))
         }
-        return .valid(refreshedInfo)
+        return try await verifiedResult(for: refreshedInfo, revision: tokenRevision)
+    }
+
+    /// A valid token issued to another client ID (for example one injected into an
+    /// implicit-flow callback) must not be used: forget it locally and report it.
+    private func verifiedResult(for info: TwitchTokenInfo, revision: UInt64) async throws -> TokenValidationResult {
+        do {
+            try oauthClient.verifyClientID(of: info)
+            return .valid(info)
+        } catch {
+            tokenProviderLogger.error("Token was issued to a different client ID; discarding it")
+            if tokenRevision == revision {
+                do {
+                    try await logout(revokingToken: false)
+                } catch {
+                    tokenProviderLogger.warning("Couldn't delete the mismatched token from storage: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+            return .invalid(error)
+        }
     }
 
     /// Signs out: deletes the current token from memory and storage, then

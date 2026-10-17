@@ -182,14 +182,14 @@ public actor EventSubClient {
     ///     connection, for example when no chat view is open.
     ///   - pathMonitor: Network-path monitor driving path-aware reconnects.
     ///   - socketFactory: Creates the WebSocket for a given URL. Defaults to
-    ///     `URLSession.shared.webSocketTask(with:)`; tests inject fakes here.
+    ///     `URLSessionHTTPClient.ephemeralSession.webSocketTask(with:)` (no cookies or cache); tests inject fakes here.
     ///   - eventBufferingPolicy: Buffering policy for each ``events`` stream, and
     ///     for events held while nobody is iterating.
     public init(
         api: HelixClient,
         shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { true },
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
-        socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
+        socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) },
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)
     ) {
         self.api = api

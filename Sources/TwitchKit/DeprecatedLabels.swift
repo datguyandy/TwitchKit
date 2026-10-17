@@ -378,7 +378,7 @@ extension TwitchClient {
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
         isLive: @escaping @Sendable () async -> Bool = { true },
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
-        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
+        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) }
     ) {
         self.init(clientID: clientId, clientSecret: clientSecret, tokenNamespace: tokenNamespace, tokenStore: tokenStore, httpClient: httpClient, requestConfiguration: requestConfiguration, retryPolicy: retryPolicy, responseMetadataHandler: responseMetadataHandler, eventBufferingPolicy: eventBufferingPolicy, shouldKeepReconnecting: isLive, pathMonitor: pathMonitor, eventSubSocketFactory: eventSubSocketFactory)
     }
@@ -398,7 +398,7 @@ extension TwitchClient {
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
         isLive: @escaping @Sendable () async -> Bool,
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
-        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
+        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) }
     ) {
         self.init(clientID: clientID, clientSecret: clientSecret, tokenNamespace: tokenNamespace, tokenStore: tokenStore, httpClient: httpClient, requestConfiguration: requestConfiguration, retryPolicy: retryPolicy, responseMetadataHandler: responseMetadataHandler, eventBufferingPolicy: eventBufferingPolicy, shouldKeepReconnecting: isLive, pathMonitor: pathMonitor, eventSubSocketFactory: eventSubSocketFactory)
     }
@@ -412,7 +412,7 @@ extension EventSubClient {
         api: HelixClient,
         isLive: @escaping @Sendable () async -> Bool,
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
-        socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) },
+        socketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) },
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000)
     ) {
         self.init(

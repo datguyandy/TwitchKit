@@ -45,7 +45,7 @@ public final class TwitchClient: Sendable {
     ///     app no longer needs the connection, for example when no chat view is open.
     ///   - pathMonitor: Network-path monitor driving EventSub's path-aware reconnect. Defaults to a `NWPathMonitor`-backed monitor.
     ///   - eventSubSocketFactory: Creates the EventSub WebSocket for a given URL. Defaults to
-    ///     `URLSession.shared.webSocketTask(with:)`; primarily a seam for injecting fake sockets in tests.
+    ///     `URLSessionHTTPClient.ephemeralSession.webSocketTask(with:)` (no cookies or cache); primarily a seam for injecting fake sockets in tests.
     public init(
         clientID clientId: String,
         clientSecret: String? = nil,
@@ -58,7 +58,7 @@ public final class TwitchClient: Sendable {
         eventBufferingPolicy: AsyncStream<EventSubEvent>.Continuation.BufferingPolicy = .bufferingNewest(1_000),
         shouldKeepReconnecting: @escaping @Sendable () async -> Bool = { true },
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
-        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSession.shared.webSocketTask(with: $0) }
+        eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) }
     ) {
         self.clientID = clientId
         let oauthClient = TwitchOAuthClient(clientID: clientId, clientSecret: clientSecret, httpClient: httpClient)

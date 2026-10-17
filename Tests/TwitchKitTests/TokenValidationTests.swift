@@ -8,10 +8,13 @@ final class TokenValidationTests: XCTestCase {
     private static let userTokenJSON = #"{"client_id":"wbmytr93xzw8zbg0p1izqyzzc5mbiz","login":"twitchdev","scopes":["channel:read:subscriptions","user:read:chat"],"user_id":"141981764","expires_in":5520838}"#
     private static let appTokenJSON = #"{"client_id":"wbmytr93xzw8zbg0p1izqyzzc5mbiz","scopes":null,"expires_in":5011271}"#
     private static let invalidJSON = #"{"status":401,"message":"invalid access token"}"#
+    /// The client ID in the fixtures above: providers must be built with it, since
+    /// a token issued to another client ID is rejected.
+    private static let clientID = "wbmytr93xzw8zbg0p1izqyzzc5mbiz"
 
     private func makeProvider(transport: MockHTTPClient, token: OAuthToken?) -> TwitchTokenProvider {
         TwitchTokenProvider(
-            oauthClient: TwitchOAuthClient(clientID: "client", clientSecret: "secret", httpClient: transport),
+            oauthClient: TwitchOAuthClient(clientID: Self.clientID, clientSecret: "secret", httpClient: transport),
             tokenStore: InMemoryTokenStore(token: token)
         )
     }
@@ -129,6 +132,25 @@ final class TokenValidationTests: XCTestCase {
         XCTAssertNil(stored, "the rejected token is deleted from storage too")
     }
 
+    func testATokenIssuedToAnotherClientIsRejectedAndForgotten() async throws {
+        let store = InMemoryTokenStore(token: OAuthToken(accessToken: "token"))
+        let transport = MockHTTPClient(responses: [.json(statusCode: 200, body: Self.userTokenJSON)])
+        let provider = TwitchTokenProvider(
+            oauthClient: TwitchOAuthClient(clientID: "some-other-client", httpClient: transport),
+            tokenStore: store
+        )
+
+        let results = await firstResults(1, of: provider.validations())
+
+        guard case .invalid(HelixError.tokenClientMismatch(let expected, let actual))? = results.first else {
+            return XCTFail("Expected .invalid(.tokenClientMismatch), got \(results)")
+        }
+        XCTAssertEqual(expected, "some-other-client")
+        XCTAssertEqual(actual, Self.clientID)
+        let stored = try await store.loadToken()
+        XCTAssertNil(stored, "a token issued to another client is never used again")
+    }
+
     // MARK: - validations(every:)
 
     func testValidationsRunNowAndThenOnEveryInterval() async throws {
@@ -227,7 +249,7 @@ final class TokenValidationTests: XCTestCase {
     func testTwitchAuthForwardsValidations() async throws {
         let transport = MockHTTPClient(responses: [.json(statusCode: 200, body: Self.userTokenJSON)])
         let auth = TwitchAuth(
-            oauthClient: TwitchOAuthClient(clientID: "client", httpClient: transport),
+            oauthClient: TwitchOAuthClient(clientID: Self.clientID, httpClient: transport),
             tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "token"))
         )
 
