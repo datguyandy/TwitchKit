@@ -148,7 +148,7 @@ let result = try await twitch.api.sendChatMessage(
 )
 
 if result.isSent {
-    print("Sent message:", result.messageId)
+    print("Sent message:", result.messageID)
 }
 ```
 

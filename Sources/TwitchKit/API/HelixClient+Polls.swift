@@ -53,7 +53,7 @@ extension HelixClient {
         let response: HelixResponse<TwitchPoll> = try await request(
             endpoint: "polls",
             method: "PATCH",
-            body: try JSONEncoder.twitch().encode(PollEndRequest(broadcasterId: broadcasterID, id: pollID, status: status))
+            body: try JSONEncoder.twitch().encode(PollEndRequest(broadcasterID: broadcasterID, id: pollID, status: status))
         )
         guard let poll = response.data.first else { throw HelixError.emptyResponse }
         return poll
@@ -112,10 +112,10 @@ extension HelixClient {
             method: "PATCH",
             body: try JSONEncoder.twitch().encode(
                 PredictionEndRequest(
-                    broadcasterId: broadcasterID,
+                    broadcasterID: broadcasterID,
                     id: predictionID,
                     status: status,
-                    winningOutcomeId: winningOutcomeID
+                    winningOutcomeID: winningOutcomeID
                 )
             )
         )
@@ -126,7 +126,7 @@ extension HelixClient {
 
 public struct TwitchPoll: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let title: String
@@ -143,7 +143,7 @@ public struct TwitchPoll: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         title: String,
@@ -158,7 +158,7 @@ public struct TwitchPoll: Decodable, Sendable, Equatable {
         endedAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.title = title
@@ -191,7 +191,7 @@ public struct PollChoice: Codable, Sendable, Equatable {
 }
 
 public struct PollCreateRequest: Encodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let title: String
     public let choices: [PollChoice]
     public let channelPointsVotingEnabled: Bool?
@@ -199,14 +199,14 @@ public struct PollCreateRequest: Encodable, Sendable, Equatable {
     public let duration: Int
 
     public init(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         title: String,
         choices: [PollChoice],
         channelPointsVotingEnabled: Bool? = nil,
         channelPointsPerVote: Int? = nil,
         duration: Int
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.title = title
         self.choices = choices
         self.channelPointsVotingEnabled = channelPointsVotingEnabled
@@ -221,18 +221,18 @@ public enum PollEndStatus: String, Encodable, Sendable, Equatable {
 }
 
 private struct PollEndRequest: Encodable {
-    let broadcasterId: String
+    let broadcasterID: String
     let id: String
     let status: PollEndStatus
 }
 
 public struct TwitchPrediction: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let title: String
-    public let winningOutcomeId: String?
+    public let winningOutcomeID: String?
     public let outcomes: [PredictionOutcome]
     public let predictionWindow: Int
     public let status: TwitchPredictionStatus
@@ -243,11 +243,11 @@ public struct TwitchPrediction: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         title: String,
-        winningOutcomeId: String? = nil,
+        winningOutcomeID: String? = nil,
         outcomes: [PredictionOutcome],
         predictionWindow: Int,
         status: TwitchPredictionStatus,
@@ -256,11 +256,11 @@ public struct TwitchPrediction: Decodable, Sendable, Equatable {
         lockedAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.title = title
-        self.winningOutcomeId = winningOutcomeId
+        self.winningOutcomeID = winningOutcomeID
         self.outcomes = outcomes
         self.predictionWindow = predictionWindow
         self.status = status
@@ -296,7 +296,7 @@ public struct PredictionOutcome: Codable, Sendable, Equatable {
 }
 
 public struct PredictionTopPredictor: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let channelPointsWon: Int?
@@ -304,13 +304,13 @@ public struct PredictionTopPredictor: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         channelPointsWon: Int? = nil,
         channelPointsUsed: Int
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.channelPointsWon = channelPointsWon
@@ -319,13 +319,13 @@ public struct PredictionTopPredictor: Codable, Sendable, Equatable {
 }
 
 public struct PredictionCreateRequest: Encodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let title: String
     public let outcomes: [PredictionOutcome]
     public let predictionWindow: Int
 
-    public init(broadcasterID broadcasterId: String, title: String, outcomes: [PredictionOutcome], predictionWindow: Int) {
-        self.broadcasterId = broadcasterId
+    public init(broadcasterID: String, title: String, outcomes: [PredictionOutcome], predictionWindow: Int) {
+        self.broadcasterID = broadcasterID
         self.title = title
         self.outcomes = outcomes
         self.predictionWindow = predictionWindow
@@ -339,8 +339,8 @@ public enum PredictionEndStatus: String, Encodable, Sendable, Equatable {
 }
 
 private struct PredictionEndRequest: Encodable {
-    let broadcasterId: String
+    let broadcasterID: String
     let id: String
     let status: PredictionEndStatus
-    let winningOutcomeId: String?
+    let winningOutcomeID: String?
 }

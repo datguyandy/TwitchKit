@@ -4,7 +4,7 @@ extension HelixClient {
     /// Gets one page of a broadcaster's stream schedule.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
+    ///   - broadcasterID: The broadcaster's user ID.
     ///   - segmentIDs: Optional schedule segment IDs.
     ///   - startTime: Optional lower bound for returned segments.
     ///   - utcOffset: Optional offset such as `"-05:00"`.
@@ -13,14 +13,14 @@ extension HelixClient {
     /// - Returns: A schedule page.
     /// - SeeAlso: [Get Channel Stream Schedule](https://dev.twitch.tv/docs/api/reference/#get-channel-stream-schedule)
     public func fetchChannelStreamSchedulePage(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         segmentIDs: [String] = [],
         startTime: Date? = nil,
         utcOffset: String? = nil,
         first: Int? = nil,
         after cursor: String? = nil
     ) async throws -> ChannelStreamSchedulePage {
-        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         queryItems += HelixQuery.items("id", values: segmentIDs)
         HelixQuery.append(startTime.map { URLQueryItem(name: "start_time", value: TwitchDateParser.string(from: $0)) }, to: &queryItems)
         HelixQuery.append(HelixQuery.item("utc_offset", utcOffset), to: &queryItems)
@@ -40,13 +40,13 @@ extension HelixClient {
 
     /// Gets a broadcaster's schedule as an iCalendar string.
     ///
-    /// - Parameter broadcasterId: The broadcaster's user ID.
+    /// - Parameter broadcasterID: The broadcaster's user ID.
     /// - Returns: Raw iCalendar text.
     /// - SeeAlso: [Get Channel iCalendar](https://dev.twitch.tv/docs/api/reference/#get-channel-icalendar)
-    public func fetchChannelICalendar(broadcasterID broadcasterId: String) async throws -> String {
+    public func fetchChannelICalendar(broadcasterID: String) async throws -> String {
         let data = try await requestRawData(
             endpoint: "schedule/icalendar",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
         return String(data: data, encoding: .utf8) ?? ""
     }
@@ -57,14 +57,14 @@ extension HelixClient {
     /// so the provided fields are serialized into the request URL.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
+    ///   - broadcasterID: The broadcaster's user ID.
     ///   - settings: Schedule settings to update.
     /// - SeeAlso: [Update Channel Stream Schedule](https://dev.twitch.tv/docs/api/reference/#update-channel-stream-schedule)
     public func updateChannelStreamSchedule(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         with settings: ChannelStreamScheduleSettingsUpdate
     ) async throws {
-        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         HelixQuery.append(
             settings.isVacationEnabled.map { URLQueryItem(name: "is_vacation_enabled", value: String($0)) },
             to: &queryItems
@@ -89,18 +89,18 @@ extension HelixClient {
     /// Creates a stream schedule segment.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
+    ///   - broadcasterID: The broadcaster's user ID.
     ///   - segment: The segment to create.
     /// - Returns: The created schedule.
     /// - SeeAlso: [Create Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#create-channel-stream-schedule-segment)
     public func createChannelStreamScheduleSegment(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         segment: ChannelStreamScheduleSegmentCreate
     ) async throws -> ChannelStreamSchedule {
         let data = try await requestRawData(
             endpoint: "schedule/segment",
             method: "POST",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)],
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)],
             body: try JSONEncoder.twitch().encode(segment)
         )
         return try decodeScheduleEnvelope(from: data).data
@@ -109,22 +109,22 @@ extension HelixClient {
     /// Updates a stream schedule segment.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
-    ///   - segmentId: The schedule segment ID.
+    ///   - broadcasterID: The broadcaster's user ID.
+    ///   - segmentID: The schedule segment ID.
     ///   - update: Segment fields to update.
     /// - Returns: The updated schedule.
     /// - SeeAlso: [Update Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#update-channel-stream-schedule-segment)
     public func updateChannelStreamScheduleSegment(
-        broadcasterID broadcasterId: String,
-        segmentID segmentId: String,
+        broadcasterID: String,
+        segmentID: String,
         with update: ChannelStreamScheduleSegmentUpdate
     ) async throws -> ChannelStreamSchedule {
         let data = try await requestRawData(
             endpoint: "schedule/segment",
             method: "PATCH",
             queryItems: [
-                URLQueryItem(name: "broadcaster_id", value: broadcasterId),
-                URLQueryItem(name: "id", value: segmentId)
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "id", value: segmentID)
             ],
             body: try JSONEncoder.twitch().encode(update)
         )
@@ -134,19 +134,19 @@ extension HelixClient {
     /// Deletes a stream schedule segment.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
-    ///   - segmentId: The schedule segment ID.
+    ///   - broadcasterID: The broadcaster's user ID.
+    ///   - segmentID: The schedule segment ID.
     /// - SeeAlso: [Delete Channel Stream Schedule Segment](https://dev.twitch.tv/docs/api/reference/#delete-channel-stream-schedule-segment)
     public func deleteChannelStreamScheduleSegment(
-        broadcasterID broadcasterId: String,
-        segmentID segmentId: String
+        broadcasterID: String,
+        segmentID: String
     ) async throws {
         try await requestNoContent(
             endpoint: "schedule/segment",
             method: "DELETE",
             queryItems: [
-                URLQueryItem(name: "broadcaster_id", value: broadcasterId),
-                URLQueryItem(name: "id", value: segmentId)
+                URLQueryItem(name: "broadcaster_id", value: broadcasterID),
+                URLQueryItem(name: "id", value: segmentID)
             ]
         )
     }
@@ -179,7 +179,7 @@ public struct ChannelStreamSchedulePage: Sendable, Equatable {
 
 public struct ChannelStreamSchedule: Decodable, Sendable, Equatable {
     public let segments: [ChannelStreamScheduleSegment]
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterName: String
     public let broadcasterLogin: String
     public let vacation: ChannelStreamScheduleVacation?
@@ -187,13 +187,13 @@ public struct ChannelStreamSchedule: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         segments: [ChannelStreamScheduleSegment],
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterName: String,
         broadcasterLogin: String,
         vacation: ChannelStreamScheduleVacation? = nil
     ) {
         self.segments = segments
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterName = broadcasterName
         self.broadcasterLogin = broadcasterLogin
         self.vacation = vacation
@@ -281,7 +281,7 @@ public struct ChannelStreamScheduleSegmentCreate: Encodable, Sendable, Equatable
     public let timezone: String
     public let isRecurring: Bool
     public let duration: String?
-    public let categoryId: String?
+    public let categoryID: String?
     public let title: String?
 
     public init(
@@ -289,14 +289,14 @@ public struct ChannelStreamScheduleSegmentCreate: Encodable, Sendable, Equatable
         timezone: String,
         isRecurring: Bool,
         duration: String? = nil,
-        categoryID categoryId: String? = nil,
+        categoryID: String? = nil,
         title: String? = nil
     ) {
         self.startTime = startTime
         self.timezone = timezone
         self.isRecurring = isRecurring
         self.duration = duration
-        self.categoryId = categoryId
+        self.categoryID = categoryID
         self.title = title
     }
 }
@@ -304,7 +304,7 @@ public struct ChannelStreamScheduleSegmentCreate: Encodable, Sendable, Equatable
 public struct ChannelStreamScheduleSegmentUpdate: Encodable, Sendable, Equatable {
     public let startTime: Date?
     public let duration: String?
-    public let categoryId: String?
+    public let categoryID: String?
     public let title: String?
     public let isCanceled: Bool?
     public let timezone: String?
@@ -312,14 +312,14 @@ public struct ChannelStreamScheduleSegmentUpdate: Encodable, Sendable, Equatable
     public init(
         startTime: Date? = nil,
         duration: String? = nil,
-        categoryID categoryId: String? = nil,
+        categoryID: String? = nil,
         title: String? = nil,
         isCanceled: Bool? = nil,
         timezone: String? = nil
     ) {
         self.startTime = startTime
         self.duration = duration
-        self.categoryId = categoryId
+        self.categoryID = categoryID
         self.title = title
         self.isCanceled = isCanceled
         self.timezone = timezone

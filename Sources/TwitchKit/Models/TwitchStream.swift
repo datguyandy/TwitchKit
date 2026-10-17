@@ -8,7 +8,7 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
     public let id: String
 
     /// The ID of the broadcaster.
-    public let userId: String
+    public let userID: String
 
     /// The broadcaster's login name.
     public let userLogin: String
@@ -17,7 +17,7 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
     public let userName: String
 
     /// The ID of the game/category being streamed.
-    public let gameId: String
+    public let gameID: String
 
     /// The name of the game/category being streamed.
     public let gameName: String
@@ -41,7 +41,7 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
     public let language: String
 
     /// Template URL for the stream thumbnail.
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
 
     /// Whether the stream is marked mature.
     public let isMature: Bool
@@ -49,10 +49,10 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        gameId: String,
+        gameID: String,
         gameName: String,
         type: TwitchStreamType,
         title: String,
@@ -60,14 +60,14 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
         viewerCount: Int,
         startedAt: Date,
         language: String,
-        thumbnailUrl: String,
+        thumbnailURL: String,
         isMature: Bool
     ) {
         self.id = id
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.gameId = gameId
+        self.gameID = gameID
         self.gameName = gameName
         self.type = type
         self.title = title
@@ -75,22 +75,22 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
         self.viewerCount = viewerCount
         self.startedAt = startedAt
         self.language = language
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.isMature = isMature
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, userId, userLogin, userName, gameId, gameName, type, title
-        case tags, viewerCount, startedAt, language, thumbnailUrl, isMature
+        case id, userID, userLogin, userName, gameID, gameName, type, title
+        case tags, viewerCount, startedAt, language, thumbnailURL, isMature
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
-        userId = try container.decode(String.self, forKey: .userId)
+        userID = try container.decode(String.self, forKey: .userID)
         userLogin = try container.decode(String.self, forKey: .userLogin)
         userName = try container.decode(String.self, forKey: .userName)
-        gameId = try container.decode(String.self, forKey: .gameId)
+        gameID = try container.decode(String.self, forKey: .gameID)
         gameName = try container.decode(String.self, forKey: .gameName)
         type = try container.decode(TwitchStreamType.self, forKey: .type)
         title = try container.decode(String.self, forKey: .title)
@@ -100,7 +100,7 @@ public struct TwitchStream: Decodable, Sendable, Equatable {
         viewerCount = try container.decode(Int.self, forKey: .viewerCount)
         startedAt = try container.decode(Date.self, forKey: .startedAt)
         language = try container.decode(String.self, forKey: .language)
-        thumbnailUrl = try container.decode(String.self, forKey: .thumbnailUrl)
+        thumbnailURL = try container.decode(String.self, forKey: .thumbnailURL)
         isMature = try container.decode(Bool.self, forKey: .isMature)
     }
 }

@@ -40,7 +40,7 @@ let response = try await client.api.sendChatMessage(
 )
 
 if response.isSent {
-    print("Sent:", response.messageId)
+    print("Sent:", response.messageID)
 }
 ```
 

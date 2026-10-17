@@ -10,16 +10,16 @@ import Foundation
 /// - SeeAlso: [channel.chat.message EventSub](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelchatmessage)
 public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     /// Unique message ID. Maps to `message_id` in the EventSub event payload.
-    public let messageId: String
-    public var id: String { messageId }
+    public let messageID: String
+    public var id: String { messageID }
 
     // Broadcaster
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     // Chatter
-    public let chatterUserId: String
+    public let chatterUserID: String
     public let chatterUserLogin: String
     public let chatterUserName: String
 
@@ -36,24 +36,24 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     public let reply: Reply?
 
     // Channel points reward
-    public let channelPointsCustomRewardId: String?
+    public let channelPointsCustomRewardID: String?
 
     // Shared chat — when a message originates from another channel
-    public let sourceBroadcasterUserId: String?
+    public let sourceBroadcasterUserID: String?
     public let sourceBroadcasterUserLogin: String?
     public let sourceBroadcasterUserName: String?
-    public let sourceMessageId: String?
+    public let sourceMessageID: String?
     public let sourceBadges: [ChatBadge]?
 
     public let isSourceOnly: Bool?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        messageId: String,
-        broadcasterUserId: String,
+        messageID: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        chatterUserId: String,
+        chatterUserID: String,
         chatterUserLogin: String,
         chatterUserName: String,
         message: ChatMessageBody,
@@ -62,19 +62,19 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
         messageType: ChatMessageType,
         cheer: Cheer? = nil,
         reply: Reply? = nil,
-        channelPointsCustomRewardId: String? = nil,
-        sourceBroadcasterUserId: String? = nil,
+        channelPointsCustomRewardID: String? = nil,
+        sourceBroadcasterUserID: String? = nil,
         sourceBroadcasterUserLogin: String? = nil,
         sourceBroadcasterUserName: String? = nil,
-        sourceMessageId: String? = nil,
+        sourceMessageID: String? = nil,
         sourceBadges: [ChatBadge]? = nil,
         isSourceOnly: Bool? = nil
     ) {
-        self.messageId = messageId
-        self.broadcasterUserId = broadcasterUserId
+        self.messageID = messageID
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.chatterUserId = chatterUserId
+        self.chatterUserID = chatterUserID
         self.chatterUserLogin = chatterUserLogin
         self.chatterUserName = chatterUserName
         self.message = message
@@ -83,11 +83,11 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
         self.messageType = messageType
         self.cheer = cheer
         self.reply = reply
-        self.channelPointsCustomRewardId = channelPointsCustomRewardId
-        self.sourceBroadcasterUserId = sourceBroadcasterUserId
+        self.channelPointsCustomRewardID = channelPointsCustomRewardID
+        self.sourceBroadcasterUserID = sourceBroadcasterUserID
         self.sourceBroadcasterUserLogin = sourceBroadcasterUserLogin
         self.sourceBroadcasterUserName = sourceBroadcasterUserName
-        self.sourceMessageId = sourceMessageId
+        self.sourceMessageID = sourceMessageID
         self.sourceBadges = sourceBadges
         self.isSourceOnly = isSourceOnly
     }
@@ -120,35 +120,35 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     }
 
     public struct Reply: Codable, Sendable, Equatable {
-        public let parentMessageId: String
+        public let parentMessageID: String
         public let parentMessageBody: String
-        public let parentUserId: String
+        public let parentUserID: String
         public let parentUserLogin: String
         public let parentUserName: String
-        public let threadMessageId: String
-        public let threadUserId: String
+        public let threadMessageID: String
+        public let threadUserID: String
         public let threadUserLogin: String
         public let threadUserName: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            parentMessageId: String,
+            parentMessageID: String,
             parentMessageBody: String,
-            parentUserId: String,
+            parentUserID: String,
             parentUserLogin: String,
             parentUserName: String,
-            threadMessageId: String,
-            threadUserId: String,
+            threadMessageID: String,
+            threadUserID: String,
             threadUserLogin: String,
             threadUserName: String
         ) {
-            self.parentMessageId = parentMessageId
+            self.parentMessageID = parentMessageID
             self.parentMessageBody = parentMessageBody
-            self.parentUserId = parentUserId
+            self.parentUserID = parentUserID
             self.parentUserLogin = parentUserLogin
             self.parentUserName = parentUserName
-            self.threadMessageId = threadMessageId
-            self.threadUserId = threadUserId
+            self.threadMessageID = threadMessageID
+            self.threadUserID = threadUserID
             self.threadUserLogin = threadUserLogin
             self.threadUserName = threadUserName
         }
@@ -183,20 +183,20 @@ public struct ChatFragment: Codable, Sendable, Equatable {
 
 public struct EmoteReference: Codable, Sendable, Equatable {
     public let id: String
-    public let emoteSetId: String
-    public let ownerId: String?
+    public let emoteSetID: String
+    public let ownerID: String?
     public let format: [String]?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        emoteSetId: String,
-        ownerId: String? = nil,
+        emoteSetID: String,
+        ownerID: String? = nil,
         format: [String]? = nil
     ) {
         self.id = id
-        self.emoteSetId = emoteSetId
-        self.ownerId = ownerId
+        self.emoteSetID = emoteSetID
+        self.ownerID = ownerID
         self.format = format
     }
 }
@@ -219,34 +219,34 @@ public struct CheermoteReference: Codable, Sendable, Equatable {
 }
 
 public struct MentionReference: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
     }
 }
 
 public struct ChatBadge: Codable, Sendable, Equatable {
-    public let setId: String
+    public let setID: String
     public let id: String
     public let info: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        setId: String,
+        setID: String,
         id: String,
         info: String
     ) {
-        self.setId = setId
+        self.setID = setID
         self.id = id
         self.info = info
     }
@@ -254,15 +254,15 @@ public struct ChatBadge: Codable, Sendable, Equatable {
 
 /// GIF metadata in a chat message fragment.
 public struct GIFReference: Codable, Sendable, Equatable {
-    public let gifId: String
+    public let gifID: String
     public let url: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        gifId: String,
+        gifID: String,
         url: String
     ) {
-        self.gifId = gifId
+        self.gifID = gifID
         self.url = url
     }
 }

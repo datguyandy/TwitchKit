@@ -162,7 +162,7 @@ extension HelixClient {
 }
 
 public struct CustomReward: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let id: String
@@ -185,7 +185,7 @@ public struct CustomReward: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         id: String,
@@ -206,7 +206,7 @@ public struct CustomReward: Decodable, Sendable, Equatable {
         redemptionsRedeemedCurrentStream: Int? = nil,
         cooldownExpiresAt: Date? = nil
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.id = id
@@ -395,11 +395,11 @@ public struct CustomRewardUpdateRequest: Encodable, Sendable, Equatable {
 }
 
 public struct CustomRewardRedemption: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let id: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let userInput: String
@@ -409,11 +409,11 @@ public struct CustomRewardRedemption: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         id: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         userInput: String,
@@ -421,11 +421,11 @@ public struct CustomRewardRedemption: Decodable, Sendable, Equatable {
         redeemedAt: Date,
         reward: RedemptionReward
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.id = id
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.userInput = userInput

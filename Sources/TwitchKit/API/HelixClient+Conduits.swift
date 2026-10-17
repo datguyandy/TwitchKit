@@ -99,7 +99,7 @@ extension HelixClient {
             endpoint: "eventsub/conduits/shards",
             method: "PATCH",
             body: try JSONEncoder.twitch().encode(ConduitShardsUpdateRequest(
-                conduitId: conduitID,
+                conduitID: conduitID,
                 shards: shards
             )),
             acceptedStatusCodes: [200, 202],
@@ -124,7 +124,7 @@ private struct ConduitUpdateRequest: Encodable {
 }
 
 private struct ConduitShardsUpdateRequest: Encodable {
-    let conduitId: String
+    let conduitID: String
     let shards: [EventSubConduitShardUpdate]
 }
 
@@ -221,7 +221,7 @@ public struct EventSubConduitShardTransport: Codable, Sendable, Equatable {
     public let method: EventSubTransportMethod
     public let callback: URL?
     public let secret: String?
-    public let sessionId: String?
+    public let sessionID: String?
 
     public init(
         method: EventSubTransportMethod,
@@ -232,7 +232,7 @@ public struct EventSubConduitShardTransport: Codable, Sendable, Equatable {
         self.method = method
         self.callback = callback
         self.secret = secret
-        self.sessionId = sessionID
+        self.sessionID = sessionID
     }
 
     /// Applies the same callback and secret rules as subscription transports, so a
@@ -245,7 +245,7 @@ public struct EventSubConduitShardTransport: Codable, Sendable, Equatable {
             }
             try EventSubSubscriptionTransport.webhook(callback: callback, secret: secret ?? "").validate()
         case .websocket:
-            try EventSubSubscriptionTransport.websocket(sessionID: sessionId ?? "").validate()
+            try EventSubSubscriptionTransport.websocket(sessionID: sessionID ?? "").validate()
         case .conduit, .unknown:
             break
         }
@@ -258,7 +258,7 @@ extension EventSubConduitShardTransport: CustomStringConvertible, CustomDebugStr
         var fields = ["method: \(method.rawValue)"]
         if let callback { fields.append("callback: \(callback.absoluteString)") }
         if secret != nil { fields.append("secret: \(redactedPlaceholder)") }
-        if let sessionId { fields.append("sessionID: \(sessionId)") }
+        if let sessionID { fields.append("sessionID: \(sessionID)") }
         return "EventSubConduitShardTransport(\(fields.joined(separator: ", ")))"
     }
 
@@ -271,7 +271,7 @@ extension EventSubConduitShardTransport: CustomStringConvertible, CustomDebugStr
                 "method": method,
                 "callback": callback as Any,
                 "secret": secret == nil ? "nil" : redactedPlaceholder,
-                "sessionId": sessionId as Any,
+                "sessionID": sessionID as Any,
             ],
             displayStyle: .struct
         )

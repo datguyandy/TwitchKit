@@ -232,33 +232,33 @@ extension HelixClient {
 
 public struct ClipCreate: Decodable, Sendable, Equatable {
     public let id: String
-    public let editUrl: String
+    public let editURL: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        editUrl: String
+        editURL: String
     ) {
         self.id = id
-        self.editUrl = editUrl
+        self.editURL = editURL
     }
 }
 
 public struct TwitchClip: Decodable, Sendable, Equatable {
     public let id: String
     public let url: String
-    public let embedUrl: String
-    public let broadcasterId: String
+    public let embedURL: String
+    public let broadcasterID: String
     public let broadcasterName: String
-    public let creatorId: String
+    public let creatorID: String
     public let creatorName: String
-    public let videoId: String
-    public let gameId: String
+    public let videoID: String
+    public let gameID: String
     public let language: String
     public let title: String
     public let viewCount: Int
     public let createdAt: Date
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
     public let duration: Double
     public let vodOffset: Int?
     public let isFeatured: Bool?
@@ -267,36 +267,36 @@ public struct TwitchClip: Decodable, Sendable, Equatable {
     public init(
         id: String,
         url: String,
-        embedUrl: String,
-        broadcasterId: String,
+        embedURL: String,
+        broadcasterID: String,
         broadcasterName: String,
-        creatorId: String,
+        creatorID: String,
         creatorName: String,
-        videoId: String,
-        gameId: String,
+        videoID: String,
+        gameID: String,
         language: String,
         title: String,
         viewCount: Int,
         createdAt: Date,
-        thumbnailUrl: String,
+        thumbnailURL: String,
         duration: Double,
         vodOffset: Int? = nil,
         isFeatured: Bool? = nil
     ) {
         self.id = id
         self.url = url
-        self.embedUrl = embedUrl
-        self.broadcasterId = broadcasterId
+        self.embedURL = embedURL
+        self.broadcasterID = broadcasterID
         self.broadcasterName = broadcasterName
-        self.creatorId = creatorId
+        self.creatorID = creatorID
         self.creatorName = creatorName
-        self.videoId = videoId
-        self.gameId = gameId
+        self.videoID = videoID
+        self.gameID = gameID
         self.language = language
         self.title = title
         self.viewCount = viewCount
         self.createdAt = createdAt
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.duration = duration
         self.vodOffset = vodOffset
         self.isFeatured = isFeatured
@@ -304,26 +304,26 @@ public struct TwitchClip: Decodable, Sendable, Equatable {
 }
 
 public struct ClipDownload: Decodable, Sendable, Equatable {
-    public let clipId: String
-    public let landscapeDownloadUrl: String?
-    public let portraitDownloadUrl: String?
+    public let clipID: String
+    public let landscapeDownloadURL: String?
+    public let portraitDownloadURL: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        clipId: String,
-        landscapeDownloadUrl: String? = nil,
-        portraitDownloadUrl: String? = nil
+        clipID: String,
+        landscapeDownloadURL: String? = nil,
+        portraitDownloadURL: String? = nil
     ) {
-        self.clipId = clipId
-        self.landscapeDownloadUrl = landscapeDownloadUrl
-        self.portraitDownloadUrl = portraitDownloadUrl
+        self.clipID = clipID
+        self.landscapeDownloadURL = landscapeDownloadURL
+        self.portraitDownloadURL = portraitDownloadURL
     }
 }
 
 public struct TwitchVideo: Decodable, Sendable, Equatable {
     public let id: String
-    public let streamId: String?
-    public let userId: String
+    public let streamID: String?
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let title: String
@@ -331,7 +331,7 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
     public let createdAt: Date
     public let publishedAt: Date
     public let url: String
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
     public let viewable: String
     public let viewCount: Int
     public let language: String
@@ -342,8 +342,8 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        streamId: String? = nil,
-        userId: String,
+        streamID: String? = nil,
+        userID: String,
         userLogin: String,
         userName: String,
         title: String,
@@ -351,7 +351,7 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
         createdAt: Date,
         publishedAt: Date,
         url: String,
-        thumbnailUrl: String,
+        thumbnailURL: String,
         viewable: String,
         viewCount: Int,
         language: String,
@@ -360,8 +360,8 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
         mutedSegments: [MutedVideoSegment]? = nil
     ) {
         self.id = id
-        self.streamId = streamId
-        self.userId = userId
+        self.streamID = streamID
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.title = title
@@ -369,7 +369,7 @@ public struct TwitchVideo: Decodable, Sendable, Equatable {
         self.createdAt = createdAt
         self.publishedAt = publishedAt
         self.url = url
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.viewable = viewable
         self.viewCount = viewCount
         self.language = language

@@ -1,21 +1,21 @@
 import Foundation
 
 extension HelixClient {
-    public func fetchCreatorGoals(broadcasterID broadcasterId: String) async throws -> [CreatorGoal] {
+    public func fetchCreatorGoals(broadcasterID: String) async throws -> [CreatorGoal] {
         let response: HelixResponse<CreatorGoal> = try await request(
             endpoint: "goals",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
         return response.data
     }
 
-    public func startRaid(fromBroadcasterID fromBroadcasterId: String, toBroadcasterID toBroadcasterId: String) async throws -> RaidStart {
+    public func startRaid(fromBroadcasterID: String, toBroadcasterID: String) async throws -> RaidStart {
         let response: HelixResponse<RaidStart> = try await request(
             endpoint: "raids",
             method: "POST",
             queryItems: [
-                URLQueryItem(name: "from_broadcaster_id", value: fromBroadcasterId),
-                URLQueryItem(name: "to_broadcaster_id", value: toBroadcasterId)
+                URLQueryItem(name: "from_broadcaster_id", value: fromBroadcasterID),
+                URLQueryItem(name: "to_broadcaster_id", value: toBroadcasterID)
             ]
         )
         guard let raid = response.data.first else { throw HelixError.emptyResponse }
@@ -34,7 +34,7 @@ extension HelixClient {
         let response: HelixResponse<StreamMarker> = try await request(
             endpoint: "streams/markers",
             method: "POST",
-            body: try JSONEncoder.twitch().encode(StreamMarkerCreateRequest(userId: userID, description: description))
+            body: try JSONEncoder.twitch().encode(StreamMarkerCreateRequest(userID: userID, description: description))
         )
         guard let marker = response.data.first else { throw HelixError.emptyResponse }
         return marker
@@ -70,7 +70,7 @@ extension HelixClient {
 
 public struct CreatorGoal: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterName: String
     public let broadcasterLogin: String
     public let type: String
@@ -82,7 +82,7 @@ public struct CreatorGoal: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterName: String,
         broadcasterLogin: String,
         type: String,
@@ -92,7 +92,7 @@ public struct CreatorGoal: Decodable, Sendable, Equatable {
         createdAt: Date
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterName = broadcasterName
         self.broadcasterLogin = broadcasterLogin
         self.type = type
@@ -118,7 +118,7 @@ public struct RaidStart: Decodable, Sendable, Equatable {
 }
 
 private struct StreamMarkerCreateRequest: Encodable {
-    let userId: String
+    let userID: String
     let description: String?
 }
 
@@ -146,34 +146,34 @@ public struct StreamMarker: Decodable, Sendable, Equatable {
 }
 
 public struct StreamMarkersByVideo: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let videos: [VideoMarkers]
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         videos: [VideoMarkers]
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.videos = videos
     }
 
     public struct VideoMarkers: Decodable, Sendable, Equatable {
-        public let videoId: String
+        public let videoID: String
         public let markers: [StreamMarker]
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            videoId: String,
+            videoID: String,
             markers: [StreamMarker]
         ) {
-            self.videoId = videoId
+            self.videoID = videoID
             self.markers = markers
         }
     }

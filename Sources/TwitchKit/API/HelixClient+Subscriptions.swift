@@ -61,7 +61,7 @@ extension HelixClient {
 /// broadcaster being subscribed to rather than the subscribing user.
 public struct UserSubscription: Decodable, Sendable, Equatable {
     /// The broadcaster's user ID.
-    public let broadcasterId: String
+    public let broadcasterID: String
 
     /// The broadcaster's login name.
     public let broadcasterLogin: String
@@ -73,7 +73,7 @@ public struct UserSubscription: Decodable, Sendable, Equatable {
     public let isGift: Bool
 
     /// The gifter's user ID. Present only when `isGift` is `true`.
-    public let gifterId: String?
+    public let gifterID: String?
 
     /// The gifter's login name. Present only when `isGift` is `true`.
     public let gifterLogin: String?
@@ -86,20 +86,20 @@ public struct UserSubscription: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         isGift: Bool,
-        gifterId: String? = nil,
+        gifterID: String? = nil,
         gifterLogin: String? = nil,
         gifterName: String? = nil,
         tier: SubscriptionTier
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.isGift = isGift
-        self.gifterId = gifterId
+        self.gifterID = gifterID
         self.gifterLogin = gifterLogin
         self.gifterName = gifterName
         self.tier = tier

@@ -6,7 +6,7 @@ private let logger = Logger(subsystem: "com.twitchkit", category: "helix")
 /// Client for Twitch Helix HTTP endpoints.
 public struct HelixClient: Sendable {
     private let tokenProvider: any TwitchAccessTokenProvider
-    private let clientId: String
+    private let clientID: String
     private let httpClient: any HTTPClient
     private let requestConfiguration: HelixRequestConfiguration
     private let retryPolicy: HelixRetryPolicy
@@ -16,14 +16,14 @@ public struct HelixClient: Sendable {
 
     public init(
         tokenProvider: any TwitchAccessTokenProvider,
-        clientID clientId: String,
+        clientID: String,
         httpClient: any HTTPClient = URLSessionHTTPClient(),
         requestConfiguration: HelixRequestConfiguration = .default,
         retryPolicy: HelixRetryPolicy = .default,
         responseMetadataHandler: (@Sendable (HelixResponseMetadata) -> Void)? = nil
     ) {
         self.tokenProvider = tokenProvider
-        self.clientId = clientId
+        self.clientID = clientID
         self.httpClient = httpClient
         self.requestConfiguration = requestConfiguration
         self.retryPolicy = retryPolicy
@@ -32,7 +32,7 @@ public struct HelixClient: Sendable {
 
     public init(
         auth: TwitchAuth,
-        clientID clientId: String,
+        clientID: String,
         httpClient: any HTTPClient = URLSessionHTTPClient(),
         requestConfiguration: HelixRequestConfiguration = .default,
         retryPolicy: HelixRetryPolicy = .default,
@@ -40,7 +40,7 @@ public struct HelixClient: Sendable {
     ) {
         self.init(
             tokenProvider: auth,
-            clientID: clientId,
+            clientID: clientID,
             httpClient: httpClient,
             requestConfiguration: requestConfiguration,
             retryPolicy: retryPolicy,
@@ -169,7 +169,7 @@ public struct HelixClient: Sendable {
 
         let token = try await tokenProvider.accessToken()
         urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue(clientId, forHTTPHeaderField: "Client-Id")
+        urlRequest.setValue(clientID, forHTTPHeaderField: "Client-Id")
         if body != nil {
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }

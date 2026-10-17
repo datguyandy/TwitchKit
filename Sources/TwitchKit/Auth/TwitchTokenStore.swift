@@ -33,8 +33,8 @@ public actor KeychainTokenStore: TwitchTokenStore {
     ///     `keychain-access-groups` entitlement) to share the token with
     ///     extensions or other apps from your team. `nil` uses the app's
     ///     default group. Tokens stored in one group aren't found in another.
-    public init(clientID clientId: String, namespace: String? = nil, accessGroup: String? = nil) {
-        tokenKey = "com.twitchkit.\(clientId).\(namespace ?? "default").oauthToken"
+    public init(clientID: String, namespace: String? = nil, accessGroup: String? = nil) {
+        tokenKey = "com.twitchkit.\(clientID).\(namespace ?? "default").oauthToken"
         self.accessGroup = accessGroup
     }
 

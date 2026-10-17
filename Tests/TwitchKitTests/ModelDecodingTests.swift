@@ -73,7 +73,7 @@ final class ModelDecodingTests: XCTestCase {
 
         let channel = try JSONDecoder.twitch().decode(TwitchChannel.self, from: json)
 
-        XCTAssertEqual(channel.broadcasterId, "141981764")
+        XCTAssertEqual(channel.broadcasterID, "141981764")
         XCTAssertEqual(channel.title, "Building cool stuff")
         XCTAssertEqual(channel.gameName, "Science & Technology")
         XCTAssertEqual(channel.tags, ["English", "Programming"])
@@ -131,21 +131,21 @@ final class ModelDecodingTests: XCTestCase {
 
         let msg = try JSONDecoder.twitch().decode(ChatMessage.self, from: json)
 
-        XCTAssertEqual(msg.messageId, "cc106a89-1814-919d-454c-f4f2f970aae7")
-        XCTAssertEqual(msg.id, msg.messageId)
-        XCTAssertEqual(msg.broadcasterUserId, "1971641")
+        XCTAssertEqual(msg.messageID, "cc106a89-1814-919d-454c-f4f2f970aae7")
+        XCTAssertEqual(msg.id, msg.messageID)
+        XCTAssertEqual(msg.broadcasterUserID, "1971641")
         XCTAssertEqual(msg.chatterUserLogin, "viewer32")
         XCTAssertEqual(msg.message.text, "Hi chat")
         XCTAssertEqual(msg.message.fragments.count, 1)
         XCTAssertEqual(msg.message.fragments[0].type, .text)
         XCTAssertEqual(msg.color, "#00FF7F")
         XCTAssertEqual(msg.badges.count, 2)
-        XCTAssertEqual(msg.badges[0].setId, "moderator")
+        XCTAssertEqual(msg.badges[0].setID, "moderator")
         XCTAssertEqual(msg.badges[1].info, "16")
         XCTAssertEqual(msg.messageType, .text)
         XCTAssertEqual(msg.cheer, nil)
         XCTAssertEqual(msg.reply, nil)
-        XCTAssertEqual(msg.sourceBroadcasterUserId, nil)
+        XCTAssertEqual(msg.sourceBroadcasterUserID, nil)
     }
 
     func test_decodeChatMessageWithCheer() throws {
@@ -225,11 +225,11 @@ final class ModelDecodingTests: XCTestCase {
 
         let msg = try JSONDecoder.twitch().decode(ChatMessage.self, from: json)
 
-        XCTAssertEqual(msg.sourceBroadcasterUserId, "9999999")
+        XCTAssertEqual(msg.sourceBroadcasterUserID, "9999999")
         XCTAssertEqual(msg.sourceBroadcasterUserLogin, "otherchannel")
-        XCTAssertEqual(msg.sourceMessageId, "original-456")
+        XCTAssertEqual(msg.sourceMessageID, "original-456")
         XCTAssertEqual(msg.sourceBadges?.count, 1)
-        XCTAssertEqual(msg.sourceBadges?[0].setId, "subscriber")
+        XCTAssertEqual(msg.sourceBadges?[0].setID, "subscriber")
     }
 
     // MARK: - TwitchEmote
@@ -283,7 +283,7 @@ final class ModelDecodingTests: XCTestCase {
 
         XCTAssertEqual(emote.tier, "1000")
         XCTAssertEqual(emote.emoteType, "subscriptions")
-        XCTAssertEqual(emote.emoteSetId, "301590448")
+        XCTAssertEqual(emote.emoteSetID, "301590448")
         XCTAssertTrue(emote.format.contains("animated"))
         XCTAssertNil(emote.template)
     }
@@ -293,7 +293,7 @@ final class ModelDecodingTests: XCTestCase {
             id: "25", name: "Kappa", images: nil,
             format: ["static"], scale: ["3.0"], themeMode: ["dark"],
             template: "https://static-cdn.jtvnw.net/emoticons/v2/{{id}}/{{format}}/{{theme_mode}}/{{scale}}",
-            tier: nil, emoteType: nil, emoteSetId: nil
+            tier: nil, emoteType: nil, emoteSetID: nil
         )
 
         let url = try XCTUnwrap(emote.imageURL(format: "static", theme: "dark", scale: "3.0"))
@@ -304,7 +304,7 @@ final class ModelDecodingTests: XCTestCase {
         let emote = TwitchEmote(
             id: "304456832", name: "test", images: nil,
             format: ["static"], scale: ["1.0"], themeMode: ["dark"],
-            template: nil, tier: nil, emoteType: nil, emoteSetId: nil
+            template: nil, tier: nil, emoteType: nil, emoteSetID: nil
         )
 
         let url = try XCTUnwrap(emote.imageURL(format: "animated", theme: "light", scale: "2.0"))
@@ -344,13 +344,13 @@ final class ModelDecodingTests: XCTestCase {
 
         let badgeSet = try JSONDecoder.twitch().decode(TwitchBadgeSet.self, from: json)
 
-        XCTAssertEqual(badgeSet.setId, "subscriber")
+        XCTAssertEqual(badgeSet.setID, "subscriber")
         XCTAssertEqual(badgeSet.versions.count, 2)
         XCTAssertEqual(badgeSet.versions[0].id, "0")
         XCTAssertEqual(badgeSet.versions[0].title, "Subscriber")
         XCTAssertEqual(badgeSet.versions[1].id, "12")
         XCTAssertEqual(badgeSet.versions[1].clickAction, .subscribeToChannel)
-        XCTAssertEqual(badgeSet.versions[1].clickUrl, nil)
+        XCTAssertEqual(badgeSet.versions[1].clickURL, nil)
     }
 
     // MARK: - TwitchFollow
@@ -367,7 +367,7 @@ final class ModelDecodingTests: XCTestCase {
 
         let follow = try JSONDecoder.twitch().decode(TwitchFollow.self, from: json)
 
-        XCTAssertEqual(follow.userId, "1234")
+        XCTAssertEqual(follow.userID, "1234")
         XCTAssertEqual(follow.userName, "NewViewer")
         XCTAssertEqual(follow.followedAt, try XCTUnwrap(TwitchDateParser.date(from: "2023-11-06T18:11:47Z")))
     }
@@ -387,7 +387,7 @@ final class ModelDecodingTests: XCTestCase {
 
         let sub = try JSONDecoder.twitch().decode(TwitchSubscription.self, from: json)
 
-        XCTAssertEqual(sub.userId, "5678")
+        XCTAssertEqual(sub.userID, "5678")
         XCTAssertEqual(sub.tier, .tier1)
         XCTAssertEqual(sub.isGift, false)
     }
@@ -481,7 +481,7 @@ final class ModelDecodingTests: XCTestCase {
 
         XCTAssertEqual(game.id, "493057")
         XCTAssertEqual(game.name, "PUBG: BATTLEGROUNDS")
-        XCTAssertEqual(game.igdbId, "27789")
+        XCTAssertEqual(game.igdbID, "27789")
     }
 
     // MARK: - HelixResponse

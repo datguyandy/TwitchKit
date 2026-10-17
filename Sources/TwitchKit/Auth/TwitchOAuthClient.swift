@@ -50,26 +50,24 @@ import Security
 /// The client secret never appears in `description`, `debugDescription` or
 /// `dump(_:)` output.
 public struct TwitchOAuthClient: Sendable {
-    private let clientId: String
+    /// The client ID tokens are requested for.
+    public let clientID: String
     private let clientSecret: String?
-    private let redirectUri: String
+    private let redirectURI: String
     private let httpClient: any HTTPClient
 
     /// Redirect URI used when one is not supplied.
     public static let defaultRedirectURI = "https://localhost"
 
-    /// The client ID tokens are requested for.
-    public var clientID: String { clientId }
-
     public init(
-        clientID clientId: String,
+        clientID: String,
         clientSecret: String? = nil,
-        redirectURI redirectUri: String = TwitchOAuthClient.defaultRedirectURI,
+        redirectURI: String = TwitchOAuthClient.defaultRedirectURI,
         httpClient: any HTTPClient = URLSessionHTTPClient()
     ) {
-        self.clientId = clientId
+        self.clientID = clientID
         self.clientSecret = clientSecret
-        self.redirectUri = redirectUri
+        self.redirectURI = redirectURI
         self.httpClient = httpClient
     }
 
@@ -79,10 +77,14 @@ public struct TwitchOAuthClient: Sendable {
     /// access token in the redirect URL. On iOS and macOS, prefer the device
     /// code flow with a Public client.
     ///
-    /// - Parameter state: The CSRF token Twitch echoes back. Pass a fresh
-    ///   ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
-    ///   When `nil`, a random state is generated and included anyway; read it
-    ///   back from the URL's `state` query item if you need to check it.
+    /// - Parameters:
+    ///   - scopes: The scopes to request. Request only what the app uses.
+    ///   - state: The CSRF token Twitch echoes back. Pass a fresh
+    ///     ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
+    ///     When `nil`, a random state is generated and included anyway; read it
+    ///     back from the URL's `state` query item if you need to check it.
+    ///   - forceVerify: Whether Twitch re-prompts the user even if they already
+    ///     authorized these scopes.
     public func implicitGrantURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         state: String? = nil,
@@ -106,9 +108,13 @@ public struct TwitchOAuthClient: Sendable {
     /// Exchanging the code needs the client secret, so do it on a server;
     /// never ship a client secret in an app.
     ///
-    /// - Parameter state: The CSRF token Twitch echoes back. Pass a fresh
-    ///   ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
-    ///   When `nil`, a random state is generated and included anyway.
+    /// - Parameters:
+    ///   - scopes: The scopes to request. Request only what the app uses.
+    ///   - state: The CSRF token Twitch echoes back. Pass a fresh
+    ///     ``makeState()`` and check it with ``parseCallback(_:expectedState:)``.
+    ///     When `nil`, a random state is generated and included anyway.
+    ///   - forceVerify: Whether Twitch re-prompts the user even if they already
+    ///     authorized these scopes.
     public func authorizationCodeURL(
         scopes: [TwitchScope] = TwitchAuth.defaultScopeCases,
         state: String? = nil,
@@ -199,11 +205,11 @@ public struct TwitchOAuthClient: Sendable {
     public func exchangeAuthorizationCode(_ code: String) async throws -> OAuthToken {
         guard let clientSecret else { throw HelixError.missingClientSecret }
         return try await postTokenRequest(fields: [
-            "client_id": clientId,
+            "client_id": clientID,
             "client_secret": clientSecret,
             "code": code,
             "grant_type": "authorization_code",
-            "redirect_uri": redirectUri,
+            "redirect_uri": redirectURI,
         ])
     }
 
@@ -211,7 +217,7 @@ public struct TwitchOAuthClient: Sendable {
     public func requestAppAccessToken(scopes: [TwitchScope] = []) async throws -> OAuthToken {
         guard let clientSecret else { throw HelixError.missingClientSecret }
         return try await postTokenRequest(fields: [
-            "client_id": clientId,
+            "client_id": clientID,
             "client_secret": clientSecret,
             "grant_type": "client_credentials",
             "scope": Self.joined(scopes),
@@ -239,7 +245,7 @@ public struct TwitchOAuthClient: Sendable {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = twitchFormEncoded([
-            "client_id": clientId,
+            "client_id": clientID,
             "scopes": Self.joined(scopes),
         ])
 
@@ -332,7 +338,7 @@ public struct TwitchOAuthClient: Sendable {
         do {
             // Twitch's device code token request names the field `scopes`.
             return try await postTokenRequest(fields: [
-                "client_id": clientId,
+                "client_id": clientID,
                 "scopes": Self.joined(scopes),
                 "device_code": deviceCode,
                 "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
@@ -358,7 +364,7 @@ public struct TwitchOAuthClient: Sendable {
         var fields = [
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "client_id": clientId,
+            "client_id": clientID,
         ]
         if let clientSecret {
             fields["client_secret"] = clientSecret
@@ -390,7 +396,7 @@ public struct TwitchOAuthClient: Sendable {
     /// that accepts tokens from outside (a backend, a deep link, a paste)
     /// must check this to avoid acting with a substituted token.
     public func verifyClientID(of info: TwitchTokenInfo) throws {
-        try info.verifyClientID(clientId)
+        try info.verifyClientID(clientID)
     }
 
     /// Validates an access token and checks it was issued to this client's ID.
@@ -442,7 +448,7 @@ public struct TwitchOAuthClient: Sendable {
         )
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.httpBody = twitchFormEncoded(["client_id": clientId, "token": accessToken])
+        request.httpBody = twitchFormEncoded(["client_id": clientID, "token": accessToken])
 
         let (data, response) = try await perform(request)
         guard let http = response as? HTTPURLResponse else { throw HelixError.invalidResponse }
@@ -518,8 +524,8 @@ public struct TwitchOAuthClient: Sendable {
         claims: String? = nil
     ) -> URL {
         var queryItems = [
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "redirect_uri", value: redirectUri),
+            URLQueryItem(name: "client_id", value: clientID),
+            URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "response_type", value: responseType),
             URLQueryItem(name: "scope", value: scopes.joined(separator: " ")),
             URLQueryItem(name: "force_verify", value: forceVerify ? "true" : "false"),
@@ -687,7 +693,7 @@ extension TwitchOAuthCallback: CustomStringConvertible, CustomDebugStringConvert
 
 extension TwitchOAuthClient: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public var description: String {
-        "TwitchOAuthClient(clientID: \(clientId), clientSecret: \(clientSecret == nil ? "nil" : redactedPlaceholder), redirectURI: \(redirectUri))"
+        "TwitchOAuthClient(clientID: \(clientID), clientSecret: \(clientSecret == nil ? "nil" : redactedPlaceholder), redirectURI: \(redirectURI))"
     }
 
     public var debugDescription: String { description }
@@ -696,9 +702,9 @@ extension TwitchOAuthClient: CustomStringConvertible, CustomDebugStringConvertib
         Mirror(
             self,
             children: [
-                "clientID": clientId,
+                "clientID": clientID,
                 "clientSecret": clientSecret == nil ? "nil" : redactedPlaceholder,
-                "redirectURI": redirectUri,
+                "redirectURI": redirectURI,
             ],
             displayStyle: .struct
         )

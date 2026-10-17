@@ -40,7 +40,7 @@ extension HelixClient {
             method: "PUT",
             queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)],
             body: try JSONEncoder.twitch().encode(ExtensionRequiredConfigurationRequest(
-                extensionId: extensionID,
+                extensionID: extensionID,
                 extensionVersion: extensionVersion,
                 requiredConfiguration: requiredConfiguration
             ))
@@ -96,9 +96,9 @@ extension HelixClient {
             endpoint: "extensions/chat",
             method: "POST",
             body: try JSONEncoder.twitch().encode(ExtensionChatMessageRequest(
-                broadcasterId: broadcasterID,
+                broadcasterID: broadcasterID,
                 text: text,
-                extensionId: extensionID,
+                extensionID: extensionID,
                 extensionVersion: extensionVersion
             ))
         )
@@ -149,15 +149,15 @@ extension HelixClient {
 }
 
 private struct ExtensionRequiredConfigurationRequest: Encodable {
-    let extensionId: String
+    let extensionID: String
     let extensionVersion: String
     let requiredConfiguration: String
 }
 
 private struct ExtensionChatMessageRequest: Encodable {
-    let broadcasterId: String
+    let broadcasterID: String
     let text: String
-    let extensionId: String
+    let extensionID: String
     let extensionVersion: String
 }
 
@@ -169,28 +169,28 @@ public enum ExtensionConfigurationSegment: String, Sendable, Equatable {
 
 public struct ExtensionConfiguration: Decodable, Sendable, Equatable {
     public let segment: String
-    public let broadcasterId: String?
+    public let broadcasterID: String?
     public let content: String
     public let version: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         segment: String,
-        broadcasterId: String? = nil,
+        broadcasterID: String? = nil,
         content: String,
         version: String
     ) {
         self.segment = segment
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.content = content
         self.version = version
     }
 }
 
 public struct ExtensionConfigurationUpdate: Encodable, Sendable, Equatable {
-    public let extensionId: String
+    public let extensionID: String
     public let segment: String
-    public let broadcasterId: String?
+    public let broadcasterID: String?
     public let content: String?
     public let version: String?
 
@@ -201,9 +201,9 @@ public struct ExtensionConfigurationUpdate: Encodable, Sendable, Equatable {
         content: String? = nil,
         version: String? = nil
     ) {
-        self.extensionId = extensionID
+        self.extensionID = extensionID
         self.segment = segment.rawValue
-        self.broadcasterId = broadcasterID
+        self.broadcasterID = broadcasterID
         self.content = content
         self.version = version
     }
@@ -211,13 +211,13 @@ public struct ExtensionConfigurationUpdate: Encodable, Sendable, Equatable {
 
 public struct ExtensionPubSubMessage: Encodable, Sendable, Equatable {
     public let target: [String]
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let isGlobalBroadcast: Bool?
     public let message: String
 
     public init(target: [String], broadcasterID: String, isGlobalBroadcast: Bool? = nil, message: String) {
         self.target = target
-        self.broadcasterId = broadcasterID
+        self.broadcasterID = broadcasterID
         self.isGlobalBroadcast = isGlobalBroadcast
         self.message = message
     }
@@ -266,24 +266,24 @@ public struct ExtensionLiveChannelsPage: Decodable, Sendable, Equatable {
 }
 
 public struct ExtensionLiveChannel: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterName: String
     public let gameName: String
-    public let gameId: String
+    public let gameID: String
     public let title: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterName: String,
         gameName: String,
-        gameId: String,
+        gameID: String,
         title: String
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterName = broadcasterName
         self.gameName = gameName
-        self.gameId = gameId
+        self.gameID = gameID
         self.title = title
     }
 }
@@ -325,15 +325,15 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
     public let canInstall: Bool?
     public let configurationLocation: String?
     public let description: String?
-    public let eulaTosUrl: String?
+    public let eulaTosURL: String?
     public let hasChatSupport: Bool?
-    public let iconUrl: String?
-    public let iconUrls: [String: String]?
+    public let iconURL: String?
+    public let iconURLs: [String: String]?
     public let id: String
     public let name: String
-    public let privacyPolicyUrl: String?
+    public let privacyPolicyURL: String?
     public let requestIdentityLink: Bool?
-    public let screenshotUrls: [String]?
+    public let screenshotURLs: [String]?
     public let state: ExtensionState?
     public let subscriptionsSupportLevel: String?
     public let summary: String?
@@ -348,15 +348,15 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
         canInstall: Bool? = nil,
         configurationLocation: String? = nil,
         description: String? = nil,
-        eulaTosUrl: String? = nil,
+        eulaTosURL: String? = nil,
         hasChatSupport: Bool? = nil,
-        iconUrl: String? = nil,
-        iconUrls: [String: String]? = nil,
+        iconURL: String? = nil,
+        iconURLs: [String: String]? = nil,
         id: String,
         name: String,
-        privacyPolicyUrl: String? = nil,
+        privacyPolicyURL: String? = nil,
         requestIdentityLink: Bool? = nil,
-        screenshotUrls: [String]? = nil,
+        screenshotURLs: [String]? = nil,
         state: ExtensionState? = nil,
         subscriptionsSupportLevel: String? = nil,
         summary: String? = nil,
@@ -369,15 +369,15 @@ public struct TwitchExtension: Decodable, Sendable, Equatable {
         self.canInstall = canInstall
         self.configurationLocation = configurationLocation
         self.description = description
-        self.eulaTosUrl = eulaTosUrl
+        self.eulaTosURL = eulaTosURL
         self.hasChatSupport = hasChatSupport
-        self.iconUrl = iconUrl
-        self.iconUrls = iconUrls
+        self.iconURL = iconURL
+        self.iconURLs = iconURLs
         self.id = id
         self.name = name
-        self.privacyPolicyUrl = privacyPolicyUrl
+        self.privacyPolicyURL = privacyPolicyURL
         self.requestIdentityLink = requestIdentityLink
-        self.screenshotUrls = screenshotUrls
+        self.screenshotURLs = screenshotURLs
         self.state = state
         self.subscriptionsSupportLevel = subscriptionsSupportLevel
         self.summary = summary

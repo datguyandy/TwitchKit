@@ -10,7 +10,7 @@ final class ModelInitializerTests: XCTestCase {
             id: "1",
             login: "twitchdev",
             displayName: "TwitchDev",
-            profileImageUrl: "https://example.com/p.png",
+            profileImageURL: "https://example.com/p.png",
             broadcasterType: "partner"
         )
 
@@ -24,11 +24,11 @@ final class ModelInitializerTests: XCTestCase {
             id: "1",
             login: "twitchdev",
             displayName: "TwitchDev",
-            profileImageUrl: "https://example.com/p.png",
+            profileImageURL: "https://example.com/p.png",
             email: "dev@example.com",
             broadcasterType: "partner",
             description: "Hello",
-            offlineImageUrl: nil,
+            offlineImageURL: nil,
             createdAt: Date(timeIntervalSince1970: 1_700_000_000)
         )
 
@@ -41,10 +41,10 @@ final class ModelInitializerTests: XCTestCase {
     func testBuildsAPreviewPage() {
         let stream = TwitchStream(
             id: "s1",
-            userId: "1",
+            userID: "1",
             userLogin: "twitchdev",
             userName: "TwitchDev",
-            gameId: "509658",
+            gameID: "509658",
             gameName: "Just Chatting",
             type: .live,
             title: "Building TwitchKit",
@@ -52,7 +52,7 @@ final class ModelInitializerTests: XCTestCase {
             viewerCount: 42,
             startedAt: .now,
             language: "en",
-            thumbnailUrl: "https://example.com/{width}x{height}.jpg",
+            thumbnailURL: "https://example.com/{width}x{height}.jpg",
             isMature: false
         )
         let page = HelixPage(data: [stream], pagination: Pagination(cursor: nil))
@@ -62,9 +62,9 @@ final class ModelInitializerTests: XCTestCase {
     }
 
     func testBuildsModelsWithCustomDecoding() {
-        let ban = BanUserResponse(broadcasterId: "b", moderatorId: "m", userId: "u", createdAt: .now)
+        let ban = BanUserResponse(broadcasterID: "b", moderatorID: "m", userID: "u", createdAt: .now)
         let leaderboard = BitsLeaderboard(
-            data: [BitsLeaderboard.Entry(userId: "1", userLogin: "a", userName: "A", rank: 1, score: 100)],
+            data: [BitsLeaderboard.Entry(userID: "1", userLogin: "a", userName: "A", rank: 1, score: 100)],
             dateRange: BitsLeaderboard.DateRange(),
             total: 1
         )

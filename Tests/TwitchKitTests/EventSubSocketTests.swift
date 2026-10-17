@@ -15,26 +15,26 @@ final class EventSubSocketTests: XCTestCase {
 
     // MARK: - 1. connect() resolves on session_welcome
 
-    func test_connectResolvesOnSessionWelcomeAndSubscribeUsesSessionId() async throws {
+    func test_connectResolvesOnSessionWelcomeAndSubscribeUsesSessionID() async throws {
         let socket = FakeWebSocket()
         let (client, factory, transport) = try await makeClient(
             sockets: [socket],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1"))
             ]
         )
 
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         XCTAssertEqual(factory.requestedURLs.map(\.absoluteString), ["wss://eventsub.wss.twitch.tv/ws"])
         XCTAssertTrue(socket.didResume)
 
         // The session id learned from the welcome is what subscribe() must
-        // hand to Helix — this is the sessionId-dependent behavior connect()
+        // hand to Helix — this is the sessionID-dependent behavior connect()
         // exists to unlock.
         let record = try await client.subscribe(
             type: "channel.follow",
@@ -56,7 +56,7 @@ final class EventSubSocketTests: XCTestCase {
 
     // MARK: - 2. Duplicate message ids are dropped
 
-    func test_duplicateMessageIdsAreDropped() async throws {
+    func test_duplicateMessageIDsAreDropped() async throws {
         let socket = FakeWebSocket()
         let (client, _, _) = try await makeClient(sockets: [socket])
 
@@ -78,11 +78,11 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
-        socket.push(text: notificationJSON(messageId: "dup-1", type: "test.event.duplicate"))
-        socket.push(text: notificationJSON(messageId: "dup-1", type: "test.event.duplicate"))
-        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socket.push(text: notificationJSON(messageID: "dup-1", type: "test.event.duplicate"))
+        socket.push(text: notificationJSON(messageID: "dup-1", type: "test.event.duplicate"))
+        socket.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
 
         let finished = await flag.poll()
         XCTAssertTrue(finished, "sentinel notification should flow through promptly")
@@ -111,11 +111,11 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         let reconnectURL = "wss://eventsub.wss.twitch.tv/ws?challenge=abc"
-        socketA.push(text: reconnectJSON(messageId: "reconnect-1", reconnectURL: reconnectURL))
+        socketA.push(text: reconnectJSON(messageID: "reconnect-1", reconnectURL: reconnectURL))
 
         // The handoff parks a fresh welcome wait once it has dialed socketB;
         // deliver the new session's welcome only then (see
@@ -126,7 +126,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         // The old socket is cancelled only AFTER the new one delivers its
         // welcome (so no notification gap) — the handoff is asynchronous, so
@@ -174,7 +174,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1", keepaliveSeconds: 1)
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1", keepaliveSeconds: 1)
         )
 
         let reachedReconnecting = await flag.poll(attempts: 1_000, interval: .milliseconds(10))
@@ -211,17 +211,17 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.subscribe", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.subscribe", sessionID: "session-1")),
                 .json(statusCode: 409, body: #"{"error":"Conflict","status":409,"message":"subscription already exists"}"#),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionID: "session-2")),
             ]
         )
 
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         try await client.subscribe(
             type: "channel.follow",
@@ -247,7 +247,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         // Bounded wait for the round to settle: 2 initial creates + exactly
         // one re-create per desired subscription.
@@ -293,8 +293,8 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionID: "session-2")),
                 .json(statusCode: 204, body: ""),
                 .json(statusCode: 204, body: ""),
             ]
@@ -303,7 +303,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         let record = try await client.subscribe(
             type: "channel.follow",
@@ -321,7 +321,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         // Bounded wait until the re-create is in flight (request #2 recorded).
         var attempts = 0
@@ -370,8 +370,8 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-9", type: "channel.follow", sessionID: "session-2")),
                 .json(statusCode: 204, body: ""),
                 .json(statusCode: 500, body: ""),
                 .json(statusCode: 404, body: ""),
@@ -381,7 +381,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         let record = try await client.subscribe(
             type: "channel.follow",
@@ -399,7 +399,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         // Bounded wait until the re-create is in flight (request #2 recorded).
         var attempts = 0
@@ -455,10 +455,10 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
-        socket.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
-        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socket.push(text: revocationJSON(messageID: "revoke-1", subscriptionID: "sub-1", type: "channel.follow"))
+        socket.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
 
         let revocation = await collector.value
         XCTAssertEqual(revocation?.id, "sub-1")
@@ -480,7 +480,7 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
             ]
         )
 
@@ -496,15 +496,15 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         try await client.subscribe(
             type: "channel.follow",
             version: "2",
             condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"]
         )
-        socketA.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
-        socketA.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socketA.push(text: revocationJSON(messageID: "revoke-1", subscriptionID: "sub-1", type: "channel.follow"))
+        socketA.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
         let revocation = await collector.value
         XCTAssertEqual(revocation?.id, "sub-1")
 
@@ -515,7 +515,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         // Settle window: a client that still wanted the revoked subscription
         // would POST it again on the new session.
@@ -542,10 +542,10 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.subscribe", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.subscribe", sessionID: "session-1")),
                 .json(statusCode: 403, body: #"{"error":"Forbidden","status":403,"message":"subscription missing proper authorization"}"#),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionID: "session-2")),
             ]
         )
 
@@ -563,7 +563,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         try await client.subscribe(
             type: "channel.follow",
@@ -583,7 +583,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         var attempts = 0
         while await transport.recordedRequests().count < 4, attempts < 1_000 {
@@ -597,7 +597,7 @@ final class EventSubSocketTests: XCTestCase {
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests.count, 4, "the rejected subscription must not be retried, and the other must still be re-created")
 
-        socketB.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socketB.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
         let failures = await collector.value
         XCTAssertEqual(failures.count, 1)
         let rejectedBody = try XCTUnwrap(requests[2].httpBody)
@@ -639,8 +639,8 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-3", type: "channel.follow", sessionID: "session-2")),
                 .json(statusCode: 404, body: #"{"error":"Not Found","status":404,"message":"subscription not found"}"#),
                 .json(statusCode: 204, body: ""),
             ]
@@ -649,7 +649,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         let record = try await client.subscribe(
             type: "channel.follow",
@@ -665,7 +665,7 @@ final class EventSubSocketTests: XCTestCase {
             await client.disconnect()
             return
         }
-        socketB.push(text: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        socketB.push(text: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         var attempts = 0
         while await transport.recordedRequests().count < 2, attempts < 1_000 {
@@ -703,11 +703,11 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
-        socket.push(text: notificationJSON(messageId: "event-1", type: "test.event.one"))
-        socket.push(text: notificationJSON(messageId: "event-2", type: "test.event.two"))
-        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socket.push(text: notificationJSON(messageID: "event-1", type: "test.event.one"))
+        socket.push(text: notificationJSON(messageID: "event-2", type: "test.event.two"))
+        socket.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
 
         let firstTypes = await firstCollector.value
         let secondTypes = await secondCollector.value
@@ -735,10 +735,10 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
-        socket.push(text: notificationJSON(messageId: "event-1", type: "test.event.one"))
-        socket.push(text: notificationJSON(messageId: "sentinel-1", type: "test.event.sentinel"))
+        socket.push(text: notificationJSON(messageID: "event-1", type: "test.event.one"))
+        socket.push(text: notificationJSON(messageID: "sentinel-1", type: "test.event.sentinel"))
 
         let types = await collector.value
         XCTAssertEqual(types, ["test.event.one", "test.event.sentinel"])
@@ -757,15 +757,15 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionID: "session-2")),
             ]
         )
 
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         try await client.subscribe(
             type: "channel.follow",
@@ -778,7 +778,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketB,
-            welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2")
+            welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2")
         )
 
         // Previously the new session had no subscriptions until Twitch closed
@@ -802,16 +802,16 @@ final class EventSubSocketTests: XCTestCase {
         let (client, factory, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
                 .json(statusCode: 500, body: #"{"error":"Internal Server Error","status":500,"message":"try again"}"#),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionID: "session-2")),
             ]
         )
 
         try await connectDeliveringWelcome(
             client,
             via: socketA,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         try await client.subscribe(
             type: "channel.follow",
@@ -825,7 +825,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socketB,
-            welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2")
+            welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2")
         )
 
         // Bounded wait for the background retry (first ladder step is ~1s).
@@ -861,16 +861,16 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
-        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
-        socket.push(text: routedNotificationJSON(messageId: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
         // An incoming raid names channel A as the target, not as broadcaster_user_id.
-        socket.push(text: routedNotificationJSON(messageId: "m3", type: "test.event.raid", condition: ["to_broadcaster_user_id": "a", "from_broadcaster_user_id": ""]))
+        socket.push(text: routedNotificationJSON(messageID: "m3", type: "test.event.raid", condition: ["to_broadcaster_user_id": "a", "from_broadcaster_user_id": ""]))
         // No broadcaster in the condition: belongs to no channel stream.
-        socket.push(text: routedNotificationJSON(messageId: "m4", type: "test.event.user", condition: ["user_id": "me"]))
-        socket.push(text: routedNotificationJSON(messageId: "m5", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a"]))
-        socket.push(text: routedNotificationJSON(messageId: "m6", type: "test.event.sentinel", condition: ["broadcaster_user_id": "b"]))
+        socket.push(text: routedNotificationJSON(messageID: "m4", type: "test.event.user", condition: ["user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m5", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a"]))
+        socket.push(text: routedNotificationJSON(messageID: "m6", type: "test.event.sentinel", condition: ["broadcaster_user_id": "b"]))
 
         let typesA = await collectorA.value
         let typesB = await collectorB.value
@@ -895,10 +895,10 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         // revocationJSON's condition is ["broadcaster_user_id": "b"].
-        socket.push(text: revocationJSON(messageId: "revoke-1", subscriptionId: "sub-1", type: "channel.follow"))
+        socket.push(text: revocationJSON(messageID: "revoke-1", subscriptionID: "sub-1", type: "channel.follow"))
 
         let revocation = await collector.value
         XCTAssertEqual(revocation?.id, "sub-1")
@@ -915,7 +915,7 @@ final class EventSubSocketTests: XCTestCase {
 
     private func created(_ count: Int, startingAt first: Int = 1) -> [MockHTTPClient.Response] {
         (first..<(first + count)).map {
-            .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-\($0)", type: "channel.chat.message", sessionId: "session-1"))
+            .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-\($0)", type: "channel.chat.message", sessionID: "session-1"))
         }
     }
 
@@ -937,7 +937,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         let room = try await client.joinChat(broadcasterID: "a", userID: "me")
@@ -949,9 +949,9 @@ final class EventSubSocketTests: XCTestCase {
         // The room sees only its own channel.
         let roomEvents = room.events
         let collector = Task { await collectEventTypes(from: roomEvents) }
-        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
-        socket.push(text: routedNotificationJSON(messageId: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
-        socket.push(text: routedNotificationJSON(messageId: "m3", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m2", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m3", type: "test.event.sentinel", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
         let types = await collector.value
         XCTAssertEqual(types, ["test.event.chat", "test.event.sentinel"])
 
@@ -983,7 +983,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         do {
@@ -1010,7 +1010,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         let chatView = try await client.joinChat(broadcasterID: "a", userID: "me")
@@ -1035,7 +1035,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         // The app subscribes to chat messages itself, then joins the room.
@@ -1066,7 +1066,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         let first = try await client.joinChat(broadcasterID: "a", userID: "me")
@@ -1098,7 +1098,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
 
         let collector = Task { () -> [EventSubNotification] in
@@ -1109,8 +1109,8 @@ final class EventSubSocketTests: XCTestCase {
             }
             return collected
         }
-        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
-        socket.push(text: revocationJSON(messageId: "r1", subscriptionId: "sub-r", type: "channel.follow"))
+        socket.push(text: routedNotificationJSON(messageID: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "b", "user_id": "me"]))
+        socket.push(text: revocationJSON(messageID: "r1", subscriptionID: "sub-r", type: "channel.follow"))
         let collected = await collector.value
 
         XCTAssertEqual(collected.count, 2)
@@ -1136,7 +1136,7 @@ final class EventSubSocketTests: XCTestCase {
         try await connectDeliveringWelcome(
             client,
             via: socket,
-            welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1")
+            welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1")
         )
         let room = try await client.joinChat(broadcasterID: "a", userID: "me")
 
@@ -1147,7 +1147,7 @@ final class EventSubSocketTests: XCTestCase {
             }
             return nil
         }
-        socket.push(text: routedNotificationJSON(messageId: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
+        socket.push(text: routedNotificationJSON(messageID: "m1", type: "test.event.chat", condition: ["broadcaster_user_id": "a", "user_id": "me"]))
         let notification = await first.value
 
         XCTAssertEqual(notification?.metadata?.messageID, "m1")
@@ -1161,7 +1161,7 @@ final class EventSubSocketTests: XCTestCase {
         let socket = FakeWebSocket()
         let (client, _, transport) = try await makeClient(
             sockets: [socket],
-            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1"))]
         )
 
         // No connect() first.
@@ -1174,7 +1174,7 @@ final class EventSubSocketTests: XCTestCase {
         }
         let waiting = await pollWelcomeWaiter(on: client)
         XCTAssertTrue(waiting, "subscribe() should open a connection")
-        socket.push(text: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        socket.push(text: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
         let record = try await subscribing.value
 
         XCTAssertEqual(record.id, "sub-1")
@@ -1192,14 +1192,14 @@ final class EventSubSocketTests: XCTestCase {
         let socketB = FakeWebSocket()
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
-            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1"))]
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
         try await client.subscribe(type: "channel.follow", version: "2", condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"])
 
         // Signing out, then the next user connects.
         await client.disconnect(forgettingSubscriptions: true)
-        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
 
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests.count, 1, "the previous user's subscription must not be re-created")
@@ -1213,9 +1213,9 @@ final class EventSubSocketTests: XCTestCase {
         let gate = ResponseGate()
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
-            responses: [.gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1"))]
+            responses: [.gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1"))]
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         let subscribing = Task {
             try await client.subscribe(type: "channel.follow", version: "2", condition: ["broadcaster_user_id": "b", "moderator_user_id": "m"])
@@ -1232,7 +1232,7 @@ final class EventSubSocketTests: XCTestCase {
             // Expected.
         }
 
-        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests.count, 1, "the dropped subscription must not be re-created on the next session")
 
@@ -1244,7 +1244,7 @@ final class EventSubSocketTests: XCTestCase {
         let socketB = FakeWebSocket()
         let socketC = FakeWebSocket()
         let (client, factory, _) = try await makeClient(sockets: [socketA, socketB, socketC])
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         // Drop the socket. After its 1s backoff the ladder dials socketB and
         // waits there for a welcome that never comes.
@@ -1262,7 +1262,7 @@ final class EventSubSocketTests: XCTestCase {
         XCTAssertTrue(dialedOwnSocket)
         let waiting = await pollWelcomeWaiter(on: client)
         XCTAssertTrue(waiting)
-        socketC.push(text: welcomeJSON(messageId: "welcome-3", sessionId: "session-3"))
+        socketC.push(text: welcomeJSON(messageID: "welcome-3", sessionID: "session-3"))
         try await connecting.value
 
         XCTAssertEqual(client.currentConnectionState, .connected)
@@ -1297,7 +1297,7 @@ final class EventSubSocketTests: XCTestCase {
         dropping socket: FakeWebSocket,
         to next: FakeWebSocket,
         factory: FakeSocketFactory,
-        sessionId: String
+        sessionID: String
     ) async throws {
         let dialsBefore = factory.requestedURLs.count
         socket.failReceive(with: HelixError.networkError("dropped"))
@@ -1305,7 +1305,7 @@ final class EventSubSocketTests: XCTestCase {
         XCTAssertTrue(dialed, "the ladder should dial a new socket")
         let waiting = await pollWelcomeWaiter(on: client)
         XCTAssertTrue(waiting)
-        next.push(text: welcomeJSON(messageId: "welcome-\(sessionId)", sessionId: sessionId))
+        next.push(text: welcomeJSON(messageID: "welcome-\(sessionID)", sessionID: sessionID))
         let connected = await waitUntil { client.currentConnectionState == .connected }
         XCTAssertTrue(connected)
     }
@@ -1317,11 +1317,11 @@ final class EventSubSocketTests: XCTestCase {
         let (client, _, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionID: "session-2")),
             ]
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         let subscribing = Task {
             try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
@@ -1336,7 +1336,7 @@ final class EventSubSocketTests: XCTestCase {
         let active = await client.activeSubscriptionIDsForTesting
         XCTAssertTrue(active.isEmpty, "a record from the closed session must not count as active")
 
-        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
         let requests = await transport.recordedRequests()
         XCTAssertEqual(try postedSessionIDs(requests), ["session-1", "session-2"], "the subscription must be created on the new session")
 
@@ -1350,11 +1350,11 @@ final class EventSubSocketTests: XCTestCase {
         let (client, factory, transport) = try await makeClient(
             sockets: [socketA, socketB],
             responses: [
-                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")),
-                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionId: "session-2")),
+                .gatedJSON(gate: gate, statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")),
+                .json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-2", type: "channel.follow", sessionID: "session-2")),
             ]
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         let subscribing = Task {
             try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
@@ -1363,7 +1363,7 @@ final class EventSubSocketTests: XCTestCase {
         XCTAssertTrue(sent)
         // The socket drops and the ladder reconnects (its resubscribe round
         // has nothing to do: the subscription isn't desired yet).
-        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionID: "session-2")
         await gate.open()
         let record = try await subscribing.value
 
@@ -1383,12 +1383,12 @@ final class EventSubSocketTests: XCTestCase {
             sockets: [socketA, socketB],
             responses: created(6) + created(6, startingAt: 7) + deleted(6)
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
         let oldRoom = try await client.joinChat(broadcasterID: "a", userID: "me")
 
         // Account switch, then the new user joins the same channel.
         await client.disconnect(forgettingSubscriptions: true)
-        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageId: "welcome-2", sessionId: "session-2"))
+        try await connectDeliveringWelcome(client, via: socketB, welcomeText: welcomeJSON(messageID: "welcome-2", sessionID: "session-2"))
         let newRoom = try await client.joinChat(broadcasterID: "a", userID: "me")
 
         try await oldRoom.leave()
@@ -1405,7 +1405,7 @@ final class EventSubSocketTests: XCTestCase {
     func test_aRoomDroppedWithoutLeavingReleasesItsSubscriptions() async throws {
         let socket = FakeWebSocket()
         let (client, _, transport) = try await makeClient(sockets: [socket], responses: created(6) + deleted(6))
-        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         var room: ChatRoom? = try await client.joinChat(broadcasterID: "a", userID: "me")
         XCTAssertNotNil(room)
@@ -1453,9 +1453,9 @@ final class EventSubSocketTests: XCTestCase {
         let socketA = FakeWebSocket()
         let socketB = FakeWebSocket()
         let (client, factory, _) = try await makeClient(sockets: [socketA, socketB])
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
-        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionID: "session-2")
 
         // Otherwise every outage eats into the next one's 5 attempts.
         let attempts = await client.reconnectAttemptsForTesting
@@ -1476,7 +1476,7 @@ final class EventSubSocketTests: XCTestCase {
                 return false
             }
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
         // The ladder starts and is held before its first attempt.
         socketA.failReceive(with: HelixError.networkError("dropped"))
@@ -1509,7 +1509,7 @@ final class EventSubSocketTests: XCTestCase {
             body: #"{"error":"Conflict","status":409,"message":"subscription already exists","id":"existing-1"}"#
         )
         let (client, _, transport) = try await makeClient(sockets: [socket], responses: [conflict] + deleted(1))
-        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
         let subscription = EventSubSubscription(type: "channel.follow", version: "2", condition: Self.followCondition)
 
         do {
@@ -1535,13 +1535,13 @@ final class EventSubSocketTests: XCTestCase {
         )
         let (client, factory, transport) = try await makeClient(
             sockets: [socketA, socketB],
-            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionId: "session-1")), conflict] + deleted(1)
+            responses: [.json(statusCode: 202, body: subscriptionRecordJSON(id: "sub-1", type: "channel.follow", sessionID: "session-1")), conflict] + deleted(1)
         )
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
         let subscription = EventSubSubscription(type: "channel.follow", version: "2", condition: Self.followCondition)
         try await client.subscribe(subscription)
 
-        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionId: "session-2")
+        try await reconnect(client, dropping: socketA, to: socketB, factory: factory, sessionID: "session-2")
         let recorded = await waitUntil { await client.activeSubscriptionIDsForTesting == ["existing-1"] }
         XCTAssertTrue(recorded, "the id Twitch names in the 409 is the live subscription")
 
@@ -1556,9 +1556,9 @@ final class EventSubSocketTests: XCTestCase {
         let socketA = FakeWebSocket()
         let socketB = FakeWebSocket()
         let (client, factory, _) = try await makeClient(sockets: [socketA, socketB])
-        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageId: "welcome-1", sessionId: "session-1"))
+        try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
-        socketA.push(text: reconnectJSON(messageId: "reconnect-1", reconnectURL: "wss://eventsub.example.com/ws"))
+        socketA.push(text: reconnectJSON(messageID: "reconnect-1", reconnectURL: "wss://eventsub.example.com/ws"))
 
         let dialed = await waitUntil { factory.requestedURLs.count == 2 }
         XCTAssertTrue(dialed)
@@ -1598,7 +1598,7 @@ private func waitUntil(_ condition: @Sendable () async -> Bool) async -> Bool {
 
 /// A notification whose envelope carries the delivering subscription, as
 /// Twitch's do, so `events(for:)` can route it by condition.
-private func routedNotificationJSON(messageId: String, type: String, condition: [String: String]) -> String {
+private func routedNotificationJSON(messageID: String, type: String, condition: [String: String]) -> String {
     let conditionJSON = condition
         .sorted { $0.key < $1.key }
         .map { "\"\($0.key)\": \"\($0.value)\"" }
@@ -1606,14 +1606,14 @@ private func routedNotificationJSON(messageId: String, type: String, condition: 
     return """
     {
       "metadata": {
-        "message_id": "\(messageId)",
+        "message_id": "\(messageID)",
         "message_type": "notification",
         "message_timestamp": "2024-01-01T00:00:01Z",
         "subscription_type": "\(type)"
       },
       "payload": {
         "subscription": {
-          "id": "sub-\(messageId)",
+          "id": "sub-\(messageID)",
           "status": "enabled",
           "type": "\(type)",
           "version": "1",
@@ -1824,17 +1824,17 @@ private func makeClient(
 
 // MARK: - Scripted Twitch frames
 
-private func welcomeJSON(messageId: String, sessionId: String, keepaliveSeconds: Int = 10) -> String {
+private func welcomeJSON(messageID: String, sessionID: String, keepaliveSeconds: Int = 10) -> String {
     """
     {
       "metadata": {
-        "message_id": "\(messageId)",
+        "message_id": "\(messageID)",
         "message_type": "session_welcome",
         "message_timestamp": "2024-01-01T00:00:00Z"
       },
       "payload": {
         "session": {
-          "id": "\(sessionId)",
+          "id": "\(sessionID)",
           "status": "connected",
           "keepalive_timeout_seconds": \(keepaliveSeconds),
           "reconnect_url": null,
@@ -1845,11 +1845,11 @@ private func welcomeJSON(messageId: String, sessionId: String, keepaliveSeconds:
     """
 }
 
-private func reconnectJSON(messageId: String, reconnectURL: String) -> String {
+private func reconnectJSON(messageID: String, reconnectURL: String) -> String {
     """
     {
       "metadata": {
-        "message_id": "\(messageId)",
+        "message_id": "\(messageID)",
         "message_type": "session_reconnect",
         "message_timestamp": "2024-01-01T00:00:05Z"
       },
@@ -1869,11 +1869,11 @@ private func reconnectJSON(messageId: String, reconnectURL: String) -> String {
 /// A notification with an unrecognized subscription type, which the client
 /// surfaces as `.unknown` — perfect for dedup tests since no event model
 /// decoding is involved.
-private func notificationJSON(messageId: String, type: String) -> String {
+private func notificationJSON(messageID: String, type: String) -> String {
     """
     {
       "metadata": {
-        "message_id": "\(messageId)",
+        "message_id": "\(messageID)",
         "message_type": "notification",
         "message_timestamp": "2024-01-01T00:00:01Z",
         "subscription_type": "\(type)"
@@ -1885,18 +1885,18 @@ private func notificationJSON(messageId: String, type: String) -> String {
     """
 }
 
-private func revocationJSON(messageId: String, subscriptionId: String, type: String) -> String {
+private func revocationJSON(messageID: String, subscriptionID: String, type: String) -> String {
     """
     {
       "metadata": {
-        "message_id": "\(messageId)",
+        "message_id": "\(messageID)",
         "message_type": "revocation",
         "message_timestamp": "2024-01-01T00:00:02Z",
         "subscription_type": "\(type)"
       },
       "payload": {
         "subscription": {
-          "id": "\(subscriptionId)",
+          "id": "\(subscriptionID)",
           "status": "authorization_revoked",
           "type": "\(type)",
           "version": "2",
@@ -1910,7 +1910,7 @@ private func revocationJSON(messageId: String, subscriptionId: String, type: Str
     """
 }
 
-private func subscriptionRecordJSON(id: String, type: String, sessionId: String) -> String {
+private func subscriptionRecordJSON(id: String, type: String, sessionID: String) -> String {
     """
     {
       "data": [
@@ -1920,7 +1920,7 @@ private func subscriptionRecordJSON(id: String, type: String, sessionId: String)
           "type": "\(type)",
           "version": "1",
           "condition": { "broadcaster_user_id": "b" },
-          "transport": { "method": "websocket", "session_id": "\(sessionId)" },
+          "transport": { "method": "websocket", "session_id": "\(sessionID)" },
           "created_at": "2024-01-01T00:00:00Z",
           "cost": 0
         }

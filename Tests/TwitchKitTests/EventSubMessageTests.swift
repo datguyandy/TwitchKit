@@ -31,7 +31,7 @@ final class EventSubMessageTests: XCTestCase {
         XCTAssertEqual(envelope.payload.session?.id, "AQoQHR3s6Mb4T8GFB1l3DlPfiRIGY2VsbC1h")
         XCTAssertEqual(envelope.payload.session?.status, "connected")
         XCTAssertEqual(envelope.payload.session?.keepaliveTimeoutSeconds, 10)
-        XCTAssertEqual(envelope.payload.session?.reconnectUrl, nil)
+        XCTAssertEqual(envelope.payload.session?.reconnectURL, nil)
     }
 
     func test_decodeSessionKeepalive() throws {
@@ -74,7 +74,7 @@ final class EventSubMessageTests: XCTestCase {
         let envelope = try JSONDecoder.twitch().decode(EventSubEnvelope.self, from: json)
 
         XCTAssertEqual(envelope.metadata.messageType, "session_reconnect")
-        XCTAssertEqual(envelope.payload.session?.reconnectUrl, "wss://eventsub.wss.twitch.tv/ws?session_id=newSession123")
+        XCTAssertEqual(envelope.payload.session?.reconnectURL, "wss://eventsub.wss.twitch.tv/ws?session_id=newSession123")
     }
 
     func test_unknownEventType() {
@@ -132,7 +132,7 @@ final class EventSubMessageTests: XCTestCase {
             return XCTFail("Expected .streamOnline")
         }
         XCTAssertEqual(stream.id, "9001")
-        XCTAssertEqual(stream.broadcasterUserId, "1337")
+        XCTAssertEqual(stream.broadcasterUserID, "1337")
     }
 
     func test_decodeTypedStreamOnlineEvent() throws {
@@ -153,7 +153,7 @@ final class EventSubMessageTests: XCTestCase {
             return XCTFail("Expected .streamOnline")
         }
         XCTAssertEqual(stream.id, "9001")
-        XCTAssertEqual(stream.broadcasterUserId, "1337")
+        XCTAssertEqual(stream.broadcasterUserID, "1337")
         XCTAssertEqual(stream.type, .live)
     }
 
@@ -275,7 +275,7 @@ final class EventSubMessageTests: XCTestCase {
         guard case .chatMessageDelete(let delete) = deleteEvent else {
             return XCTFail("Expected .chatMessageDelete")
         }
-        XCTAssertEqual(delete.messageId, "message-id")
+        XCTAssertEqual(delete.messageID, "message-id")
 
         guard case .chatSettingsUpdate(let settings) = settingsEvent else {
             return XCTFail("Expected .chatSettingsUpdate")
@@ -414,7 +414,7 @@ final class EventSubMessageTests: XCTestCase {
         guard case .predictionEnd(let prediction) = predictionEvent else {
             return XCTFail("Expected .predictionEnd")
         }
-        XCTAssertEqual(prediction.winningOutcomeId, "outcome-1")
+        XCTAssertEqual(prediction.winningOutcomeID, "outcome-1")
         XCTAssertEqual(prediction.outcomes.first?.topPredictors?.first?.userName, "Viewer")
 
         guard case .goalProgress(let goal) = goalEvent else {
@@ -588,7 +588,7 @@ final class EventSubMessageTests: XCTestCase {
         guard case .sharedChatBegin(let sharedChat) = sharedChatEvent else {
             return XCTFail("Expected .sharedChatBegin")
         }
-        XCTAssertEqual(sharedChat.sessionId, "session-id")
+        XCTAssertEqual(sharedChat.sessionID, "session-id")
 
         guard case .userWhisperMessage(let whisper) = whisperEvent else {
             return XCTFail("Expected .userWhisperMessage")

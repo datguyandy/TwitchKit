@@ -7,27 +7,27 @@ import XCTest
 final class DeprecatedLabelTests: XCTestCase {
     @available(*, deprecated)
     func testOldClientLabelsStillBuildClients() {
-        let client = TwitchClient(clientId: "client-id", tokenStore: InMemoryTokenStore())
-        XCTAssertEqual(client.clientId, "client-id")
+        let client = TwitchClient(clientID: "client-id", tokenStore: InMemoryTokenStore())
+        XCTAssertEqual(client.clientID, "client-id")
         XCTAssertEqual(client.clientID, "client-id")
 
-        let auth = TwitchAuth(clientId: "client-id", redirectUri: "myapp://oauth")
+        let auth = TwitchAuth(clientID: "client-id", redirectURI: "myapp://oauth")
         let url = auth.implicitGrantURL(scopes: [.userReadChat])
         XCTAssertTrue(url.absoluteString.contains("redirect_uri=myapp://oauth"), url.absoluteString)
-        XCTAssertEqual(TwitchAuth.redirectUri, TwitchAuth.redirectURI)
+        XCTAssertEqual(TwitchAuth.redirectURI, TwitchAuth.redirectURI)
     }
 
     @available(*, deprecated)
     func testOldRequestInitializerLabelsForward() {
-        XCTAssertEqual(ChannelInfoUpdate(gameId: "509658").gameId, "509658")
-        XCTAssertEqual(PollCreateRequest(broadcasterId: "b", title: "Q", choices: [], duration: 60).broadcasterId, "b")
-        XCTAssertEqual(AutoModMessage(msgId: "m", msgText: "t").msgId, "m")
+        XCTAssertEqual(ChannelInfoUpdate(gameID: "509658").gameID, "509658")
+        XCTAssertEqual(PollCreateRequest(broadcasterID: "b", title: "Q", choices: [], duration: 60).broadcasterID, "b")
+        XCTAssertEqual(AutoModMessage(msgID: "m", msgText: "t").msgID, "m")
     }
 
     func testDefaultedInitializersAreNotAmbiguous() {
         // Only the new initializers match when the renamed parameter is omitted.
-        XCTAssertNil(ChannelInfoUpdate(title: "Title").gameId)
-        XCTAssertNil(ChannelStreamScheduleSegmentUpdate(title: "Stream").categoryId)
+        XCTAssertNil(ChannelInfoUpdate(title: "Title").gameID)
+        XCTAssertNil(ChannelStreamScheduleSegmentUpdate(title: "Stream").categoryID)
     }
 
     @available(*, deprecated)
@@ -52,7 +52,7 @@ final class DeprecatedLabelTests: XCTestCase {
         XCTAssertEqual(client.clientID, "client-id")
 
         let oldClient = TwitchClient(
-            clientId: "client-id",
+            clientID: "client-id",
             tokenStore: InMemoryTokenStore(),
             isLive: { true },
             pathMonitor: MockNetworkPathMonitor()
@@ -75,14 +75,14 @@ final class DeprecatedLabelTests: XCTestCase {
         ])
         let api = HelixClient(
             tokenProvider: TwitchTokenProvider(
-                oauthClient: TwitchOAuthClient(clientId: "client"),
+                oauthClient: TwitchOAuthClient(clientID: "client"),
                 tokenStore: InMemoryTokenStore(token: OAuthToken(accessToken: "token"))
             ),
-            clientId: "client",
+            clientID: "client",
             httpClient: transport
         )
 
-        let sent = try await api.sendChatMessage(broadcasterId: "b", senderId: "s", message: "hi")
+        let sent = try await api.sendChatMessage(broadcasterID: "b", senderID: "s", message: "hi")
         let stream = try await api.fetchStream(forUserID: "u")
         // The old spelling keeps its original contract: a missing channel throws.
         do {

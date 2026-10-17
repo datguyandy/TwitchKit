@@ -13,7 +13,7 @@ final class CurrentAPICompatibilityTests: XCTestCase {
     func testGIFAndLegacyFragmentsDecode() throws {
         let fragments = try JSONDecoder.twitch().decode([ChatFragment].self, from: Data(#"[{"type":"gif","text":"hello","gif":{"gif_id":"g1","url":"https://example.com/g.gif"}},{"type":"text","text":"hello"},{"type":"future","text":"future"}]"#.utf8))
         XCTAssertEqual(fragments[0].type, .gif)
-        XCTAssertEqual(fragments[0].gif?.gifId, "g1")
+        XCTAssertEqual(fragments[0].gif?.gifID, "g1")
         XCTAssertEqual(fragments[0].gif?.url, "https://example.com/g.gif")
         XCTAssertNil(fragments[1].gif)
         XCTAssertEqual(fragments[2].type, .unknown("future"))

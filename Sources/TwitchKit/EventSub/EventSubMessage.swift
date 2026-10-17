@@ -571,7 +571,7 @@ struct EventSubEnvelope: Decodable {
     let payload: Payload
 
     struct Metadata: Decodable {
-        let messageId: String
+        let messageID: String
         let messageType: String
         let messageTimestamp: Date
         let subscriptionType: String?
@@ -588,7 +588,7 @@ struct EventSubEnvelope: Decodable {
             let id: String
             let status: String
             let keepaliveTimeoutSeconds: Int?
-            let reconnectUrl: String?
+            let reconnectURL: String?
             let connectedAt: Date?
         }
     }

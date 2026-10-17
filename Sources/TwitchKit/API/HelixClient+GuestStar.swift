@@ -218,8 +218,8 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
 
     public struct Guest: Decodable, Sendable, Equatable {
         public let id: String?
-        public let slotId: String?
-        public let userId: String
+        public let slotID: String?
+        public let userID: String
         public let userDisplayName: String
         public let userLogin: String
         public let isLive: Bool
@@ -231,8 +231,8 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             id: String? = nil,
-            slotId: String? = nil,
-            userId: String,
+            slotID: String? = nil,
+            userID: String,
             userDisplayName: String,
             userLogin: String,
             isLive: Bool,
@@ -242,8 +242,8 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
             videoSettings: MediaSettings
         ) {
             self.id = id
-            self.slotId = slotId
-            self.userId = userId
+            self.slotID = slotID
+            self.userID = userID
             self.userDisplayName = userDisplayName
             self.userLogin = userLogin
             self.isLive = isLive
@@ -273,7 +273,7 @@ public struct GuestStarSession: Decodable, Sendable, Equatable {
 }
 
 public struct GuestStarInvite: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let invitedAt: Date
     public let status: GuestStarGuestState
     public let isVideoEnabled: Bool
@@ -283,7 +283,7 @@ public struct GuestStarInvite: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         invitedAt: Date,
         status: GuestStarGuestState,
         isVideoEnabled: Bool,
@@ -291,7 +291,7 @@ public struct GuestStarInvite: Decodable, Sendable, Equatable {
         isVideoAvailable: Bool,
         isAudioAvailable: Bool
     ) {
-        self.userId = userId
+        self.userID = userID
         self.invitedAt = invitedAt
         self.status = status
         self.isVideoEnabled = isVideoEnabled

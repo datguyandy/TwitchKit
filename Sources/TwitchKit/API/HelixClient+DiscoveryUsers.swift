@@ -154,43 +154,43 @@ private struct WhisperRequest: Encodable {
 }
 
 public struct ChannelTeam: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterName: String
     public let broadcasterLogin: String
-    public let backgroundImageUrl: String?
+    public let backgroundImageURL: String?
     public let banner: String?
     public let createdAt: Date
     public let updatedAt: Date
     public let info: String
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
     public let teamName: String
     public let teamDisplayName: String
     public let id: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterName: String,
         broadcasterLogin: String,
-        backgroundImageUrl: String? = nil,
+        backgroundImageURL: String? = nil,
         banner: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         info: String,
-        thumbnailUrl: String,
+        thumbnailURL: String,
         teamName: String,
         teamDisplayName: String,
         id: String
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterName = broadcasterName
         self.broadcasterLogin = broadcasterLogin
-        self.backgroundImageUrl = backgroundImageUrl
+        self.backgroundImageURL = backgroundImageURL
         self.banner = banner
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.info = info
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.teamName = teamName
         self.teamDisplayName = teamDisplayName
         self.id = id
@@ -199,12 +199,12 @@ public struct ChannelTeam: Decodable, Sendable, Equatable {
 
 public struct TwitchTeam: Decodable, Sendable, Equatable {
     public let users: [User]
-    public let backgroundImageUrl: String?
+    public let backgroundImageURL: String?
     public let banner: String?
     public let createdAt: Date
     public let updatedAt: Date
     public let info: String
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
     public let teamName: String
     public let teamDisplayName: String
     public let id: String
@@ -212,40 +212,40 @@ public struct TwitchTeam: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         users: [User],
-        backgroundImageUrl: String? = nil,
+        backgroundImageURL: String? = nil,
         banner: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         info: String,
-        thumbnailUrl: String,
+        thumbnailURL: String,
         teamName: String,
         teamDisplayName: String,
         id: String
     ) {
         self.users = users
-        self.backgroundImageUrl = backgroundImageUrl
+        self.backgroundImageURL = backgroundImageURL
         self.banner = banner
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.info = info
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.teamName = teamName
         self.teamDisplayName = teamDisplayName
         self.id = id
     }
 
     public struct User: Decodable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userName: String
         public let userLogin: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userName: String,
             userLogin: String
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userName = userName
             self.userLogin = userLogin
         }
@@ -254,7 +254,7 @@ public struct TwitchTeam: Decodable, Sendable, Equatable {
 
 public struct UserAuthorization: Decodable, Sendable, Equatable {
     public let hasAuthorized: Bool
-    public let userId: String
+    public let userID: String
     public let userLogin: String?
     public let userName: String?
     public let scopes: [String]
@@ -262,13 +262,13 @@ public struct UserAuthorization: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         hasAuthorized: Bool,
-        userId: String,
+        userID: String,
         userLogin: String? = nil,
         userName: String? = nil,
         scopes: [String]
     ) {
         self.hasAuthorized = hasAuthorized
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.scopes = scopes
@@ -276,17 +276,17 @@ public struct UserAuthorization: Decodable, Sendable, Equatable {
 }
 
 public struct BlockedUser: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let displayName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         displayName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.displayName = displayName
     }

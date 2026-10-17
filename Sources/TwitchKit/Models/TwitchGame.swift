@@ -11,21 +11,21 @@ public struct TwitchGame: Decodable, Sendable, Equatable {
     public let name: String
 
     /// Template URL for box art.
-    public let boxArtUrl: String
+    public let boxArtURL: String
 
     /// The matching IGDB ID, when Twitch provides one.
-    public let igdbId: String?
+    public let igdbID: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
         name: String,
-        boxArtUrl: String,
-        igdbId: String? = nil
+        boxArtURL: String,
+        igdbID: String? = nil
     ) {
         self.id = id
         self.name = name
-        self.boxArtUrl = boxArtUrl
-        self.igdbId = igdbId
+        self.boxArtURL = boxArtURL
+        self.igdbID = igdbID
     }
 }

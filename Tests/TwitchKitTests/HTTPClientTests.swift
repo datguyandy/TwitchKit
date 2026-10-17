@@ -79,7 +79,7 @@ final class HTTPClientTests: XCTestCase {
         }
     }
 
-    func test_fetchUsersUsesRepeatedIdAndLoginQueryParameters() async throws {
+    func test_fetchUsersUsesRepeatedIDAndLoginQueryParameters() async throws {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 200, body: """
             {
@@ -312,7 +312,7 @@ final class HTTPClientTests: XCTestCase {
             forSourceOnly: true
         )
 
-        XCTAssertEqual(result.messageId, "message-1")
+        XCTAssertEqual(result.messageID, "message-1")
         XCTAssertTrue(result.isSent)
 
         let requests = await transport.recordedRequests()
@@ -1031,7 +1031,7 @@ final class HTTPClientTests: XCTestCase {
         XCTAssertEqual(page.data.first?.id, "subscription-1")
         XCTAssertEqual(page.data.first?.status, .enabled)
         XCTAssertEqual(page.data.first?.transport.method, .websocket)
-        XCTAssertEqual(page.data.first?.transport.sessionId, "session-id")
+        XCTAssertEqual(page.data.first?.transport.sessionID, "session-id")
 
         let requests = await transport.recordedRequests()
         XCTAssertEqual(
@@ -1098,7 +1098,7 @@ final class HTTPClientTests: XCTestCase {
         }
     }
 
-    func test_deleteEventSubSubscriptionUsesDeleteMethodAndIdQuery() async throws {
+    func test_deleteEventSubSubscriptionUsesDeleteMethodAndIDQuery() async throws {
         let transport = MockHTTPClient(responses: [
             .json(statusCode: 204, body: "")
         ])
@@ -1696,7 +1696,7 @@ final class HTTPClientTests: XCTestCase {
 
         let page = try await api.fetchChannelStreamSchedulePage(broadcasterID: "141981764")
 
-        XCTAssertEqual(page.schedule.broadcasterId, "141981764")
+        XCTAssertEqual(page.schedule.broadcasterID, "141981764")
         XCTAssertEqual(page.schedule.broadcasterLogin, "twitchdev")
         XCTAssertEqual(page.schedule.segments.map(\.id), ["segment-1"])
         XCTAssertEqual(page.schedule.segments.first?.isRecurring, true)
@@ -1986,7 +1986,7 @@ final class HTTPClientTests: XCTestCase {
 
         let page = try await api.fetchExtensionLiveChannelsPage(extensionID: "ext", after: "cursor-value")
 
-        XCTAssertEqual(page.data.map(\.broadcasterId), ["1"])
+        XCTAssertEqual(page.data.map(\.broadcasterID), ["1"])
         XCTAssertNil(page.pagination)
         let requests = await transport.recordedRequests()
         XCTAssertEqual(

@@ -268,17 +268,17 @@ private struct ChatAnnouncementRequest: Encodable {
 
 /// A user connected to a broadcaster's chat session.
 public struct TwitchChatter: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
     }
@@ -286,7 +286,7 @@ public struct TwitchChatter: Decodable, Sendable, Equatable {
 
 /// Chat settings for a broadcaster.
 public struct ChatSettings: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let emoteMode: Bool
     public let followerMode: Bool
     public let followerModeDuration: Int?
@@ -299,7 +299,7 @@ public struct ChatSettings: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         emoteMode: Bool,
         followerMode: Bool,
         followerModeDuration: Int? = nil,
@@ -310,7 +310,7 @@ public struct ChatSettings: Decodable, Sendable, Equatable {
         subscriberMode: Bool,
         uniqueChatMode: Bool
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.emoteMode = emoteMode
         self.followerMode = followerMode
         self.followerModeDuration = followerModeDuration
@@ -369,54 +369,54 @@ public enum ChatAnnouncementColor: String, Sendable, Equatable {
 
 /// A shared chat session.
 public struct SharedChatSession: Decodable, Sendable, Equatable {
-    public let sessionId: String
-    public let hostBroadcasterId: String
+    public let sessionID: String
+    public let hostBroadcasterID: String
     public let participants: [Participant]
     public let createdAt: Date
     public let updatedAt: Date
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        sessionId: String,
-        hostBroadcasterId: String,
+        sessionID: String,
+        hostBroadcasterID: String,
         participants: [Participant],
         createdAt: Date,
         updatedAt: Date
     ) {
-        self.sessionId = sessionId
-        self.hostBroadcasterId = hostBroadcasterId
+        self.sessionID = sessionID
+        self.hostBroadcasterID = hostBroadcasterID
         self.participants = participants
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
 
     public struct Participant: Decodable, Sendable, Equatable {
-        public let broadcasterId: String
+        public let broadcasterID: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            broadcasterId: String
+            broadcasterID: String
         ) {
-            self.broadcasterId = broadcasterId
+            self.broadcasterID = broadcasterID
         }
     }
 }
 
 /// The chat color for a user.
 public struct UserChatColor: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let color: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         color: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.color = color
@@ -425,12 +425,12 @@ public struct UserChatColor: Decodable, Sendable, Equatable {
 
 /// A pinned chat message.
 public struct PinnedChatMessage: Decodable, Sendable, Equatable {
-    public let messageId: String
-    public let broadcasterId: String
-    public let senderUserId: String
+    public let messageID: String
+    public let broadcasterID: String
+    public let senderUserID: String
     public let senderUserLogin: String
     public let senderUserName: String
-    public let pinnedByUserId: String
+    public let pinnedByUserID: String
     public let pinnedByUserLogin: String
     public let pinnedByUserName: String
     public let message: ChatMessage.ChatMessageBody
@@ -440,12 +440,12 @@ public struct PinnedChatMessage: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        messageId: String,
-        broadcasterId: String,
-        senderUserId: String,
+        messageID: String,
+        broadcasterID: String,
+        senderUserID: String,
         senderUserLogin: String,
         senderUserName: String,
-        pinnedByUserId: String,
+        pinnedByUserID: String,
         pinnedByUserLogin: String,
         pinnedByUserName: String,
         message: ChatMessage.ChatMessageBody,
@@ -453,12 +453,12 @@ public struct PinnedChatMessage: Decodable, Sendable, Equatable {
         endsAt: Date? = nil,
         updatedAt: Date
     ) {
-        self.messageId = messageId
-        self.broadcasterId = broadcasterId
-        self.senderUserId = senderUserId
+        self.messageID = messageID
+        self.broadcasterID = broadcasterID
+        self.senderUserID = senderUserID
         self.senderUserLogin = senderUserLogin
         self.senderUserName = senderUserName
-        self.pinnedByUserId = pinnedByUserId
+        self.pinnedByUserID = pinnedByUserID
         self.pinnedByUserLogin = pinnedByUserLogin
         self.pinnedByUserName = pinnedByUserName
         self.message = message

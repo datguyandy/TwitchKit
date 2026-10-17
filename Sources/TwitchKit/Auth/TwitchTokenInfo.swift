@@ -72,8 +72,8 @@ public struct TwitchTokenInfo: Sendable, Equatable {
     /// app access tokens omit the user fields, and Twitch sends `null`
     /// scopes for some tokens.
     struct ValidateResponse: Decodable {
-        let clientId: String?
-        let userId: String?
+        let clientID: String?
+        let userID: String?
         let login: String?
         let scopes: [String]?
         let expiresIn: Int?
@@ -81,8 +81,8 @@ public struct TwitchTokenInfo: Sendable, Equatable {
 
     init(validateResponse body: ValidateResponse, validatedAt: Date) {
         self.init(
-            clientID: body.clientId,
-            userID: body.userId,
+            clientID: body.clientID,
+            userID: body.userID,
             login: body.login,
             scopes: (body.scopes ?? []).map { TwitchScope($0) },
             expiresIn: body.expiresIn ?? 0,

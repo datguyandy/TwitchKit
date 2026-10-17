@@ -140,22 +140,22 @@ public enum AnalyticsReportType: String, Sendable, Equatable {
 }
 
 public struct AnalyticsReport: Decodable, Sendable, Equatable {
-    public let extensionId: String?
-    public let gameId: String?
+    public let extensionID: String?
+    public let gameID: String?
     public let url: String
     public let type: String
     public let dateRange: DateRange
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        extensionId: String? = nil,
-        gameId: String? = nil,
+        extensionID: String? = nil,
+        gameID: String? = nil,
         url: String,
         type: String,
         dateRange: DateRange
     ) {
-        self.extensionId = extensionId
-        self.gameId = gameId
+        self.extensionID = extensionID
+        self.gameID = gameID
         self.url = url
         self.type = type
         self.dateRange = dateRange
@@ -176,7 +176,7 @@ public struct AnalyticsReport: Decodable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case extensionId, gameId, type, dateRange
+        case extensionID, gameID, type, dateRange
         // Twitch sends the download link as uppercase `URL`, which
         // `.convertFromSnakeCase` leaves untouched, so a synthesized `url`
         // key never matches. Accept a lowercase `url` as well.
@@ -186,8 +186,8 @@ public struct AnalyticsReport: Decodable, Sendable, Equatable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        extensionId = try container.decodeIfPresent(String.self, forKey: .extensionId)
-        gameId = try container.decodeIfPresent(String.self, forKey: .gameId)
+        extensionID = try container.decodeIfPresent(String.self, forKey: .extensionID)
+        gameID = try container.decodeIfPresent(String.self, forKey: .gameID)
         url = try container.decodeIfPresent(String.self, forKey: .uppercaseURL)
             ?? container.decode(String.self, forKey: .url)
         type = try container.decode(String.self, forKey: .type)
@@ -251,7 +251,7 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
     }
 
     public struct Entry: Decodable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let rank: Int
@@ -259,13 +259,13 @@ public struct BitsLeaderboard: Decodable, Sendable, Equatable {
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             rank: Int,
             score: Int
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.rank = rank
@@ -392,7 +392,7 @@ public struct Cheermote: Decodable, Sendable, Equatable {
 
 public struct CustomPowerUp: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let bits: Int
@@ -417,7 +417,7 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         bits: Int,
@@ -437,7 +437,7 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
         cooldownExpiresAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.bits = bits
@@ -461,10 +461,10 @@ public struct CustomPowerUp: Decodable, Sendable, Equatable {
 public struct ExtensionTransaction: Decodable, Sendable, Equatable {
     public let id: String
     public let timestamp: Date
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String?
     public let broadcasterName: String?
-    public let userId: String
+    public let userID: String
     public let userLogin: String?
     public let userName: String?
     public let productType: String
@@ -474,10 +474,10 @@ public struct ExtensionTransaction: Decodable, Sendable, Equatable {
     public init(
         id: String,
         timestamp: Date,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String? = nil,
         broadcasterName: String? = nil,
-        userId: String,
+        userID: String,
         userLogin: String? = nil,
         userName: String? = nil,
         productType: String,
@@ -485,10 +485,10 @@ public struct ExtensionTransaction: Decodable, Sendable, Equatable {
     ) {
         self.id = id
         self.timestamp = timestamp
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.productType = productType

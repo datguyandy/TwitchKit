@@ -313,7 +313,7 @@ final class SecurityHardeningTests: XCTestCase {
     func test_secretsAreRedactedFromDescriptionsAndDumps() throws {
         let token = OAuthToken(accessToken: "secret-access-token", refreshToken: "secret-refresh-token", expiresIn: 60, scope: ["user:read:chat"], tokenType: "bearer")
         let client = TwitchOAuthClient(clientID: "client-id", clientSecret: "secret-client-secret")
-        let device = DeviceCodeAuthorization(deviceCode: "secret-device-code", expiresIn: 1800, interval: 5, userCode: "ABCDEFGH", verificationUri: "https://www.twitch.tv/activate")
+        let device = DeviceCodeAuthorization(deviceCode: "secret-device-code", expiresIn: 1800, interval: 5, userCode: "ABCDEFGH", verificationURI: "https://www.twitch.tv/activate")
         let callback = TwitchOAuthCallback.accessToken(token, idToken: "secret-id-token")
         let code = TwitchOAuthCallback.authorizationCode("secret-auth-code", scopes: [])
         let transport = EventSubSubscriptionTransport.webhook(callback: URL(string: "https://example.com/eventsub")!, secret: "secret-webhook-secret")

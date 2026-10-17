@@ -93,13 +93,13 @@ public struct SearchChannel: Decodable, Sendable, Equatable {
     public let broadcasterLanguage: String
     public let broadcasterLogin: String
     public let displayName: String
-    public let gameId: String
+    public let gameID: String
     public let gameName: String
     public let id: String
     public let isLive: Bool
-    public let tagIds: [String]
+    public let tagIDs: [String]
     public let tags: [String]
-    public let thumbnailUrl: String
+    public let thumbnailURL: String
     public let title: String
     public let startedAt: Date?
 
@@ -108,33 +108,33 @@ public struct SearchChannel: Decodable, Sendable, Equatable {
         broadcasterLanguage: String,
         broadcasterLogin: String,
         displayName: String,
-        gameId: String,
+        gameID: String,
         gameName: String,
         id: String,
         isLive: Bool,
-        tagIds: [String],
+        tagIDs: [String],
         tags: [String],
-        thumbnailUrl: String,
+        thumbnailURL: String,
         title: String,
         startedAt: Date? = nil
     ) {
         self.broadcasterLanguage = broadcasterLanguage
         self.broadcasterLogin = broadcasterLogin
         self.displayName = displayName
-        self.gameId = gameId
+        self.gameID = gameID
         self.gameName = gameName
         self.id = id
         self.isLive = isLive
-        self.tagIds = tagIds
+        self.tagIDs = tagIDs
         self.tags = tags
-        self.thumbnailUrl = thumbnailUrl
+        self.thumbnailURL = thumbnailURL
         self.title = title
         self.startedAt = startedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case broadcasterLanguage, broadcasterLogin, displayName, gameId
-        case gameName, id, isLive, tagIds, tags, thumbnailUrl, title, startedAt
+        case broadcasterLanguage, broadcasterLogin, displayName, gameID
+        case gameName, id, isLive, tagIDs, tags, thumbnailURL, title, startedAt
     }
 
     /// Custom decoding solely for `startedAt`: Twitch sends
@@ -149,14 +149,14 @@ public struct SearchChannel: Decodable, Sendable, Equatable {
         broadcasterLanguage = try container.decode(String.self, forKey: .broadcasterLanguage)
         broadcasterLogin = try container.decode(String.self, forKey: .broadcasterLogin)
         displayName = try container.decode(String.self, forKey: .displayName)
-        gameId = try container.decode(String.self, forKey: .gameId)
+        gameID = try container.decode(String.self, forKey: .gameID)
         gameName = try container.decode(String.self, forKey: .gameName)
         id = try container.decode(String.self, forKey: .id)
         isLive = try container.decode(Bool.self, forKey: .isLive)
         // tag_ids is deprecated upstream; tolerate it disappearing.
-        tagIds = try container.decodeIfPresent([String].self, forKey: .tagIds) ?? []
+        tagIDs = try container.decodeIfPresent([String].self, forKey: .tagIDs) ?? []
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        thumbnailUrl = try container.decode(String.self, forKey: .thumbnailUrl)
+        thumbnailURL = try container.decode(String.self, forKey: .thumbnailURL)
         title = try container.decode(String.self, forKey: .title)
         let rawStartedAt = try container.decodeIfPresent(String.self, forKey: .startedAt)
         startedAt = rawStartedAt.flatMap(TwitchDateParser.date(from:))

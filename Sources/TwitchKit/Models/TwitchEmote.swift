@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Used by both the global emotes endpoint (`GET /chat/emotes/global`) and
 /// channel emotes endpoint (`GET /chat/emotes?broadcaster_id=`).
-/// Channel emotes include extra fields (`tier`, `emoteType`, `emoteSetId`)
+/// Channel emotes include extra fields (`tier`, `emoteType`, `emoteSetID`)
 /// that are absent from global emotes.
 ///
 /// Use the `template` URL with `id`, `format`, `scale`, and `themeMode`
@@ -57,7 +57,7 @@ public struct TwitchEmote: Codable, Sendable, Equatable, Identifiable {
     public let emoteType: String?
 
     /// ID of the emote set this emote belongs to. Nil for global emotes.
-    public let emoteSetId: String?
+    public let emoteSetID: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -70,7 +70,7 @@ public struct TwitchEmote: Codable, Sendable, Equatable, Identifiable {
         template: String? = nil,
         tier: String? = nil,
         emoteType: String? = nil,
-        emoteSetId: String? = nil
+        emoteSetID: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -81,7 +81,7 @@ public struct TwitchEmote: Codable, Sendable, Equatable, Identifiable {
         self.template = template
         self.tier = tier
         self.emoteType = emoteType
-        self.emoteSetId = emoteSetId
+        self.emoteSetID = emoteSetID
     }
 
     /// Constructs a CDN URL for this emote with the given display preferences.

@@ -25,8 +25,8 @@ extension HelixClient {
             endpoint: "moderation/automod/message",
             method: "POST",
             body: try JSONEncoder.twitch().encode(HeldAutoModMessageRequest(
-                userId: userID,
-                msgId: messageID,
+                userID: userID,
+                msgID: messageID,
                 action: action.rawValue
             ))
         )
@@ -112,7 +112,7 @@ extension HelixClient {
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ],
             body: try JSONEncoder.twitch().encode(BanUserRequest(data: BanUserRequest.DataBody(
-                userId: userID,
+                userID: userID,
                 duration: duration,
                 reason: reason
             )))
@@ -511,7 +511,7 @@ extension HelixClient {
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ],
             body: try JSONEncoder.twitch().encode(ChatWarningRequest(data: ChatWarningRequest.DataBody(
-                userId: userID,
+                userID: userID,
                 reason: reason
             )))
         )
@@ -533,7 +533,7 @@ extension HelixClient {
                 URLQueryItem(name: "broadcaster_id", value: broadcasterID),
                 URLQueryItem(name: "moderator_id", value: moderatorID),
             ],
-            body: try JSONEncoder.twitch().encode(SuspiciousUserStatusRequest(userId: userID, status: status.rawValue))
+            body: try JSONEncoder.twitch().encode(SuspiciousUserStatusRequest(userID: userID, status: status.rawValue))
         )
         guard let action = response.data.first else { throw HelixError.emptyResponse }
         return action
@@ -564,8 +564,8 @@ private struct AutoModStatusRequest: Encodable {
 }
 
 private struct HeldAutoModMessageRequest: Encodable {
-    let userId: String
-    let msgId: String
+    let userID: String
+    let msgID: String
     let action: String
 }
 
@@ -573,7 +573,7 @@ private struct BanUserRequest: Encodable {
     let data: DataBody
 
     struct DataBody: Encodable {
-        let userId: String
+        let userID: String
         let duration: Int?
         let reason: String?
     }
@@ -591,38 +591,38 @@ private struct ChatWarningRequest: Encodable {
     let data: DataBody
 
     struct DataBody: Encodable {
-        let userId: String
+        let userID: String
         let reason: String
     }
 }
 
 private struct SuspiciousUserStatusRequest: Encodable {
-    let userId: String
+    let userID: String
     let status: String
 }
 
 /// A message to check with AutoMod.
 public struct AutoModMessage: Encodable, Sendable, Equatable {
-    public let msgId: String
+    public let msgID: String
     public let msgText: String
 
-    public init(msgID msgId: String, msgText: String) {
-        self.msgId = msgId
+    public init(msgID: String, msgText: String) {
+        self.msgID = msgID
         self.msgText = msgText
     }
 }
 
 /// AutoMod's decision for a checked message.
 public struct AutoModStatus: Decodable, Sendable, Equatable {
-    public let msgId: String
+    public let msgID: String
     public let isPermitted: Bool
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        msgId: String,
+        msgID: String,
         isPermitted: Bool
     ) {
-        self.msgId = msgId
+        self.msgID = msgID
         self.isPermitted = isPermitted
     }
 }
@@ -635,8 +635,8 @@ public enum HeldAutoModMessageAction: String, Sendable, Equatable {
 
 /// A broadcaster's AutoMod settings.
 public struct AutoModSettings: Codable, Sendable, Equatable {
-    public let broadcasterId: String
-    public let moderatorId: String
+    public let broadcasterID: String
+    public let moderatorID: String
     public let overallLevel: Int?
     public let disability: Int
     public let aggression: Int
@@ -649,8 +649,8 @@ public struct AutoModSettings: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
-        moderatorId: String,
+        broadcasterID: String,
+        moderatorID: String,
         overallLevel: Int? = nil,
         disability: Int,
         aggression: Int,
@@ -661,8 +661,8 @@ public struct AutoModSettings: Codable, Sendable, Equatable {
         raceEthnicityOrReligion: Int,
         sexBasedTerms: Int
     ) {
-        self.broadcasterId = broadcasterId
-        self.moderatorId = moderatorId
+        self.broadcasterID = broadcasterID
+        self.moderatorID = moderatorID
         self.overallLevel = overallLevel
         self.disability = disability
         self.aggression = aggression
@@ -712,35 +712,35 @@ public struct AutoModSettingsUpdate: Encodable, Sendable, Equatable {
 
 /// A banned or timed-out user.
 public struct BannedUser: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let expiresAt: String?
     public let createdAt: Date
     public let reason: String
-    public let moderatorId: String
+    public let moderatorID: String
     public let moderatorLogin: String
     public let moderatorName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         expiresAt: String? = nil,
         createdAt: Date,
         reason: String,
-        moderatorId: String,
+        moderatorID: String,
         moderatorLogin: String,
         moderatorName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.expiresAt = expiresAt
         self.createdAt = createdAt
         self.reason = reason
-        self.moderatorId = moderatorId
+        self.moderatorID = moderatorID
         self.moderatorLogin = moderatorLogin
         self.moderatorName = moderatorName
     }
@@ -752,13 +752,13 @@ public struct BannedUser: Decodable, Sendable, Equatable {
 /// Get Banned Users when you need login names, display names, or the reason.
 public struct BanUserResponse: Decodable, Sendable, Equatable {
     /// The broadcaster whose chat the user was banned from.
-    public let broadcasterId: String
+    public let broadcasterID: String
 
     /// The moderator that applied the ban or timeout.
-    public let moderatorId: String
+    public let moderatorID: String
 
     /// The user that was banned or timed out.
-    public let userId: String
+    public let userID: String
 
     /// When the ban or timeout was applied.
     public let createdAt: Date
@@ -771,30 +771,30 @@ public struct BanUserResponse: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
-        moderatorId: String,
-        userId: String,
+        broadcasterID: String,
+        moderatorID: String,
+        userID: String,
         createdAt: Date,
         endTime: Date? = nil
     ) {
-        self.broadcasterId = broadcasterId
-        self.moderatorId = moderatorId
-        self.userId = userId
+        self.broadcasterID = broadcasterID
+        self.moderatorID = moderatorID
+        self.userID = userID
         self.createdAt = createdAt
         self.endTime = endTime
     }
 
     private enum CodingKeys: String, CodingKey {
-        case broadcasterId, moderatorId, userId, createdAt, endTime
+        case broadcasterID, moderatorID, userID, createdAt, endTime
     }
 
     /// Custom decoding solely for `endTime`: Twitch sends `null` for a
     /// permanent ban. Decoding the raw string also tolerates an empty string.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        broadcasterId = try container.decode(String.self, forKey: .broadcasterId)
-        moderatorId = try container.decode(String.self, forKey: .moderatorId)
-        userId = try container.decode(String.self, forKey: .userId)
+        broadcasterID = try container.decode(String.self, forKey: .broadcasterID)
+        moderatorID = try container.decode(String.self, forKey: .moderatorID)
+        userID = try container.decode(String.self, forKey: .userID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         endTime = try container.decodeIfPresent(String.self, forKey: .endTime)
             .flatMap(TwitchDateParser.date(from:))
@@ -814,10 +814,10 @@ public enum UnbanRequestResolutionStatus: String, Sendable, Equatable {
 /// An unban request.
 public struct UnbanRequest: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let text: String
@@ -825,17 +825,17 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
     public let createdAt: Date
     public let resolvedAt: Date?
     public let resolutionText: String?
-    public let moderatorId: String?
+    public let moderatorID: String?
     public let moderatorLogin: String?
     public let moderatorName: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         text: String,
@@ -843,15 +843,15 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
         createdAt: Date,
         resolvedAt: Date? = nil,
         resolutionText: String? = nil,
-        moderatorId: String? = nil,
+        moderatorID: String? = nil,
         moderatorLogin: String? = nil,
         moderatorName: String? = nil
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.text = text
@@ -859,7 +859,7 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
         self.createdAt = createdAt
         self.resolvedAt = resolvedAt
         self.resolutionText = resolutionText
-        self.moderatorId = moderatorId
+        self.moderatorID = moderatorID
         self.moderatorLogin = moderatorLogin
         self.moderatorName = moderatorName
     }
@@ -867,8 +867,8 @@ public struct UnbanRequest: Decodable, Sendable, Equatable {
 
 /// A blocked term.
 public struct BlockedTerm: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
-    public let moderatorId: String
+    public let broadcasterID: String
+    public let moderatorID: String
     public let id: String
     public let text: String
     public let createdAt: Date
@@ -877,16 +877,16 @@ public struct BlockedTerm: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
-        moderatorId: String,
+        broadcasterID: String,
+        moderatorID: String,
         id: String,
         text: String,
         createdAt: Date,
         updatedAt: Date,
         expiresAt: Date? = nil
     ) {
-        self.broadcasterId = broadcasterId
-        self.moderatorId = moderatorId
+        self.broadcasterID = broadcasterID
+        self.moderatorID = moderatorID
         self.id = id
         self.text = text
         self.createdAt = createdAt
@@ -897,17 +897,17 @@ public struct BlockedTerm: Decodable, Sendable, Equatable {
 
 /// A channel moderated by a user.
 public struct ModeratedChannel: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
     }
@@ -915,17 +915,17 @@ public struct ModeratedChannel: Decodable, Sendable, Equatable {
 
 /// A moderator user.
 public struct ModeratorUser: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
     }
@@ -933,17 +933,17 @@ public struct ModeratorUser: Decodable, Sendable, Equatable {
 
 /// A VIP user.
 public struct VIPUser: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
     }
@@ -952,7 +952,7 @@ public struct VIPUser: Decodable, Sendable, Equatable {
 /// Shield Mode status for a broadcaster.
 public struct ShieldModeStatus: Decodable, Sendable, Equatable {
     public let isActive: Bool
-    public let moderatorId: String
+    public let moderatorID: String
     public let moderatorName: String
     public let moderatorLogin: String
 
@@ -963,20 +963,20 @@ public struct ShieldModeStatus: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         isActive: Bool,
-        moderatorId: String,
+        moderatorID: String,
         moderatorName: String,
         moderatorLogin: String,
         lastActivatedAt: Date? = nil
     ) {
         self.isActive = isActive
-        self.moderatorId = moderatorId
+        self.moderatorID = moderatorID
         self.moderatorName = moderatorName
         self.moderatorLogin = moderatorLogin
         self.lastActivatedAt = lastActivatedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case isActive, moderatorId, moderatorName, moderatorLogin, lastActivatedAt
+        case isActive, moderatorID, moderatorName, moderatorLogin, lastActivatedAt
     }
 
     /// Custom decoding solely for `lastActivatedAt`: Twitch sends
@@ -987,7 +987,7 @@ public struct ShieldModeStatus: Decodable, Sendable, Equatable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         isActive = try container.decode(Bool.self, forKey: .isActive)
-        moderatorId = try container.decode(String.self, forKey: .moderatorId)
+        moderatorID = try container.decode(String.self, forKey: .moderatorID)
         moderatorName = try container.decode(String.self, forKey: .moderatorName)
         moderatorLogin = try container.decode(String.self, forKey: .moderatorLogin)
         let rawLastActivatedAt = try container.decodeIfPresent(String.self, forKey: .lastActivatedAt)
@@ -997,46 +997,46 @@ public struct ShieldModeStatus: Decodable, Sendable, Equatable {
 
 /// A warning applied to a chat user.
 public struct ChatWarning: Decodable, Sendable, Equatable {
-    public let broadcasterId: String
-    public let userId: String
-    public let moderatorId: String
+    public let broadcasterID: String
+    public let userID: String
+    public let moderatorID: String
     public let reason: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
-        userId: String,
-        moderatorId: String,
+        broadcasterID: String,
+        userID: String,
+        moderatorID: String,
         reason: String
     ) {
-        self.broadcasterId = broadcasterId
-        self.userId = userId
-        self.moderatorId = moderatorId
+        self.broadcasterID = broadcasterID
+        self.userID = userID
+        self.moderatorID = moderatorID
         self.reason = reason
     }
 }
 
 /// Result of applying or removing suspicious-user status.
 public struct SuspiciousUserAction: Decodable, Sendable, Equatable {
-    public let userId: String
-    public let broadcasterId: String
-    public let moderatorId: String
+    public let userID: String
+    public let broadcasterID: String
+    public let moderatorID: String
     public let updatedAt: Date
     public let status: SuspiciousUserStatus
     public let types: [String]
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
-        broadcasterId: String,
-        moderatorId: String,
+        userID: String,
+        broadcasterID: String,
+        moderatorID: String,
         updatedAt: Date,
         status: SuspiciousUserStatus,
         types: [String]
     ) {
-        self.userId = userId
-        self.broadcasterId = broadcasterId
-        self.moderatorId = moderatorId
+        self.userID = userID
+        self.broadcasterID = broadcasterID
+        self.moderatorID = moderatorID
         self.updatedAt = updatedAt
         self.status = status
         self.types = types

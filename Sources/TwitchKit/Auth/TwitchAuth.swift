@@ -307,7 +307,7 @@ public struct DeviceCodeAuthorization: Decodable, Sendable, Equatable {
     public let expiresIn: Int
     public let interval: Int
     public let userCode: String
-    public let verificationUri: String
+    public let verificationURI: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -315,23 +315,23 @@ public struct DeviceCodeAuthorization: Decodable, Sendable, Equatable {
         expiresIn: Int,
         interval: Int,
         userCode: String,
-        verificationUri: String
+        verificationURI: String
     ) {
         self.deviceCode = deviceCode
         self.expiresIn = expiresIn
         self.interval = interval
         self.userCode = userCode
-        self.verificationUri = verificationUri
+        self.verificationURI = verificationURI
     }
 
     public var verificationURL: URL? {
-        URL(string: verificationUri)
+        URL(string: verificationURI)
     }
 }
 
 extension DeviceCodeAuthorization: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
     public var description: String {
-        "DeviceCodeAuthorization(deviceCode: \(redactedPlaceholder), expiresIn: \(expiresIn), interval: \(interval), userCode: \(userCode), verificationUri: \(verificationUri))"
+        "DeviceCodeAuthorization(deviceCode: \(redactedPlaceholder), expiresIn: \(expiresIn), interval: \(interval), userCode: \(userCode), verificationURI: \(verificationURI))"
     }
 
     public var debugDescription: String { description }
@@ -344,7 +344,7 @@ extension DeviceCodeAuthorization: CustomStringConvertible, CustomDebugStringCon
                 "expiresIn": expiresIn,
                 "interval": interval,
                 "userCode": userCode,
-                "verificationUri": verificationUri,
+                "verificationURI": verificationURI,
             ],
             displayStyle: .struct
         )
@@ -401,22 +401,22 @@ public actor TwitchAuth: TwitchAccessTokenProvider {
     public static let defaultScopes = defaultScopeCases.map(\.rawValue)
 
     public init(
-        clientID clientId: String,
+        clientID: String,
         clientSecret: String? = nil,
-        redirectURI redirectUri: String = TwitchAuth.redirectURI,
+        redirectURI: String = TwitchAuth.redirectURI,
         tokenNamespace: String? = nil,
         httpClient: any HTTPClient = URLSessionHTTPClient()
     ) {
         let oauthClient = TwitchOAuthClient(
-            clientID: clientId,
+            clientID: clientID,
             clientSecret: clientSecret,
-            redirectURI: redirectUri,
+            redirectURI: redirectURI,
             httpClient: httpClient
         )
         self.oauthClient = oauthClient
         self.tokenProvider = TwitchTokenProvider(
             oauthClient: oauthClient,
-            tokenStore: KeychainTokenStore(clientID: clientId, namespace: tokenNamespace)
+            tokenStore: KeychainTokenStore(clientID: clientID, namespace: tokenNamespace)
         )
     }
 

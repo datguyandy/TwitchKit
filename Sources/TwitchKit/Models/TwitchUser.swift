@@ -17,7 +17,7 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
     public let displayName: String
 
     /// URL to the user's profile image (300x300).
-    public let profileImageUrl: String
+    public let profileImageURL: String
 
     /// User's email address. Only populated if the `user:read:email` scope was granted.
     public let email: String?
@@ -29,7 +29,7 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
     public let description: String?
 
     /// URL to the user's offline banner image.
-    public let offlineImageUrl: String?
+    public let offlineImageURL: String?
 
     /// Account creation date.
     public let createdAt: Date?
@@ -43,22 +43,22 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
         id: String,
         login: String,
         displayName: String,
-        profileImageUrl: String,
+        profileImageURL: String,
         email: String? = nil,
         broadcasterType: String,
         description: String? = nil,
-        offlineImageUrl: String? = nil,
+        offlineImageURL: String? = nil,
         createdAt: Date? = nil,
         type: TwitchUserType? = nil
     ) {
         self.id = id
         self.login = login
         self.displayName = displayName
-        self.profileImageUrl = profileImageUrl
+        self.profileImageURL = profileImageURL
         self.email = email
         self.broadcasterType = broadcasterType
         self.description = description
-        self.offlineImageUrl = offlineImageUrl
+        self.offlineImageURL = offlineImageURL
         self.createdAt = createdAt
         self.type = type
     }

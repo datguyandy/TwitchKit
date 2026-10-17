@@ -9,7 +9,7 @@ import Foundation
 /// - SeeAlso: [channel.follow EventSub](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelfollow)
 public struct TwitchFollow: Codable, Sendable, Equatable {
     /// ID of the user who followed.
-    public let userId: String
+    public let userID: String
 
     /// Login name of the user who followed.
     public let userLogin: String?
@@ -18,7 +18,7 @@ public struct TwitchFollow: Codable, Sendable, Equatable {
     public let userName: String
 
     /// ID of the broadcaster who was followed.
-    public let broadcasterUserId: String?
+    public let broadcasterUserID: String?
 
     /// Login name of the broadcaster who was followed.
     public let broadcasterUserLogin: String?
@@ -31,19 +31,19 @@ public struct TwitchFollow: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String? = nil,
         userName: String,
         followedAt: Date,
-        broadcasterUserId: String? = nil,
+        broadcasterUserID: String? = nil,
         broadcasterUserLogin: String? = nil,
         broadcasterUserName: String? = nil
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.followedAt = followedAt
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }

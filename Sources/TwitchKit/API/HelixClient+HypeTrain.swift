@@ -3,13 +3,13 @@ import Foundation
 extension HelixClient {
     /// Gets the current Hype Train status for a broadcaster.
     ///
-    /// - Parameter broadcasterId: The broadcaster's user ID.
+    /// - Parameter broadcasterID: The broadcaster's user ID.
     /// - Returns: Hype Train status, or `nil` if no status is returned.
     /// - SeeAlso: [Get Hype Train Status](https://dev.twitch.tv/docs/api/reference/#get-hype-train-status)
-    public func fetchHypeTrainStatus(broadcasterID broadcasterId: String) async throws -> HypeTrainStatus? {
+    public func fetchHypeTrainStatus(broadcasterID: String) async throws -> HypeTrainStatus? {
         let response: HelixResponse<HypeTrainStatus> = try await request(
             endpoint: "hypetrain/status",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
         return response.data.first
     }
@@ -34,7 +34,7 @@ public struct HypeTrainStatus: Decodable, Sendable, Equatable {
 
 public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let total: Int
@@ -51,7 +51,7 @@ public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         total: Int,
@@ -66,7 +66,7 @@ public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
         sharedTrainParticipants: [HypeTrainParticipant]? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.total = total
@@ -83,7 +83,7 @@ public struct HypeTrainCurrent: Decodable, Sendable, Equatable {
 }
 
 public struct HypeTrainContribution: Decodable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let type: String
@@ -91,13 +91,13 @@ public struct HypeTrainContribution: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         type: String,
         total: Int
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.type = type
@@ -106,17 +106,17 @@ public struct HypeTrainContribution: Decodable, Sendable, Equatable {
 }
 
 public struct HypeTrainParticipant: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }

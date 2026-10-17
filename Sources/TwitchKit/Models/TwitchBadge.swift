@@ -30,9 +30,9 @@ import Foundation
 public struct TwitchBadgeSet: Codable, Sendable, Equatable, Identifiable {
     /// Badge set identifier (e.g., "subscriber", "moderator", "vip", "bits").
     /// Matches `set_id` in chat message badge references.
-    public let setId: String
+    public let setID: String
 
-    public var id: String { setId }
+    public var id: String { setID }
 
     /// All versions of this badge. For subscriber badges, each version
     /// corresponds to a tenure milestone (0, 3, 6, 12 months, etc.).
@@ -40,10 +40,10 @@ public struct TwitchBadgeSet: Codable, Sendable, Equatable, Identifiable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        setId: String,
+        setID: String,
         versions: [TwitchBadge]
     ) {
-        self.setId = setId
+        self.setID = setID
         self.versions = versions
     }
 }
@@ -58,24 +58,24 @@ public struct TwitchBadge: Codable, Sendable, Equatable, Identifiable {
     public let id: String
 
     /// Small badge image (18x18 pixels).
-    public let imageUrl1x: String
+    public let imageURL1x: String
 
     /// Medium badge image (36x36 pixels).
-    public let imageUrl2x: String
+    public let imageURL2x: String
 
     /// Large badge image (72x72 pixels).
-    public let imageUrl4x: String
+    public let imageURL4x: String
 
-    /// Custom coding keys — `.convertFromSnakeCase` turns `image_url_1x` into `imageUrl1X`
-    /// (capital X), but our properties use lowercase `imageUrl1x`. Since the decoder applies
-    /// snake_case conversion BEFORE matching CodingKeys, the raw values here must be what
+    /// Custom coding keys — the Twitch key strategy turns `image_url_1x` into `imageURL1X`
+    /// (capital X), but our properties use lowercase `imageURL1x`. Since the decoder applies
+    /// key conversion BEFORE matching CodingKeys, the raw values here must be what
     /// the decoder produces AFTER conversion, not the original JSON keys.
     enum CodingKeys: String, CodingKey {
         case id
-        case imageUrl1x = "imageUrl1X"
-        case imageUrl2x = "imageUrl2X"
-        case imageUrl4x = "imageUrl4X"
-        case title, description, clickAction, clickUrl
+        case imageURL1x = "imageURL1X"
+        case imageURL2x = "imageURL2X"
+        case imageURL4x = "imageURL4X"
+        case title, description, clickAction, clickURL
     }
 
     /// Human-readable title (e.g., "Moderator", "6-Month Subscriber").
@@ -88,26 +88,26 @@ public struct TwitchBadge: Codable, Sendable, Equatable, Identifiable {
     public let clickAction: BadgeClickAction?
 
     /// URL opened when the badge is clicked (if `clickAction` is `"visit_url"`).
-    public let clickUrl: String?
+    public let clickURL: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        imageUrl1x: String,
-        imageUrl2x: String,
-        imageUrl4x: String,
+        imageURL1x: String,
+        imageURL2x: String,
+        imageURL4x: String,
         title: String? = nil,
         description: String? = nil,
         clickAction: BadgeClickAction? = nil,
-        clickUrl: String? = nil
+        clickURL: String? = nil
     ) {
         self.id = id
-        self.imageUrl1x = imageUrl1x
-        self.imageUrl2x = imageUrl2x
-        self.imageUrl4x = imageUrl4x
+        self.imageURL1x = imageURL1x
+        self.imageURL2x = imageURL2x
+        self.imageURL4x = imageURL4x
         self.title = title
         self.description = description
         self.clickAction = clickAction
-        self.clickUrl = clickUrl
+        self.clickURL = clickURL
     }
 }

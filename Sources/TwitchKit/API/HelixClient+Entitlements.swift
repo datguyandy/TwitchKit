@@ -67,7 +67,7 @@ extension HelixClient {
             endpoint: "entitlements/drops",
             method: "PATCH",
             body: try JSONEncoder.twitch().encode(DropsEntitlementUpdateRequest(
-                entitlementIds: entitlementIDs,
+                entitlementIDs: entitlementIDs,
                 fulfillmentStatus: fulfillmentStatus.rawValue
             ))
         )
@@ -76,34 +76,34 @@ extension HelixClient {
 }
 
 private struct DropsEntitlementUpdateRequest: Encodable {
-    let entitlementIds: [String]
+    let entitlementIDs: [String]
     let fulfillmentStatus: String
 }
 
 public struct DropsEntitlement: Decodable, Sendable, Equatable {
     public let id: String
-    public let benefitId: String
+    public let benefitID: String
     public let timestamp: Date
-    public let userId: String
-    public let gameId: String
+    public let userID: String
+    public let gameID: String
     public let fulfillmentStatus: DropsEntitlementFulfillmentStatus
     public let lastUpdated: Date
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        benefitId: String,
+        benefitID: String,
         timestamp: Date,
-        userId: String,
-        gameId: String,
+        userID: String,
+        gameID: String,
         fulfillmentStatus: DropsEntitlementFulfillmentStatus,
         lastUpdated: Date
     ) {
         self.id = id
-        self.benefitId = benefitId
+        self.benefitID = benefitID
         self.timestamp = timestamp
-        self.userId = userId
-        self.gameId = gameId
+        self.userID = userID
+        self.gameID = gameID
         self.fulfillmentStatus = fulfillmentStatus
         self.lastUpdated = lastUpdated
     }

@@ -177,7 +177,7 @@ struct TwitchKitSmokeTestCLI {
             senderID: senderID,
             message: message
         )
-        print("Chat message sent: \(response.isSent), id: \(response.messageId)")
+        print("Chat message sent: \(response.isSent), id: \(response.messageID)")
         if let dropReason = response.dropReason {
             print("Drop reason: \(dropReason.code) - \(dropReason.message)")
         }
@@ -198,9 +198,9 @@ struct TwitchKitSmokeTestCLI {
         case .streamOffline(let stream):
             "stream offline: \(stream.broadcasterUserName)"
         case .automodMessageHold(let message):
-            "automod message held: \(message.messageId)"
+            "automod message held: \(message.messageID)"
         case .automodMessageUpdate(let message):
-            "automod message updated: \(message.messageId)"
+            "automod message updated: \(message.messageID)"
         case .automodSettingsUpdate:
             "automod settings updated"
         case .automodTermsUpdate(let event):
@@ -238,27 +238,27 @@ struct TwitchKitSmokeTestCLI {
         case .chatClearUserMessages(let event):
             "chat messages cleared for \(event.targetUserName)"
         case .chatMessageDelete(let event):
-            "chat message deleted: \(event.messageId)"
+            "chat message deleted: \(event.messageID)"
         case .chatNotification(let notification):
             "chat notification: \(notification.noticeType)"
         case .chatUserMessageHold(let event):
-            "chat message held: \(event.messageId)"
+            "chat message held: \(event.messageID)"
         case .chatUserMessageUpdate(let event):
-            "chat message moderation update: \(event.messageId)"
+            "chat message moderation update: \(event.messageID)"
         case .chatSettingsUpdate:
             "chat settings updated"
         case .sharedChatBegin(let session):
-            "shared chat began: \(session.sessionId)"
+            "shared chat began: \(session.sessionID)"
         case .sharedChatUpdate(let session):
-            "shared chat updated: \(session.sessionId)"
+            "shared chat updated: \(session.sessionID)"
         case .sharedChatEnd(let session):
-            "shared chat ended: \(session.sessionId)"
+            "shared chat ended: \(session.sessionID)"
         case .moderate(let event):
             "moderation action: \(event.action)"
         case .guestStarSessionBegin(let session):
-            "Guest Star session began: \(session.sessionId ?? "unknown")"
+            "Guest Star session began: \(session.sessionID ?? "unknown")"
         case .guestStarSessionEnd(let session):
-            "Guest Star session ended: \(session.sessionId ?? "unknown")"
+            "Guest Star session ended: \(session.sessionID ?? "unknown")"
         case .guestStarGuestUpdate(let guest):
             "Guest Star guest updated: \(guest.guestUserName ?? "empty slot")"
         case .guestStarSettingsUpdate:
@@ -330,15 +330,15 @@ struct TwitchKitSmokeTestCLI {
         case .warningSend(let warning):
             "warning sent to \(warning.userName)"
         case .conduitShardDisabled(let shard):
-            "conduit shard disabled: \(shard.shardId)"
+            "conduit shard disabled: \(shard.shardID)"
         case .dropEntitlementGrant(let grant):
             "drop entitlement grant: \(grant.data?.count ?? 0) entitlement(s)"
         case .extensionBitsTransactionCreate(let transaction):
             "extension bits transaction: \(transaction.product.bits) bits"
         case .userAuthorizationGrant(let authorization):
-            "user authorization granted: \(authorization.userName ?? authorization.userId)"
+            "user authorization granted: \(authorization.userName ?? authorization.userID)"
         case .userAuthorizationRevoke(let authorization):
-            "user authorization revoked: \(authorization.userName ?? authorization.userId)"
+            "user authorization revoked: \(authorization.userName ?? authorization.userID)"
         case .userUpdate(let user):
             "user updated: \(user.userName)"
         case .userWhisperMessage(let whisper):

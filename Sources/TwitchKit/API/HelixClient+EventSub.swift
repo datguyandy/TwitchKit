@@ -145,7 +145,7 @@ extension HelixClient {
 
     /// Creates a WebSocket EventSub subscription for the given event type.
     ///
-    /// The `sessionId` comes from the `session_welcome` message received after connecting
+    /// The `sessionID` comes from the `session_welcome` message received after connecting
     /// to `wss://eventsub.wss.twitch.tv/ws`.
     ///
     /// Must be called within 10 seconds of receiving the welcome message.
@@ -154,7 +154,7 @@ extension HelixClient {
     ///   - type: Event type (e.g., `"channel.chat.message"`, `"channel.follow"`).
     ///   - version: Event version (e.g., `"1"`, `"2"`).
     ///   - condition: Event-specific condition fields (e.g., `broadcaster_user_id`, `user_id`).
-    ///   - sessionId: WebSocket session ID from the `session_welcome` message.
+    ///   - sessionID: WebSocket session ID from the `session_welcome` message.
     ///   - isBatchingEnabled: Whether Twitch should batch compatible EventSub notifications.
     /// - Throws: `HelixError.badRequest` if the subscription fails.
     /// - SeeAlso: [Create EventSub Subscription](https://dev.twitch.tv/docs/api/reference/#create-eventsub-subscription)
@@ -163,10 +163,10 @@ extension HelixClient {
         type: String,
         version: String,
         condition: [String: String],
-        sessionID sessionId: String,
+        sessionID: String,
         isBatchingEnabled: Bool? = nil
     ) async throws -> EventSubSubscriptionRecord {
-        guard !sessionId.isEmpty else {
+        guard !sessionID.isEmpty else {
             throw HelixError.badRequest(
                 TwitchAPIError.fallback(status: 400, message: "EventSub WebSocket session ID is required")
             )
@@ -176,7 +176,7 @@ extension HelixClient {
             type: type,
             version: version,
             condition: condition,
-            transport: .websocket(sessionID: sessionId),
+            transport: .websocket(sessionID: sessionID),
             isBatchingEnabled: isBatchingEnabled
         )
     }

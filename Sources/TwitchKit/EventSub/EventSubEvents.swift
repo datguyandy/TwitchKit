@@ -97,32 +97,32 @@ public enum EventSubKnownEventType: String, Sendable, Equatable, CaseIterable {
 }
 
 public struct EventSubChannelUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let title: String
     public let language: String
-    public let categoryId: String
+    public let categoryID: String
     public let categoryName: String
     public let contentClassificationLabels: [String]
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         title: String,
         language: String,
-        categoryId: String,
+        categoryID: String,
         categoryName: String,
         contentClassificationLabels: [String]
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.title = title
         self.language = language
-        self.categoryId = categoryId
+        self.categoryID = categoryID
         self.categoryName = categoryName
         self.contentClassificationLabels = contentClassificationLabels
     }
@@ -130,7 +130,7 @@ public struct EventSubChannelUpdate: Codable, Sendable, Equatable {
 
 public struct EventSubStreamOnline: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let type: TwitchStreamType
@@ -139,14 +139,14 @@ public struct EventSubStreamOnline: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         type: TwitchStreamType,
         startedAt: Date
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.type = type
@@ -156,32 +156,32 @@ public struct EventSubStreamOnline: Codable, Sendable, Equatable {
 
 public struct EventSubStreamOffline: Codable, Sendable, Equatable {
     public let id: String?
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String? = nil,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }
 }
 
 public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let messageId: String
+    public let messageID: String
     public let message: ChatMessage.ChatMessageBody
     public let category: String?
     public let level: Int?
@@ -193,13 +193,13 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        messageId: String,
+        messageID: String,
         message: ChatMessage.ChatMessageBody,
         category: String? = nil,
         level: Int? = nil,
@@ -209,13 +209,13 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
         automod: AutoModDetails? = nil,
         blockedTerm: BlockedTermDetails? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.messageId = messageId
+        self.messageID = messageID
         self.message = message
         self.category = category
         self.level = level
@@ -269,23 +269,23 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
         }
 
         public struct Term: Codable, Sendable, Equatable {
-            public let termId: String
+            public let termID: String
             public let boundary: Boundary
-            public let ownerBroadcasterUserId: String
+            public let ownerBroadcasterUserID: String
             public let ownerBroadcasterUserLogin: String
             public let ownerBroadcasterUserName: String
 
             /// Creates a value directly, for example in tests or SwiftUI previews.
             public init(
-                termId: String,
+                termID: String,
                 boundary: Boundary,
-                ownerBroadcasterUserId: String,
+                ownerBroadcasterUserID: String,
                 ownerBroadcasterUserLogin: String,
                 ownerBroadcasterUserName: String
             ) {
-                self.termId = termId
+                self.termID = termID
                 self.boundary = boundary
-                self.ownerBroadcasterUserId = ownerBroadcasterUserId
+                self.ownerBroadcasterUserID = ownerBroadcasterUserID
                 self.ownerBroadcasterUserLogin = ownerBroadcasterUserLogin
                 self.ownerBroadcasterUserName = ownerBroadcasterUserName
             }
@@ -294,10 +294,10 @@ public struct EventSubAutoModMessage: Decodable, Sendable, Equatable {
 }
 
 public struct EventSubAutoModSettingsUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String?
+    public let moderatorUserID: String?
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
     public let overallLevel: Int?
@@ -312,10 +312,10 @@ public struct EventSubAutoModSettingsUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String? = nil,
+        moderatorUserID: String? = nil,
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
         overallLevel: Int? = nil,
@@ -328,10 +328,10 @@ public struct EventSubAutoModSettingsUpdate: Codable, Sendable, Equatable {
         raceEthnicityOrReligion: Int? = nil,
         sexBasedTerms: Int? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
         self.overallLevel = overallLevel
@@ -347,10 +347,10 @@ public struct EventSubAutoModSettingsUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubAutoModTermsUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String?
+    public let moderatorUserID: String?
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
     public let action: String
@@ -359,20 +359,20 @@ public struct EventSubAutoModTermsUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String? = nil,
+        moderatorUserID: String? = nil,
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
         action: String,
         fromAutomod: Bool? = nil,
         terms: [String]
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
         self.action = action
@@ -382,10 +382,10 @@ public struct EventSubAutoModTermsUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubBitsUse: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let bits: Int
@@ -399,10 +399,10 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         bits: Int,
@@ -411,10 +411,10 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
         powerUp: PowerUp? = nil,
         customPowerUp: CustomPowerUp? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.bits = bits
@@ -431,17 +431,17 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
         /// The emote associated with the Power-up, for example the gigantified emote.
         public let emote: Emote?
         /// The ID of the message effect, for `message_effect` Power-ups.
-        public let messageEffectId: String?
+        public let messageEffectID: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             type: String,
             emote: Emote? = nil,
-            messageEffectId: String? = nil
+            messageEffectID: String? = nil
         ) {
             self.type = type
             self.emote = emote
-            self.messageEffectId = messageEffectId
+            self.messageEffectID = messageEffectID
         }
 
         /// The emote a Power-up applies to. Twitch sends only its ID and token here,
@@ -468,15 +468,15 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
         /// The title of the custom Power-up.
         public let title: String
         /// The ID of the custom Power-up.
-        public let rewardId: String
+        public let rewardID: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             title: String,
-            rewardId: String
+            rewardID: String
         ) {
             self.title = title
-            self.rewardId = rewardId
+            self.rewardID = rewardID
         }
     }
 }
@@ -529,10 +529,10 @@ public enum EventSubBitsUseType: Codable, RawRepresentable, Sendable, Hashable, 
 }
 
 public struct EventSubAdBreakBegin: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let requesterUserId: String?
+    public let requesterUserID: String?
     public let requesterUserLogin: String?
     public let requesterUserName: String?
     public let durationSeconds: Int
@@ -541,20 +541,20 @@ public struct EventSubAdBreakBegin: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        requesterUserId: String? = nil,
+        requesterUserID: String? = nil,
         requesterUserLogin: String? = nil,
         requesterUserName: String? = nil,
         durationSeconds: Int,
         startedAt: Date,
         isAutomatic: Bool? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.requesterUserId = requesterUserId
+        self.requesterUserID = requesterUserID
         self.requesterUserLogin = requesterUserLogin
         self.requesterUserName = requesterUserName
         self.durationSeconds = durationSeconds
@@ -564,28 +564,28 @@ public struct EventSubAdBreakBegin: Codable, Sendable, Equatable {
 }
 
 public struct EventSubRaid: Codable, Sendable, Equatable {
-    public let fromBroadcasterUserId: String
+    public let fromBroadcasterUserID: String
     public let fromBroadcasterUserLogin: String
     public let fromBroadcasterUserName: String
-    public let toBroadcasterUserId: String
+    public let toBroadcasterUserID: String
     public let toBroadcasterUserLogin: String
     public let toBroadcasterUserName: String
     public let viewers: Int
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        fromBroadcasterUserId: String,
+        fromBroadcasterUserID: String,
         fromBroadcasterUserLogin: String,
         fromBroadcasterUserName: String,
-        toBroadcasterUserId: String,
+        toBroadcasterUserID: String,
         toBroadcasterUserLogin: String,
         toBroadcasterUserName: String,
         viewers: Int
     ) {
-        self.fromBroadcasterUserId = fromBroadcasterUserId
+        self.fromBroadcasterUserID = fromBroadcasterUserID
         self.fromBroadcasterUserLogin = fromBroadcasterUserLogin
         self.fromBroadcasterUserName = fromBroadcasterUserName
-        self.toBroadcasterUserId = toBroadcasterUserId
+        self.toBroadcasterUserID = toBroadcasterUserID
         self.toBroadcasterUserLogin = toBroadcasterUserLogin
         self.toBroadcasterUserName = toBroadcasterUserName
         self.viewers = viewers
@@ -594,10 +594,10 @@ public struct EventSubRaid: Codable, Sendable, Equatable {
 
 public struct EventSubCheer: Codable, Sendable, Equatable {
     public let isAnonymous: Bool
-    public let userId: String?
+    public let userID: String?
     public let userLogin: String?
     public let userName: String?
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let message: String
@@ -606,20 +606,20 @@ public struct EventSubCheer: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         isAnonymous: Bool,
-        userId: String? = nil,
+        userID: String? = nil,
         userLogin: String? = nil,
         userName: String? = nil,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         message: String,
         bits: Int
     ) {
         self.isAnonymous = isAnonymous
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.message = message
@@ -628,13 +628,13 @@ public struct EventSubCheer: Codable, Sendable, Equatable {
 }
 
 public struct EventSubBan: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String
+    public let moderatorUserID: String
     public let moderatorUserLogin: String
     public let moderatorUserName: String
     public let reason: String
@@ -644,13 +644,13 @@ public struct EventSubBan: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String,
+        moderatorUserID: String,
         moderatorUserLogin: String,
         moderatorUserName: String,
         reason: String,
@@ -658,13 +658,13 @@ public struct EventSubBan: Codable, Sendable, Equatable {
         endsAt: Date? = nil,
         isPermanent: Bool
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
         self.reason = reason
@@ -675,61 +675,61 @@ public struct EventSubBan: Codable, Sendable, Equatable {
 }
 
 public struct EventSubUnban: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String
+    public let moderatorUserID: String
     public let moderatorUserLogin: String
     public let moderatorUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String,
+        moderatorUserID: String,
         moderatorUserLogin: String,
         moderatorUserName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
     }
 }
 
 public struct EventSubModeratorChange: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }
@@ -737,10 +737,10 @@ public struct EventSubModeratorChange: Codable, Sendable, Equatable {
 
 public struct EventSubChannelPointsCustomRewardRedemption: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let userInput: String
@@ -751,10 +751,10 @@ public struct EventSubChannelPointsCustomRewardRedemption: Codable, Sendable, Eq
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         userInput: String,
@@ -763,10 +763,10 @@ public struct EventSubChannelPointsCustomRewardRedemption: Codable, Sendable, Eq
         redeemedAt: Date
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.userInput = userInput
@@ -798,7 +798,7 @@ public struct EventSubChannelPointsCustomRewardRedemption: Codable, Sendable, Eq
 
 public struct EventSubChannelPointsCustomReward: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let isEnabled: Bool?
@@ -818,7 +818,7 @@ public struct EventSubChannelPointsCustomReward: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         isEnabled: Bool? = nil,
@@ -836,7 +836,7 @@ public struct EventSubChannelPointsCustomReward: Codable, Sendable, Equatable {
         globalCooldown: Cooldown? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.isEnabled = isEnabled
@@ -884,10 +884,10 @@ public struct EventSubChannelPointsCustomReward: Codable, Sendable, Equatable {
 }
 
 public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let id: String?
@@ -900,10 +900,10 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         id: String? = nil,
@@ -912,10 +912,10 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
         userInput: String? = nil,
         redeemedAt: Date? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.id = id
@@ -1021,89 +1021,89 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
 }
 
 public struct EventSubChatClear: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }
 }
 
 public struct EventSubChatClearUserMessages: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let targetUserId: String
+    public let targetUserID: String
     public let targetUserLogin: String
     public let targetUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        targetUserId: String,
+        targetUserID: String,
         targetUserLogin: String,
         targetUserName: String
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.targetUserId = targetUserId
+        self.targetUserID = targetUserID
         self.targetUserLogin = targetUserLogin
         self.targetUserName = targetUserName
     }
 }
 
 public struct EventSubChatMessageDelete: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let targetUserId: String
+    public let targetUserID: String
     public let targetUserLogin: String
     public let targetUserName: String
-    public let messageId: String
+    public let messageID: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        targetUserId: String,
+        targetUserID: String,
         targetUserLogin: String,
         targetUserName: String,
-        messageId: String
+        messageID: String
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.targetUserId = targetUserId
+        self.targetUserID = targetUserID
         self.targetUserLogin = targetUserLogin
         self.targetUserName = targetUserName
-        self.messageId = messageId
+        self.messageID = messageID
     }
 }
 
 public struct EventSubChatNotification: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let chatterUserId: String
+    public let chatterUserID: String
     public let chatterUserLogin: String
     public let chatterUserName: String
     public let chatterIsAnonymous: Bool?
     public let color: String?
     public let badges: [ChatBadge]
     public let systemMessage: String
-    public let messageId: String
+    public let messageID: String
     public let message: ChatMessage.ChatMessageBody
     /// The kind of notice. The raw string is available as `noticeType.rawValue`.
     public let noticeType: EventSubChatNoticeType
@@ -1126,13 +1126,13 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
 
     /// The broadcaster ID of the shared-chat channel the notice came from; `nil` outside shared chat
     /// or when the notice happened in the subscribed broadcaster's own channel.
-    public let sourceBroadcasterUserId: String?
+    public let sourceBroadcasterUserID: String?
     /// The broadcaster login of the shared-chat channel the notice came from.
     public let sourceBroadcasterUserLogin: String?
     /// The broadcaster display name of the shared-chat channel the notice came from.
     public let sourceBroadcasterUserName: String?
     /// The ID of the source message in the shared-chat channel the notice came from.
-    public let sourceMessageId: String?
+    public let sourceMessageID: String?
     /// The chatter's badges in the shared-chat channel the notice came from.
     public let sourceBadges: [ChatBadge]?
     /// Whether the notice is only sent to the source channel. `nil` outside shared chat.
@@ -1154,17 +1154,17 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        chatterUserId: String,
+        chatterUserID: String,
         chatterUserLogin: String,
         chatterUserName: String,
         chatterIsAnonymous: Bool? = nil,
         color: String? = nil,
         badges: [ChatBadge],
         systemMessage: String,
-        messageId: String,
+        messageID: String,
         message: ChatMessage.ChatMessageBody,
         noticeType: EventSubChatNoticeType,
         sub: Subscription? = nil,
@@ -1184,10 +1184,10 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         sharedChatModiversary: Modiversary? = nil,
         isSourceOnly: Bool? = nil,
         giftedDropsSummary: GiftedDropsSummary? = nil,
-        sourceBroadcasterUserId: String? = nil,
+        sourceBroadcasterUserID: String? = nil,
         sourceBroadcasterUserLogin: String? = nil,
         sourceBroadcasterUserName: String? = nil,
-        sourceMessageId: String? = nil,
+        sourceMessageID: String? = nil,
         sourceBadges: [ChatBadge]? = nil,
         sharedChatSub: Subscription? = nil,
         sharedChatResub: Resubscription? = nil,
@@ -1200,17 +1200,17 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         sharedChatAnnouncement: Announcement? = nil,
         sharedChatGiftedDropsSummary: GiftedDropsSummary? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.chatterUserId = chatterUserId
+        self.chatterUserID = chatterUserID
         self.chatterUserLogin = chatterUserLogin
         self.chatterUserName = chatterUserName
         self.chatterIsAnonymous = chatterIsAnonymous
         self.color = color
         self.badges = badges
         self.systemMessage = systemMessage
-        self.messageId = messageId
+        self.messageID = messageID
         self.message = message
         self.noticeType = noticeType
         self.sub = sub
@@ -1230,10 +1230,10 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         self.sharedChatModiversary = sharedChatModiversary
         self.isSourceOnly = isSourceOnly
         self.giftedDropsSummary = giftedDropsSummary
-        self.sourceBroadcasterUserId = sourceBroadcasterUserId
+        self.sourceBroadcasterUserID = sourceBroadcasterUserID
         self.sourceBroadcasterUserLogin = sourceBroadcasterUserLogin
         self.sourceBroadcasterUserName = sourceBroadcasterUserName
-        self.sourceMessageId = sourceMessageId
+        self.sourceMessageID = sourceMessageID
         self.sourceBadges = sourceBadges
         self.sharedChatSub = sharedChatSub
         self.sharedChatResub = sharedChatResub
@@ -1311,13 +1311,13 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         public let isPrime: Bool?
         public let isGift: Bool
         public let gifterIsAnonymous: Bool?
-        public let gifterUserId: String?
+        public let gifterUserID: String?
         public let gifterUserLogin: String?
         public let gifterUserName: String?
 
         private enum CodingKeys: String, CodingKey {
             case cumulativeMonths, durationMonths, streakMonths, subTier, isPrime, isGift
-            case gifterIsAnonymous, gifterUserId, gifterUserLogin, gifterUserName
+            case gifterIsAnonymous, gifterUserID, gifterUserLogin, gifterUserName
         }
 
         /// The tier key used by Twitch's published `channel.chat.notification` examples.
@@ -1338,7 +1338,7 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
             isPrime = try container.decodeIfPresent(Bool.self, forKey: .isPrime)
             isGift = try container.decode(Bool.self, forKey: .isGift)
             gifterIsAnonymous = try container.decodeIfPresent(Bool.self, forKey: .gifterIsAnonymous)
-            gifterUserId = try container.decodeIfPresent(String.self, forKey: .gifterUserId)
+            gifterUserID = try container.decodeIfPresent(String.self, forKey: .gifterUserID)
             gifterUserLogin = try container.decodeIfPresent(String.self, forKey: .gifterUserLogin)
             gifterUserName = try container.decodeIfPresent(String.self, forKey: .gifterUserName)
         }
@@ -1352,7 +1352,7 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
             isPrime: Bool? = nil,
             isGift: Bool,
             gifterIsAnonymous: Bool? = nil,
-            gifterUserId: String? = nil,
+            gifterUserID: String? = nil,
             gifterUserLogin: String? = nil,
             gifterUserName: String? = nil
         ) {
@@ -1363,7 +1363,7 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
             self.isPrime = isPrime
             self.isGift = isGift
             self.gifterIsAnonymous = gifterIsAnonymous
-            self.gifterUserId = gifterUserId
+            self.gifterUserID = gifterUserID
             self.gifterUserLogin = gifterUserLogin
             self.gifterUserName = gifterUserName
         }
@@ -1372,29 +1372,29 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     public struct SubscriptionGift: Codable, Sendable, Equatable {
         public let durationMonths: Int
         public let cumulativeTotal: Int?
-        public let recipientUserId: String
+        public let recipientUserID: String
         public let recipientUserLogin: String
         public let recipientUserName: String
         public let subTier: SubscriptionTier
-        public let communityGiftId: String?
+        public let communityGiftID: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             durationMonths: Int,
             cumulativeTotal: Int? = nil,
-            recipientUserId: String,
+            recipientUserID: String,
             recipientUserLogin: String,
             recipientUserName: String,
             subTier: SubscriptionTier,
-            communityGiftId: String? = nil
+            communityGiftID: String? = nil
         ) {
             self.durationMonths = durationMonths
             self.cumulativeTotal = cumulativeTotal
-            self.recipientUserId = recipientUserId
+            self.recipientUserID = recipientUserID
             self.recipientUserLogin = recipientUserLogin
             self.recipientUserName = recipientUserName
             self.subTier = subTier
-            self.communityGiftId = communityGiftId
+            self.communityGiftID = communityGiftID
         }
     }
 
@@ -1420,19 +1420,19 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
 
     public struct GiftPaidUpgrade: Codable, Sendable, Equatable {
         public let gifterIsAnonymous: Bool
-        public let gifterUserId: String?
+        public let gifterUserID: String?
         public let gifterUserLogin: String?
         public let gifterUserName: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             gifterIsAnonymous: Bool,
-            gifterUserId: String? = nil,
+            gifterUserID: String? = nil,
             gifterUserLogin: String? = nil,
             gifterUserName: String? = nil
         ) {
             self.gifterIsAnonymous = gifterIsAnonymous
-            self.gifterUserId = gifterUserId
+            self.gifterUserID = gifterUserID
             self.gifterUserLogin = gifterUserLogin
             self.gifterUserName = gifterUserName
         }
@@ -1450,43 +1450,43 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     }
 
     public struct Raid: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let viewerCount: Int
-        public let profileImageUrl: URL?
+        public let profileImageURL: URL?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             viewerCount: Int,
-            profileImageUrl: URL? = nil
+            profileImageURL: URL? = nil
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.viewerCount = viewerCount
-            self.profileImageUrl = profileImageUrl
+            self.profileImageURL = profileImageURL
         }
     }
 
     public struct PayItForward: Codable, Sendable, Equatable {
         public let gifterIsAnonymous: Bool
-        public let gifterUserId: String?
+        public let gifterUserID: String?
         public let gifterUserLogin: String?
         public let gifterUserName: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             gifterIsAnonymous: Bool,
-            gifterUserId: String? = nil,
+            gifterUserID: String? = nil,
             gifterUserLogin: String? = nil,
             gifterUserName: String? = nil
         ) {
             self.gifterIsAnonymous = gifterIsAnonymous
-            self.gifterUserId = gifterUserId
+            self.gifterUserID = gifterUserID
             self.gifterUserLogin = gifterUserLogin
             self.gifterUserName = gifterUserName
         }
@@ -1646,13 +1646,13 @@ public enum EventSubChatNoticeType: Codable, RawRepresentable, Sendable, Hashabl
 }
 
 public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let messageId: String
+    public let messageID: String
     public let message: ChatMessage.ChatMessageBody
     /// The moderation outcome. Only `channel.chat.user_message_update` carries it;
     /// it's `nil` for `channel.chat.user_message_hold`.
@@ -1660,30 +1660,30 @@ public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        messageId: String,
+        messageID: String,
         message: ChatMessage.ChatMessageBody,
         status: ChatUserMessageStatus? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.messageId = messageId
+        self.messageID = messageID
         self.message = message
         self.status = status
     }
 }
 
 public struct EventSubChatSettingsUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let emoteMode: Bool
@@ -1696,7 +1696,7 @@ public struct EventSubChatSettingsUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         emoteMode: Bool,
@@ -1707,7 +1707,7 @@ public struct EventSubChatSettingsUpdate: Codable, Sendable, Equatable {
         subscriberMode: Bool,
         uniqueChatMode: Bool
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.emoteMode = emoteMode
@@ -1721,11 +1721,11 @@ public struct EventSubChatSettingsUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubSharedChatSession: Codable, Sendable, Equatable {
-    public let sessionId: String
-    public let broadcasterUserId: String
+    public let sessionID: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let hostBroadcasterUserId: String?
+    public let hostBroadcasterUserID: String?
     public let hostBroadcasterUserLogin: String?
     public let hostBroadcasterUserName: String?
     public let participants: [Participant]?
@@ -1735,11 +1735,11 @@ public struct EventSubSharedChatSession: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        sessionId: String,
-        broadcasterUserId: String,
+        sessionID: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        hostBroadcasterUserId: String? = nil,
+        hostBroadcasterUserID: String? = nil,
         hostBroadcasterUserLogin: String? = nil,
         hostBroadcasterUserName: String? = nil,
         participants: [Participant]? = nil,
@@ -1747,11 +1747,11 @@ public struct EventSubSharedChatSession: Codable, Sendable, Equatable {
         updatedAt: Date? = nil,
         endedAt: Date? = nil
     ) {
-        self.sessionId = sessionId
-        self.broadcasterUserId = broadcasterUserId
+        self.sessionID = sessionID
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.hostBroadcasterUserId = hostBroadcasterUserId
+        self.hostBroadcasterUserID = hostBroadcasterUserID
         self.hostBroadcasterUserLogin = hostBroadcasterUserLogin
         self.hostBroadcasterUserName = hostBroadcasterUserName
         self.participants = participants
@@ -1761,17 +1761,17 @@ public struct EventSubSharedChatSession: Codable, Sendable, Equatable {
     }
 
     public struct Participant: Codable, Sendable, Equatable {
-        public let broadcasterUserId: String
+        public let broadcasterUserID: String
         public let broadcasterUserLogin: String
         public let broadcasterUserName: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            broadcasterUserId: String,
+            broadcasterUserID: String,
             broadcasterUserLogin: String,
             broadcasterUserName: String
         ) {
-            self.broadcasterUserId = broadcasterUserId
+            self.broadcasterUserID = broadcasterUserID
             self.broadcasterUserLogin = broadcasterUserLogin
             self.broadcasterUserName = broadcasterUserName
         }
@@ -1779,14 +1779,14 @@ public struct EventSubSharedChatSession: Codable, Sendable, Equatable {
 }
 
 public struct EventSubModerate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String
+    public let moderatorUserID: String
     public let moderatorUserLogin: String
     public let moderatorUserName: String
     public let action: String
-    public let userId: String?
+    public let userID: String?
     public let userLogin: String?
     public let userName: String?
     public let followers: Followers?
@@ -1808,14 +1808,14 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String,
+        moderatorUserID: String,
         moderatorUserLogin: String,
         moderatorUserName: String,
         action: String,
-        userId: String? = nil,
+        userID: String? = nil,
         userLogin: String? = nil,
         userName: String? = nil,
         followers: Followers? = nil,
@@ -1835,14 +1835,14 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
         unbanRequest: UnbanRequest? = nil,
         warn: Warn? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
         self.action = action
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.followers = followers
@@ -1864,17 +1864,17 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct TargetUser: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
         }
@@ -1903,19 +1903,19 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct Ban: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let reason: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             reason: String? = nil
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.reason = reason
@@ -1923,7 +1923,7 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct Timeout: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let reason: String?
@@ -1931,13 +1931,13 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             reason: String? = nil,
             expiresAt: Date
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.reason = reason
@@ -1946,19 +1946,19 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct Raid: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let viewerCount: Int?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             viewerCount: Int? = nil
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.viewerCount = viewerCount
@@ -1966,24 +1966,24 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct Delete: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
-        public let messageId: String
+        public let messageID: String
         public let messageBody: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
-            messageId: String,
+            messageID: String,
             messageBody: String? = nil
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
-            self.messageId = messageId
+            self.messageID = messageID
             self.messageBody = messageBody
         }
     }
@@ -2010,7 +2010,7 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
 
     public struct UnbanRequest: Codable, Sendable, Equatable {
         public let isApproved: Bool
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let moderatorMessage: String?
@@ -2018,13 +2018,13 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             isApproved: Bool,
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             moderatorMessage: String? = nil
         ) {
             self.isApproved = isApproved
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.moderatorMessage = moderatorMessage
@@ -2032,7 +2032,7 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
     }
 
     public struct Warn: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let reason: String?
@@ -2040,13 +2040,13 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             reason: String? = nil,
             chatRulesCited: [String]? = nil
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.reason = reason
@@ -2058,44 +2058,44 @@ public struct EventSubModerate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubGuestStarSession: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let sessionId: String?
+    public let sessionID: String?
     public let startedAt: Date?
     public let endedAt: Date?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        sessionId: String? = nil,
+        sessionID: String? = nil,
         startedAt: Date? = nil,
         endedAt: Date? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.sessionId = sessionId
+        self.sessionID = sessionID
         self.startedAt = startedAt
         self.endedAt = endedAt
     }
 }
 
 public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String?
+    public let moderatorUserID: String?
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
-    public let sessionId: String?
+    public let sessionID: String?
     // Twitch sends the guest fields and state as null when the slot is now empty.
-    public let guestUserId: String?
+    public let guestUserID: String?
     public let guestUserLogin: String?
     public let guestUserName: String?
-    public let slotId: String?
+    public let slotID: String?
     public let state: GuestStarGuestState?
     public let isAudioEnabled: Bool?
     public let isVideoEnabled: Bool?
@@ -2103,33 +2103,33 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String? = nil,
+        moderatorUserID: String? = nil,
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
-        sessionId: String? = nil,
-        guestUserId: String? = nil,
+        sessionID: String? = nil,
+        guestUserID: String? = nil,
         guestUserLogin: String? = nil,
         guestUserName: String? = nil,
-        slotId: String? = nil,
+        slotID: String? = nil,
         state: GuestStarGuestState? = nil,
         isAudioEnabled: Bool? = nil,
         isVideoEnabled: Bool? = nil,
         isLive: Bool? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
-        self.sessionId = sessionId
-        self.guestUserId = guestUserId
+        self.sessionID = sessionID
+        self.guestUserID = guestUserID
         self.guestUserLogin = guestUserLogin
         self.guestUserName = guestUserName
-        self.slotId = slotId
+        self.slotID = slotID
         self.state = state
         self.isAudioEnabled = isAudioEnabled
         self.isVideoEnabled = isVideoEnabled
@@ -2138,7 +2138,7 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubGuestStarSettingsUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let isModeratorSendLiveEnabled: Bool?
@@ -2148,7 +2148,7 @@ public struct EventSubGuestStarSettingsUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         isModeratorSendLiveEnabled: Bool? = nil,
@@ -2156,7 +2156,7 @@ public struct EventSubGuestStarSettingsUpdate: Codable, Sendable, Equatable {
         isBrowserSourceAudioEnabled: Bool? = nil,
         groupLayout: String? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.isModeratorSendLiveEnabled = isModeratorSendLiveEnabled
@@ -2167,10 +2167,10 @@ public struct EventSubGuestStarSettingsUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubSubscriptionGift: Codable, Sendable, Equatable {
-    public let userId: String?
+    public let userID: String?
     public let userLogin: String?
     public let userName: String?
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let total: Int
@@ -2180,10 +2180,10 @@ public struct EventSubSubscriptionGift: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String? = nil,
+        userID: String? = nil,
         userLogin: String? = nil,
         userName: String? = nil,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         total: Int,
@@ -2191,10 +2191,10 @@ public struct EventSubSubscriptionGift: Codable, Sendable, Equatable {
         cumulativeTotal: Int? = nil,
         isAnonymous: Bool
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.total = total
@@ -2205,10 +2205,10 @@ public struct EventSubSubscriptionGift: Codable, Sendable, Equatable {
 }
 
 public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let tier: SubscriptionTier
@@ -2221,10 +2221,10 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         tier: SubscriptionTier,
@@ -2233,10 +2233,10 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
         durationMonths: Int,
         streakMonths: Int? = nil
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.tier = tier
@@ -2286,10 +2286,10 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
 }
 
 public struct EventSubSubscriptionEnd: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let tier: SubscriptionTier
@@ -2297,19 +2297,19 @@ public struct EventSubSubscriptionEnd: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         tier: SubscriptionTier,
         isGift: Bool
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.tier = tier
@@ -2319,7 +2319,7 @@ public struct EventSubSubscriptionEnd: Codable, Sendable, Equatable {
 
 public struct EventSubPoll: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let title: String
@@ -2334,7 +2334,7 @@ public struct EventSubPoll: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         title: String,
@@ -2347,7 +2347,7 @@ public struct EventSubPoll: Codable, Sendable, Equatable {
         endedAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.title = title
@@ -2400,12 +2400,12 @@ public struct EventSubPoll: Codable, Sendable, Equatable {
 
 public struct EventSubPrediction: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let title: String
     public let outcomes: [Outcome]
-    public let winningOutcomeId: String?
+    public let winningOutcomeID: String?
     public let status: TwitchPredictionStatus?
     public let startedAt: Date?
     public let locksAt: Date?
@@ -2415,12 +2415,12 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         title: String,
         outcomes: [Outcome],
-        winningOutcomeId: String? = nil,
+        winningOutcomeID: String? = nil,
         status: TwitchPredictionStatus? = nil,
         startedAt: Date? = nil,
         locksAt: Date? = nil,
@@ -2428,12 +2428,12 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
         endedAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.title = title
         self.outcomes = outcomes
-        self.winningOutcomeId = winningOutcomeId
+        self.winningOutcomeID = winningOutcomeID
         self.status = status
         self.startedAt = startedAt
         self.locksAt = locksAt
@@ -2468,7 +2468,7 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
     }
 
     public struct TopPredictor: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let channelPointsWon: Int?
@@ -2476,13 +2476,13 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             channelPointsWon: Int? = nil,
             channelPointsUsed: Int
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.channelPointsWon = channelPointsWon
@@ -2493,7 +2493,7 @@ public struct EventSubPrediction: Codable, Sendable, Equatable {
 
 public struct EventSubGoal: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let type: String
@@ -2507,7 +2507,7 @@ public struct EventSubGoal: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         type: String,
@@ -2519,7 +2519,7 @@ public struct EventSubGoal: Codable, Sendable, Equatable {
         isAchieved: Bool? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.type = type
@@ -2534,7 +2534,7 @@ public struct EventSubGoal: Codable, Sendable, Equatable {
 
 public struct EventSubHypeTrain: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let total: Int?
@@ -2554,7 +2554,7 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         total: Int? = nil,
@@ -2572,7 +2572,7 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
         sharedTrainParticipants: [Participant]? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.total = total
@@ -2591,7 +2591,7 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
     }
 
     public struct Contribution: Codable, Sendable, Equatable {
-        public let userId: String
+        public let userID: String
         public let userLogin: String
         public let userName: String
         public let type: String
@@ -2599,13 +2599,13 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            userId: String,
+            userID: String,
             userLogin: String,
             userName: String,
             type: String,
             total: Int
         ) {
-            self.userId = userId
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
             self.type = type
@@ -2614,17 +2614,17 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
     }
 
     public struct Participant: Codable, Sendable, Equatable {
-        public let broadcasterUserId: String
+        public let broadcasterUserID: String
         public let broadcasterUserLogin: String
         public let broadcasterUserName: String
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            broadcasterUserId: String,
+            broadcasterUserID: String,
             broadcasterUserLogin: String,
             broadcasterUserName: String
         ) {
-            self.broadcasterUserId = broadcasterUserId
+            self.broadcasterUserID = broadcasterUserID
             self.broadcasterUserLogin = broadcasterUserLogin
             self.broadcasterUserName = broadcasterUserName
         }
@@ -2633,7 +2633,7 @@ public struct EventSubHypeTrain: Codable, Sendable, Equatable {
 
 public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let charityName: String
@@ -2646,14 +2646,14 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
     public let stoppedAt: Date?
 
     private enum CodingKeys: String, CodingKey {
-        case id, broadcasterUserId, broadcasterUserLogin, broadcasterUserName
+        case id, broadcasterUserID, broadcasterUserLogin, broadcasterUserName
         case charityName, charityDescription, charityLogo, charityWebsite
         case currentAmount, targetAmount, startedAt, stoppedAt
     }
 
     /// The broadcaster keys Twitch documents for the campaign start, progress and stop events.
     private enum CampaignBroadcasterKeys: String, CodingKey {
-        case broadcasterId, broadcasterLogin, broadcasterName
+        case broadcasterID, broadcasterLogin, broadcasterName
     }
 
     // Twitch documents `broadcaster_id`/`broadcaster_login`/`broadcaster_name` for the
@@ -2663,8 +2663,8 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let campaign = try decoder.container(keyedBy: CampaignBroadcasterKeys.self)
         id = try container.decode(String.self, forKey: .id)
-        broadcasterUserId = try container.decodeIfPresent(String.self, forKey: .broadcasterUserId)
-            ?? campaign.decode(String.self, forKey: .broadcasterId)
+        broadcasterUserID = try container.decodeIfPresent(String.self, forKey: .broadcasterUserID)
+            ?? campaign.decode(String.self, forKey: .broadcasterID)
         broadcasterUserLogin = try container.decodeIfPresent(String.self, forKey: .broadcasterUserLogin)
             ?? campaign.decode(String.self, forKey: .broadcasterLogin)
         broadcasterUserName = try container.decodeIfPresent(String.self, forKey: .broadcasterUserName)
@@ -2682,7 +2682,7 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         charityName: String,
@@ -2695,7 +2695,7 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
         stoppedAt: Date? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
         self.charityName = charityName
@@ -2711,11 +2711,11 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
 
 public struct EventSubCharityDonation: Decodable, Sendable, Equatable {
     public let id: String
-    public let campaignId: String
-    public let broadcasterUserId: String
+    public let campaignID: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let charityName: String
@@ -2727,11 +2727,11 @@ public struct EventSubCharityDonation: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        campaignId: String,
-        broadcasterUserId: String,
+        campaignID: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         charityName: String,
@@ -2741,11 +2741,11 @@ public struct EventSubCharityDonation: Decodable, Sendable, Equatable {
         amount: CharityAmount
     ) {
         self.id = id
-        self.campaignId = campaignId
-        self.broadcasterUserId = broadcasterUserId
+        self.campaignID = campaignID
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.charityName = charityName
@@ -2757,10 +2757,10 @@ public struct EventSubCharityDonation: Decodable, Sendable, Equatable {
 }
 
 public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let id: String
@@ -2794,10 +2794,10 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         id: String,
@@ -2806,10 +2806,10 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
         customPowerUp: PowerUp,
         redeemedAt: Date
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.id = id
@@ -2821,40 +2821,40 @@ public struct EventSubCustomPowerUpRedemption: Decodable, Sendable, Equatable {
 }
 
 public struct EventSubSuspiciousUserMessage: Decodable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let lowTrustStatus: SuspiciousUserStatus?
-    public let sharedBanChannelIds: [String]?
+    public let sharedBanChannelIDs: [String]?
     public let types: [String]?
     public let banEvasionEvaluation: String?
     public let message: ChatMessage.ChatMessageBody
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         lowTrustStatus: SuspiciousUserStatus? = nil,
-        sharedBanChannelIds: [String]? = nil,
+        sharedBanChannelIDs: [String]? = nil,
         types: [String]? = nil,
         banEvasionEvaluation: String? = nil,
         message: ChatMessage.ChatMessageBody
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.lowTrustStatus = lowTrustStatus
-        self.sharedBanChannelIds = sharedBanChannelIds
+        self.sharedBanChannelIDs = sharedBanChannelIDs
         self.types = types
         self.banEvasionEvaluation = banEvasionEvaluation
         self.message = message
@@ -2862,37 +2862,37 @@ public struct EventSubSuspiciousUserMessage: Decodable, Sendable, Equatable {
 }
 
 public struct EventSubSuspiciousUserUpdate: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String
+    public let moderatorUserID: String
     public let moderatorUserLogin: String
     public let moderatorUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let lowTrustStatus: SuspiciousUserStatus
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String,
+        moderatorUserID: String,
         moderatorUserLogin: String,
         moderatorUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         lowTrustStatus: SuspiciousUserStatus
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.lowTrustStatus = lowTrustStatus
@@ -2901,10 +2901,10 @@ public struct EventSubSuspiciousUserUpdate: Codable, Sendable, Equatable {
 
 public struct EventSubUnbanRequest: Codable, Sendable, Equatable {
     public let id: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let text: String?
@@ -2912,19 +2912,19 @@ public struct EventSubUnbanRequest: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         text: String? = nil
     ) {
         self.id = id
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.text = text
@@ -2932,36 +2932,36 @@ public struct EventSubUnbanRequest: Codable, Sendable, Equatable {
 }
 
 public struct EventSubVIPChange: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
     }
 }
 
 public struct EventSubShieldMode: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String
+    public let moderatorUserID: String
     public let moderatorUserLogin: String
     public let moderatorUserName: String
     public let startedAt: Date?
@@ -2969,19 +2969,19 @@ public struct EventSubShieldMode: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String,
+        moderatorUserID: String,
         moderatorUserLogin: String,
         moderatorUserName: String,
         startedAt: Date? = nil,
         endedAt: Date? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
         self.startedAt = startedAt
@@ -2990,16 +2990,16 @@ public struct EventSubShieldMode: Codable, Sendable, Equatable {
 }
 
 public struct EventSubShoutout: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String?
+    public let moderatorUserID: String?
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
-    public let toBroadcasterUserId: String?
+    public let toBroadcasterUserID: String?
     public let toBroadcasterUserLogin: String?
     public let toBroadcasterUserName: String?
-    public let fromBroadcasterUserId: String?
+    public let fromBroadcasterUserID: String?
     public let fromBroadcasterUserLogin: String?
     public let fromBroadcasterUserName: String?
     public let viewerCount: Int?
@@ -3007,31 +3007,31 @@ public struct EventSubShoutout: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String? = nil,
+        moderatorUserID: String? = nil,
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
-        toBroadcasterUserId: String? = nil,
+        toBroadcasterUserID: String? = nil,
         toBroadcasterUserLogin: String? = nil,
         toBroadcasterUserName: String? = nil,
-        fromBroadcasterUserId: String? = nil,
+        fromBroadcasterUserID: String? = nil,
         fromBroadcasterUserLogin: String? = nil,
         fromBroadcasterUserName: String? = nil,
         viewerCount: Int? = nil,
         startedAt: Date? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
-        self.toBroadcasterUserId = toBroadcasterUserId
+        self.toBroadcasterUserID = toBroadcasterUserID
         self.toBroadcasterUserLogin = toBroadcasterUserLogin
         self.toBroadcasterUserName = toBroadcasterUserName
-        self.fromBroadcasterUserId = fromBroadcasterUserId
+        self.fromBroadcasterUserID = fromBroadcasterUserID
         self.fromBroadcasterUserLogin = fromBroadcasterUserLogin
         self.fromBroadcasterUserName = fromBroadcasterUserName
         self.viewerCount = viewerCount
@@ -3040,37 +3040,37 @@ public struct EventSubShoutout: Codable, Sendable, Equatable {
 }
 
 public struct EventSubWarning: Codable, Sendable, Equatable {
-    public let broadcasterUserId: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let moderatorUserId: String?
+    public let moderatorUserID: String?
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let reason: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterUserId: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        moderatorUserId: String? = nil,
+        moderatorUserID: String? = nil,
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         reason: String? = nil
     ) {
-        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.moderatorUserId = moderatorUserId
+        self.moderatorUserID = moderatorUserID
         self.moderatorUserLogin = moderatorUserLogin
         self.moderatorUserName = moderatorUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.reason = reason
@@ -3078,20 +3078,20 @@ public struct EventSubWarning: Codable, Sendable, Equatable {
 }
 
 public struct EventSubConduitShardDisabled: Codable, Sendable, Equatable {
-    public let conduitId: String
-    public let shardId: String
+    public let conduitID: String
+    public let shardID: String
     public let status: ConduitShardStatus
     public let transport: Transport?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        conduitId: String,
-        shardId: String,
+        conduitID: String,
+        shardID: String,
         status: ConduitShardStatus,
         transport: Transport? = nil
     ) {
-        self.conduitId = conduitId
-        self.shardId = shardId
+        self.conduitID = conduitID
+        self.shardID = shardID
         self.status = status
         self.transport = transport
     }
@@ -3099,20 +3099,20 @@ public struct EventSubConduitShardDisabled: Codable, Sendable, Equatable {
     public struct Transport: Codable, Sendable, Equatable {
         public let method: String
         public let callback: URL?
-        public let sessionId: String?
-        public let conduitId: String?
+        public let sessionID: String?
+        public let conduitID: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             method: String,
             callback: URL? = nil,
-            sessionId: String? = nil,
-            conduitId: String? = nil
+            sessionID: String? = nil,
+            conduitID: String? = nil
         ) {
             self.method = method
             self.callback = callback
-            self.sessionId = sessionId
-            self.conduitId = conduitId
+            self.sessionID = sessionID
+            self.conduitID = conduitID
         }
     }
 }
@@ -3131,39 +3131,39 @@ public struct EventSubDropEntitlementGrant: Codable, Sendable, Equatable {
     }
 
     public struct Entitlement: Codable, Sendable, Equatable {
-        public let organizationId: String?
-        public let categoryId: String?
+        public let organizationID: String?
+        public let categoryID: String?
         public let categoryName: String?
-        public let campaignId: String?
-        public let userId: String?
+        public let campaignID: String?
+        public let userID: String?
         public let userLogin: String?
         public let userName: String?
-        public let entitlementId: String?
-        public let benefitId: String?
+        public let entitlementID: String?
+        public let benefitID: String?
         public let createdAt: Date?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
-            organizationId: String? = nil,
-            categoryId: String? = nil,
+            organizationID: String? = nil,
+            categoryID: String? = nil,
             categoryName: String? = nil,
-            campaignId: String? = nil,
-            userId: String? = nil,
+            campaignID: String? = nil,
+            userID: String? = nil,
             userLogin: String? = nil,
             userName: String? = nil,
-            entitlementId: String? = nil,
-            benefitId: String? = nil,
+            entitlementID: String? = nil,
+            benefitID: String? = nil,
             createdAt: Date? = nil
         ) {
-            self.organizationId = organizationId
-            self.categoryId = categoryId
+            self.organizationID = organizationID
+            self.categoryID = categoryID
             self.categoryName = categoryName
-            self.campaignId = campaignId
-            self.userId = userId
+            self.campaignID = campaignID
+            self.userID = userID
             self.userLogin = userLogin
             self.userName = userName
-            self.entitlementId = entitlementId
-            self.benefitId = benefitId
+            self.entitlementID = entitlementID
+            self.benefitID = benefitID
             self.createdAt = createdAt
         }
     }
@@ -3171,11 +3171,11 @@ public struct EventSubDropEntitlementGrant: Codable, Sendable, Equatable {
 
 public struct EventSubExtensionBitsTransaction: Codable, Sendable, Equatable {
     public let id: String
-    public let extensionClientId: String
-    public let broadcasterUserId: String
+    public let extensionClientID: String
+    public let broadcasterUserID: String
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let product: Product
@@ -3183,21 +3183,21 @@ public struct EventSubExtensionBitsTransaction: Codable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        extensionClientId: String,
-        broadcasterUserId: String,
+        extensionClientID: String,
+        broadcasterUserID: String,
         broadcasterUserLogin: String,
         broadcasterUserName: String,
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         product: Product
     ) {
         self.id = id
-        self.extensionClientId = extensionClientId
-        self.broadcasterUserId = broadcasterUserId
+        self.extensionClientID = extensionClientID
+        self.broadcasterUserID = broadcasterUserID
         self.broadcasterUserLogin = broadcasterUserLogin
         self.broadcasterUserName = broadcasterUserName
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.product = product
@@ -3225,8 +3225,8 @@ public struct EventSubExtensionBitsTransaction: Codable, Sendable, Equatable {
 }
 
 public struct EventSubUserAuthorization: Codable, Sendable, Equatable {
-    public let clientId: String
-    public let userId: String
+    public let clientID: String
+    public let userID: String
     /// The user's login. `nil` in `user.authorization.revoke` when the user no longer exists.
     public let userLogin: String?
     /// The user's display name. `nil` in `user.authorization.revoke` when the user no longer exists.
@@ -3234,20 +3234,20 @@ public struct EventSubUserAuthorization: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        clientId: String,
-        userId: String,
+        clientID: String,
+        userID: String,
         userLogin: String? = nil,
         userName: String? = nil
     ) {
-        self.clientId = clientId
-        self.userId = userId
+        self.clientID = clientID
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
     }
 }
 
 public struct EventSubUserUpdate: Codable, Sendable, Equatable {
-    public let userId: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let email: String?
@@ -3256,14 +3256,14 @@ public struct EventSubUserUpdate: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String,
         userName: String,
         email: String? = nil,
         emailVerified: Bool? = nil,
         description: String? = nil
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.email = email
@@ -3273,33 +3273,33 @@ public struct EventSubUserUpdate: Codable, Sendable, Equatable {
 }
 
 public struct EventSubWhisperMessage: Decodable, Sendable, Equatable {
-    public let fromUserId: String
+    public let fromUserID: String
     public let fromUserLogin: String
     public let fromUserName: String
-    public let toUserId: String
+    public let toUserID: String
     public let toUserLogin: String
     public let toUserName: String
-    public let whisperId: String
+    public let whisperID: String
     public let whisper: Whisper
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        fromUserId: String,
+        fromUserID: String,
         fromUserLogin: String,
         fromUserName: String,
-        toUserId: String,
+        toUserID: String,
         toUserLogin: String,
         toUserName: String,
-        whisperId: String,
+        whisperID: String,
         whisper: Whisper
     ) {
-        self.fromUserId = fromUserId
+        self.fromUserID = fromUserID
         self.fromUserLogin = fromUserLogin
         self.fromUserName = fromUserName
-        self.toUserId = toUserId
+        self.toUserID = toUserID
         self.toUserLogin = toUserLogin
         self.toUserName = toUserName
-        self.whisperId = whisperId
+        self.whisperID = whisperID
         self.whisper = whisper
     }
 

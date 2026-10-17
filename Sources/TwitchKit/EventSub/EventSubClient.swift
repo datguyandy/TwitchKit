@@ -121,7 +121,7 @@ public actor EventSubClient {
     // (the envelope pass in handleMessage and the typed notification pass).
     private let messageDecoder = JSONDecoder.twitch()
     private var webSocketTask: (any EventSubWebSocket)?
-    private var sessionId: String?
+    private var sessionID: String?
     private var pendingSubscriptionDeletes: Set<String> = []
     private var receiveTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
     private var keepaliveTask: Task<Void, Never>?
@@ -135,9 +135,9 @@ public actor EventSubClient {
     /// The record id `subscribe()` returned for each desired subscription.
     /// Kept across reconnects, even though re-creating a subscription gives it
     /// a new id, so callers can always unsubscribe with the id they were given.
-    private var desiredSubscriptionsById: [String: EventSubSubscription] = [:]
+    private var desiredSubscriptionsByID: [String: EventSubSubscription] = [:]
     /// Record ids of subscriptions created on the current session.
-    private var activeSubscriptionsById: [String: EventSubSubscription] = [:]
+    private var activeSubscriptionsByID: [String: EventSubSubscription] = [:]
 
     // Chat-room bookkeeping, used by `joinChat` (ChatRoom.swift). Several
     // rooms can need the same subscription (a chat view and a mini-player on
@@ -156,17 +156,17 @@ public actor EventSubClient {
     func isDesired(_ subscription: EventSubSubscription) -> Bool {
         desiredSubscriptions.contains(subscription)
     }
-    private var seenMessageIds: Set<String> = []
-    private var seenMessageIdOrder: [String] = []
+    private var seenMessageIDs: Set<String> = []
+    private var seenMessageIDOrder: [String] = []
 
     private static let websocketURL = URL(string: "wss://eventsub.wss.twitch.tv/ws")!
 
-    /// Bound on the duplicate-suppression cache (`seenMessageIds`). The cache
+    /// Bound on the duplicate-suppression cache (`seenMessageIDs`). The cache
     /// deliberately SURVIVES reconnects — Twitch replays notifications across
     /// them within its redelivery window — and is evicted FIFO at this size,
     /// so it never grows unbounded on a long-lived connection. Only an
     /// explicit `disconnect()` clears it.
-    private static let maxSeenMessageIds = 4_096
+    private static let maxSeenMessageIDs = 4_096
 
     /// Creates an EventSub WebSocket client.
     ///
@@ -276,7 +276,7 @@ public actor EventSubClient {
     var reconnectAttemptsForTesting: Int { reconnectAttempts }
 
     /// Internal, for tests only — record ids active on the current session.
-    var activeSubscriptionIDsForTesting: Set<String> { Set(activeSubscriptionsById.keys) }
+    var activeSubscriptionIDsForTesting: Set<String> { Set(activeSubscriptionsByID.keys) }
 
     /// Internal, for tests only — true while a welcome wait is parked.
     var hasWelcomeWaiterForTesting: Bool { welcomeContinuation != nil }
@@ -313,7 +313,7 @@ public actor EventSubClient {
     /// transient failure doesn't fail the call, and the client keeps retrying
     /// the missing subscriptions in the background.
     public func connect(timeout: Duration = .seconds(15)) async throws {
-        if sessionId != nil {
+        if sessionID != nil {
             return
         }
         // Coalesce concurrent callers onto the in-flight attempt: they
@@ -346,7 +346,7 @@ public actor EventSubClient {
                 guard shouldReconnect else {
                     throw HelixError.networkError("EventSub disconnected")
                 }
-                if sessionId != nil {
+                if sessionID != nil {
                     // The ladder connected before it stopped; finish its work.
                     emit(.connected)
                     await resubscribeAfterConnect()
@@ -365,7 +365,7 @@ public actor EventSubClient {
                 }
             } catch {
                 // Hand reconnecting back to the ladder this attempt replaced.
-                if interruptedLadder != nil, shouldReconnect, sessionId == nil {
+                if interruptedLadder != nil, shouldReconnect, sessionID == nil {
                     emit(.reconnecting)
                     reconnectTask?.cancel()
                     reconnectTask = makeReconnectTask()
@@ -429,12 +429,12 @@ public actor EventSubClient {
             // Stop hammering a dead network: cancel the in-flight backoff sleep.
             reconnectTask?.cancel()
             reconnectTask = nil
-            if sessionId == nil { emit(.waitingForNetwork) }
+            if sessionID == nil { emit(.waitingForNetwork) }
         case .satisfied:
             let wasOffline = !isNetworkAvailable
             isNetworkAvailable = true
             // Reconnect immediately if we *want* to be connected but aren't.
-            if wasOffline, shouldReconnect, sessionId == nil {
+            if wasOffline, shouldReconnect, sessionID == nil {
                 reconnectAttempts = 0           // reset backoff — restore is "attempt 1"
                 // A connect() in flight is already connecting; a ladder would
                 // supersede its welcome wait. Let it finish (its failure is
@@ -458,7 +458,7 @@ public actor EventSubClient {
         guard shouldReconnect else {
             throw HelixError.networkError("EventSub disconnected")
         }
-        if sessionId != nil {
+        if sessionID != nil {
             return
         }
         logger.info("🔌 EventSub: connecting to \(url.host() ?? "unknown host", privacy: .public)")
@@ -501,7 +501,7 @@ public actor EventSubClient {
         if forgettingSubscriptions {
             subscriptionGeneration &+= 1
             desiredSubscriptions.removeAll()
-            desiredSubscriptionsById.removeAll()
+            desiredSubscriptionsByID.removeAll()
             chatRoomClaims.removeAll()
             chatRoomCreatedSubscriptions.removeAll()
         }
@@ -521,10 +521,10 @@ public actor EventSubClient {
         keepaliveDeadline = nil
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
-        sessionId = nil
-        activeSubscriptionsById.removeAll()
+        sessionID = nil
+        activeSubscriptionsByID.removeAll()
         pendingSubscriptionDeletes.removeAll()
-        clearSeenMessageIds()
+        clearSeenMessageIDs()
         welcomeContinuation?.resume(throwing: HelixError.networkError("EventSub disconnected"))
         welcomeContinuation = nil
     }
@@ -539,7 +539,7 @@ public actor EventSubClient {
         // The session changed while the request was in flight, and a new one
         // is up. Its resubscribe round didn't know about this subscription
         // (it wasn't desired yet), so create it there too.
-        while !created.onCurrentSession, sessionId != nil, generation == subscriptionGeneration {
+        while !created.onCurrentSession, sessionID != nil, generation == subscriptionGeneration {
             do {
                 created = try await createSubscription(subscription)
             } catch HelixError.conflict(let apiError) where apiError.id != nil {
@@ -550,14 +550,14 @@ public actor EventSubClient {
         guard generation == subscriptionGeneration else {
             // disconnect(forgettingSubscriptions:) ran meanwhile; the record
             // belongs to the closed session, so don't carry it forward.
-            activeSubscriptionsById[created.record.id] = nil
+            activeSubscriptionsByID[created.record.id] = nil
             throw HelixError.networkError("EventSub disconnected while subscribing")
         }
         // Desired even when there's no session right now (the socket dropped
         // or disconnect() ran during the request): the next resubscribe
         // round, on reconnect or connect(), creates it.
         desiredSubscriptions.insert(subscription)
-        desiredSubscriptionsById[created.record.id] = subscription
+        desiredSubscriptionsByID[created.record.id] = subscription
         return created.record
     }
 
@@ -573,7 +573,7 @@ public actor EventSubClient {
     /// deletes the live subscription. Ids the client doesn't know (for
     /// example from `fetchEventSubSubscriptionsPage`) are deleted as given.
     public func unsubscribe(id: String) async throws {
-        guard let subscription = activeSubscriptionsById[id] ?? desiredSubscriptionsById[id] else {
+        guard let subscription = activeSubscriptionsByID[id] ?? desiredSubscriptionsByID[id] else {
             try await api.deleteEventSubSubscription(id: id)
             return
         }
@@ -592,8 +592,8 @@ public actor EventSubClient {
     /// restored so the caller can retry.
     private func removeSubscription(_ subscription: EventSubSubscription, alsoDeleting extraID: String?) async throws {
         let wasDesired = desiredSubscriptions.contains(subscription)
-        let subscribedIDs = desiredSubscriptionsById.filter { $0.value == subscription }.map(\.key)
-        let activeIDs = Set(activeSubscriptionsById.filter { $0.value == subscription }.map(\.key))
+        let subscribedIDs = desiredSubscriptionsByID.filter { $0.value == subscription }.map(\.key)
+        let activeIDs = Set(activeSubscriptionsByID.filter { $0.value == subscription }.map(\.key))
         forget(subscription)
 
         var idsToDelete = activeIDs
@@ -619,10 +619,10 @@ public actor EventSubClient {
                 desiredSubscriptions.insert(subscription)
             }
             for id in subscribedIDs {
-                desiredSubscriptionsById[id] = subscription
+                desiredSubscriptionsByID[id] = subscription
             }
             for id in failedIDs where activeIDs.contains(id) {
-                activeSubscriptionsById[id] = subscription
+                activeSubscriptionsByID[id] = subscription
             }
             throw firstError
         }
@@ -632,20 +632,20 @@ public actor EventSubClient {
     /// re-create it.
     private func forget(_ subscription: EventSubSubscription) {
         desiredSubscriptions.remove(subscription)
-        desiredSubscriptionsById = desiredSubscriptionsById.filter { $0.value != subscription }
-        activeSubscriptionsById = activeSubscriptionsById.filter { $0.value != subscription }
+        desiredSubscriptionsByID = desiredSubscriptionsByID.filter { $0.value != subscription }
+        activeSubscriptionsByID = activeSubscriptionsByID.filter { $0.value != subscription }
     }
 
     /// Twitch has already deleted a revoked subscription, and the reasons it
     /// revokes one (authorization revoked, user removed, version removed, …)
     /// mean re-creating it would only fail. Forget it so reconnects don't try.
     private func forgetRevokedSubscription(_ revocation: EventSubRevocation) {
-        let subscription = activeSubscriptionsById[revocation.id]
-            ?? desiredSubscriptionsById[revocation.id]
+        let subscription = activeSubscriptionsByID[revocation.id]
+            ?? desiredSubscriptionsByID[revocation.id]
             ?? desiredSubscriptions.first {
                 $0.type == revocation.type && $0.version == revocation.version && $0.condition == revocation.condition
             }
-        activeSubscriptionsById.removeValue(forKey: revocation.id)
+        activeSubscriptionsByID.removeValue(forKey: revocation.id)
         if let subscription {
             forget(subscription)
         }
@@ -664,7 +664,7 @@ public actor EventSubClient {
     private func createSubscription(
         _ subscription: EventSubSubscription
     ) async throws -> (record: EventSubSubscriptionRecord, onCurrentSession: Bool) {
-        guard let session = sessionId else {
+        guard let session = sessionID else {
             logger.error("❌ EventSub: no session ID — can't subscribe")
             throw HelixError.badRequest(
                 TwitchAPIError.fallback(status: 400, message: "No EventSub session: it ended before the subscription was created")
@@ -681,16 +681,16 @@ public actor EventSubClient {
                 isBatchingEnabled: subscription.isBatchingEnabled
             )
         } catch HelixError.conflict(let apiError) {
-            if let id = apiError.id, sessionId == session {
-                activeSubscriptionsById[id] = subscription
+            if let id = apiError.id, sessionID == session {
+                activeSubscriptionsByID[id] = subscription
             }
             throw HelixError.conflict(apiError)
         }
-        guard sessionId == session else {
+        guard sessionID == session else {
             logger.warning("⚠️ EventSub: session changed while subscribing to \(subscription.type, privacy: .public)")
             return (record, false)
         }
-        activeSubscriptionsById[record.id] = subscription
+        activeSubscriptionsByID[record.id] = subscription
         logger.info("✅ EventSub: subscribed to \(subscription.type, privacy: .public)")
         return (record, true)
     }
@@ -702,9 +702,9 @@ public actor EventSubClient {
         // `as AnyObject` is redundant at runtime (the protocol is
         // class-constrained) but keeps ObjectIdentifier's AnyObject
         // initializer resolving against the existential on older compilers.
-        let taskId = ObjectIdentifier(task as AnyObject)
-        receiveTasks[taskId]?.cancel()
-        receiveTasks[taskId] = Task { [weak self, weak task] in
+        let taskID = ObjectIdentifier(task as AnyObject)
+        receiveTasks[taskID]?.cancel()
+        receiveTasks[taskID] = Task { [weak self, weak task] in
             // Re-acquire self per message: receive() can suspend for the whole
             // life of the socket, and holding the client across that await
             // would keep it alive forever (deinit unreachable). The strong
@@ -748,18 +748,18 @@ public actor EventSubClient {
             return
         }
 
-        guard rememberMessageId(envelope.metadata.messageId) else {
-            logger.debug("EventSub: ignoring duplicate message \(envelope.metadata.messageId)")
+        guard rememberMessageID(envelope.metadata.messageID) else {
+            logger.debug("EventSub: ignoring duplicate message \(envelope.metadata.messageID)")
             return
         }
 
         switch envelope.metadata.messageType {
         case "session_welcome":
-            sessionId = envelope.payload.session?.id
+            sessionID = envelope.payload.session?.id
             keepaliveTimeout = envelope.payload.session?.keepaliveTimeoutSeconds ?? 10
             // A new session ends the outage: the next one gets a full ladder.
             reconnectAttempts = 0
-            logger.info("🟢 EventSub: session_welcome — id=\(self.sessionId ?? "nil"), keepalive=\(self.keepaliveTimeout)s")
+            logger.info("🟢 EventSub: session_welcome — id=\(self.sessionID ?? "nil"), keepalive=\(self.keepaliveTimeout)s")
             updateKeepaliveDeadline()
             emit(.connected)
             // Resume connect() — caller was waiting for session ID
@@ -781,8 +781,8 @@ public actor EventSubClient {
 
         case "session_reconnect":
             if webSocketTask === task,
-               let newUrl = envelope.payload.session?.reconnectUrl,
-               let url = URL(string: newUrl) {
+               let newURL = envelope.payload.session?.reconnectURL,
+               let url = URL(string: newURL) {
                 guard Self.isTrustedReconnectURL(url) else {
                     // Only Twitch's own hosts get the session (and its
                     // subscriptions' events). Fall back to a fresh connection
@@ -827,7 +827,7 @@ public actor EventSubClient {
     static func metadata(for envelope: EventSubEnvelope) -> EventSubMetadata {
         let subscription = envelope.payload.subscription
         return EventSubMetadata(
-            messageID: envelope.metadata.messageId,
+            messageID: envelope.metadata.messageID,
             messageTimestamp: envelope.metadata.messageTimestamp,
             subscriptionID: subscription?.id ?? "",
             subscriptionType: subscription?.type ?? envelope.metadata.subscriptionType ?? "",
@@ -938,10 +938,10 @@ public actor EventSubClient {
         keepaliveDeadline = nil
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
-        sessionId = nil
-        activeSubscriptionsById.removeAll()
+        sessionID = nil
+        activeSubscriptionsByID.removeAll()
         pendingSubscriptionDeletes.removeAll()
-        // Deliberately NOT clearing seenMessageIds: Twitch replays
+        // Deliberately NOT clearing seenMessageIDs: Twitch replays
         // notifications across reconnects within its redelivery window, and
         // wiping the cache here would let every replay through as a duplicate
         // event. The cache is bounded (4,096 ids), so surviving reconnects
@@ -997,7 +997,7 @@ public actor EventSubClient {
         switch decision.action {
         case .attempt(let delay):
             return delay
-        case .park(.attemptsExhausted) where sessionId != nil:
+        case .park(.attemptsExhausted) where sessionID != nil:
             // Connected, but re-creating subscriptions kept failing
             // transiently. The socket still works, so stop retrying without
             // reporting a disconnect that didn't happen; the subscriptions
@@ -1109,8 +1109,8 @@ public actor EventSubClient {
         if webSocketTask === task {
             webSocketTask = nil
         }
-        sessionId = nil
-        // seenMessageIds survives here for the same reason as in
+        sessionID = nil
+        // seenMessageIDs survives here for the same reason as in
         // handleDisconnect(): a failed attempt is usually followed by a
         // reconnect, and Twitch may replay notifications across it.
         welcomeContinuation?.resume(throwing: error)
@@ -1118,32 +1118,32 @@ public actor EventSubClient {
     }
 
     /// Records a message id in the dedup cache, returning `false` for
-    /// duplicates. The cache spans reconnects (see `maxSeenMessageIds`).
-    private func rememberMessageId(_ messageId: String) -> Bool {
-        let insertResult = seenMessageIds.insert(messageId)
+    /// duplicates. The cache spans reconnects (see `maxSeenMessageIDs`).
+    private func rememberMessageID(_ messageID: String) -> Bool {
+        let insertResult = seenMessageIDs.insert(messageID)
         guard insertResult.inserted else {
             return false
         }
 
-        seenMessageIdOrder.append(messageId)
-        let overflow = seenMessageIdOrder.count - Self.maxSeenMessageIds
+        seenMessageIDOrder.append(messageID)
+        let overflow = seenMessageIDOrder.count - Self.maxSeenMessageIDs
         if overflow > 0 {
-            for staleMessageId in seenMessageIdOrder.prefix(overflow) {
-                seenMessageIds.remove(staleMessageId)
+            for staleMessageID in seenMessageIDOrder.prefix(overflow) {
+                seenMessageIDs.remove(staleMessageID)
             }
-            seenMessageIdOrder.removeFirst(overflow)
+            seenMessageIDOrder.removeFirst(overflow)
         }
         return true
     }
 
-    private func clearSeenMessageIds() {
-        seenMessageIds.removeAll(keepingCapacity: true)
-        seenMessageIdOrder.removeAll(keepingCapacity: true)
+    private func clearSeenMessageIDs() {
+        seenMessageIDs.removeAll(keepingCapacity: true)
+        seenMessageIDOrder.removeAll(keepingCapacity: true)
     }
 
     /// Re-creates every desired subscription on the current (fresh) session.
     /// Only called from `performReconnectAttempt()`, after `openConnection`
-    /// has succeeded — so `sessionId` is set and `activeSubscriptionsById`
+    /// has succeeded — so `sessionID` is set and `activeSubscriptionsByID`
     /// holds only subscriptions created on THIS session (`handleDisconnect()`
     /// cleared everything belonging to the dead one).
     ///
@@ -1161,10 +1161,10 @@ public actor EventSubClient {
         // re-creating everything (the previous shape) meant a mid-loop failure
         // retried already-created subscriptions next round — Twitch answers
         // those duplicates with 409s, wedging the ladder forever.
-        for subscription in desiredSubscriptions where !activeSubscriptionsById.values.contains(subscription) {
+        for subscription in desiredSubscriptions where !activeSubscriptionsByID.values.contains(subscription) {
             // The socket can drop mid-round; don't let createSubscription's
             // "no session" error read as a rejection of this subscription.
-            guard let session = sessionId else {
+            guard let session = sessionID else {
                 throw HelixError.networkError("EventSub session ended during resubscribe")
             }
             let created: (record: EventSubSubscriptionRecord, onCurrentSession: Bool)
@@ -1178,7 +1178,7 @@ public actor EventSubClient {
                 // createSubscription recorded the id Twitch names in the 409.
                 logger.warning("⚠️ EventSub: \(subscription.type, privacy: .public) already subscribed on this session (409) — continuing")
                 // Unsubscribed while the create was in flight: delete it.
-                if let id = apiError.id, sessionId == session, !desiredSubscriptions.contains(subscription) {
+                if let id = apiError.id, sessionID == session, !desiredSubscriptions.contains(subscription) {
                     pendingSubscriptionDeletes.insert(id)
                     try await retryPendingSubscriptionDeletes()
                 }
@@ -1186,7 +1186,7 @@ public actor EventSubClient {
             } catch let error as HelixError where Self.isPermanentSubscriptionFailure(error) {
                 // A rejection that raced a session change may be about the old
                 // session, not this subscription: let the ladder retry it.
-                guard sessionId == session else { throw error }
+                guard sessionID == session else { throw error }
                 // Unsubscribed while the create was in flight: nothing to report.
                 guard desiredSubscriptions.contains(subscription) else { continue }
                 logger.error("❌ EventSub: Twitch rejected \(subscription.type, privacy: .public) on resubscribe; dropping it: \(error.localizedDescription, privacy: .public)")
@@ -1257,7 +1257,7 @@ public actor EventSubClient {
                 // Twitch has already removed it.
             }
             pendingSubscriptionDeletes.remove(id)
-            activeSubscriptionsById.removeValue(forKey: id)
+            activeSubscriptionsByID.removeValue(forKey: id)
         }
     }
 

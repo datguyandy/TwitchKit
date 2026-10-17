@@ -8,7 +8,7 @@ import Foundation
 /// - SeeAlso: [channel.subscribe EventSub](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelsubscribe)
 public struct TwitchSubscription: Codable, Sendable, Equatable {
     /// ID of the subscribing user.
-    public let userId: String
+    public let userID: String
 
     /// Login name of the subscribing user.
     public let userLogin: String?
@@ -24,13 +24,13 @@ public struct TwitchSubscription: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        userId: String,
+        userID: String,
         userLogin: String? = nil,
         userName: String,
         tier: SubscriptionTier,
         isGift: Bool
     ) {
-        self.userId = userId
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.tier = tier

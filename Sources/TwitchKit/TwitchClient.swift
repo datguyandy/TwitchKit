@@ -27,7 +27,7 @@ public final class TwitchClient: Sendable {
     /// Creates a TwitchKit client with shared auth, Helix, and EventSub components.
     ///
     /// - Parameters:
-    ///   - clientId: Twitch application client ID.
+    ///   - clientID: Twitch application client ID.
     ///   - clientSecret: Optional Twitch application client secret for flows that require it.
     ///     When set, ``appAPI`` makes app-token Helix calls. Keep secrets out of shipped apps.
     ///   - tokenNamespace: Optional namespace for the default keychain token store.
@@ -47,7 +47,7 @@ public final class TwitchClient: Sendable {
     ///   - eventSubSocketFactory: Creates the EventSub WebSocket for a given URL. Defaults to
     ///     `URLSessionHTTPClient.ephemeralSession.webSocketTask(with:)` (no cookies or cache); primarily a seam for injecting fake sockets in tests.
     public init(
-        clientID clientId: String,
+        clientID: String,
         clientSecret: String? = nil,
         tokenNamespace: String? = nil,
         tokenStore: (any TwitchTokenStore)? = nil,
@@ -60,13 +60,13 @@ public final class TwitchClient: Sendable {
         pathMonitor: any NetworkPathMonitoring = NWPathNetworkMonitor(),
         eventSubSocketFactory: @escaping @Sendable (URL) -> any EventSubWebSocket = { URLSessionHTTPClient.ephemeralSession.webSocketTask(with: $0) }
     ) {
-        self.clientID = clientId
-        let oauthClient = TwitchOAuthClient(clientID: clientId, clientSecret: clientSecret, httpClient: httpClient)
+        self.clientID = clientID
+        let oauthClient = TwitchOAuthClient(clientID: clientID, clientSecret: clientSecret, httpClient: httpClient)
         let auth = if let tokenStore {
             TwitchAuth(oauthClient: oauthClient, tokenStore: tokenStore)
         } else {
             TwitchAuth(
-                clientID: clientId,
+                clientID: clientID,
                 clientSecret: clientSecret,
                 tokenNamespace: tokenNamespace,
                 httpClient: httpClient
@@ -74,7 +74,7 @@ public final class TwitchClient: Sendable {
         }
         let api = HelixClient(
             auth: auth,
-            clientID: clientId,
+            clientID: clientID,
             httpClient: httpClient,
             requestConfiguration: requestConfiguration,
             retryPolicy: retryPolicy,
@@ -85,7 +85,7 @@ public final class TwitchClient: Sendable {
         self.appAPI = clientSecret.map { _ in
             HelixClient(
                 tokenProvider: TwitchAppTokenProvider(oauthClient: oauthClient),
-                clientID: clientId,
+                clientID: clientID,
                 httpClient: httpClient,
                 requestConfiguration: requestConfiguration,
                 retryPolicy: retryPolicy,

@@ -432,7 +432,11 @@ public struct HelixPagedSequence<Element: Sendable>: AsyncSequence, Sendable {
 extension JSONDecoder {
     static func twitch() -> JSONDecoder {
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.keyDecodingStrategy = .custom { codingPath in
+            let key = codingPath.last!
+            if key.intValue != nil { return key }
+            return TwitchCodingKey(stringValue: TwitchKeyCase.swiftName(fromSnakeCase: key.stringValue))
+        }
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let value = try container.decode(String.self)
@@ -451,7 +455,11 @@ extension JSONDecoder {
 extension JSONEncoder {
     static func twitch() -> JSONEncoder {
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.keyEncodingStrategy = .custom { codingPath in
+            let key = codingPath.last!
+            if key.intValue != nil { return key }
+            return TwitchCodingKey(stringValue: TwitchKeyCase.snakeCase(fromSwiftName: key.stringValue))
+        }
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()
             try container.encode(TwitchDateParser.string(from: date))

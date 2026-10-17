@@ -110,26 +110,26 @@ public struct EventSubSubscriptionRecord: Decodable, Sendable, Equatable {
     public struct Transport: Decodable, Sendable, Equatable {
         public let method: EventSubTransportMethod
         public let callback: URL?
-        public let sessionId: String?
+        public let sessionID: String?
         public let connectedAt: Date?
         public let disconnectedAt: Date?
-        public let conduitId: String?
+        public let conduitID: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             method: EventSubTransportMethod,
             callback: URL? = nil,
-            sessionId: String? = nil,
+            sessionID: String? = nil,
             connectedAt: Date? = nil,
             disconnectedAt: Date? = nil,
-            conduitId: String? = nil
+            conduitID: String? = nil
         ) {
             self.method = method
             self.callback = callback
-            self.sessionId = sessionId
+            self.sessionID = sessionID
             self.connectedAt = connectedAt
             self.disconnectedAt = disconnectedAt
-            self.conduitId = conduitId
+            self.conduitID = conduitID
         }
     }
 }
@@ -221,21 +221,21 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
     let method: EventSubTransportMethod
     let callback: URL?
     let secret: String?
-    let sessionId: String?
-    let conduitId: String?
+    let sessionID: String?
+    let conduitID: String?
 
     private init(
         method: EventSubTransportMethod,
         callback: URL? = nil,
         secret: String? = nil,
-        sessionId: String? = nil,
-        conduitId: String? = nil
+        sessionID: String? = nil,
+        conduitID: String? = nil
     ) {
         self.method = method
         self.callback = callback
         self.secret = secret
-        self.sessionId = sessionId
-        self.conduitId = conduitId
+        self.sessionID = sessionID
+        self.conduitID = conduitID
     }
 
     /// Delivers events to an HTTPS callback URL.
@@ -249,12 +249,12 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
 
     /// Delivers events to an EventSub WebSocket session.
     public static func websocket(sessionID: String) -> Self {
-        Self(method: .websocket, sessionId: sessionID)
+        Self(method: .websocket, sessionID: sessionID)
     }
 
     /// Delivers events through an EventSub conduit.
     public static func conduit(conduitID: String) -> Self {
-        Self(method: .conduit, conduitId: conduitID)
+        Self(method: .conduit, conduitID: conduitID)
     }
 
     func validate() throws {
@@ -276,11 +276,11 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
                 throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: message))
             }
         case .websocket:
-            guard sessionId?.isEmpty == false else {
+            guard sessionID?.isEmpty == false else {
                 throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: "EventSub WebSocket session ID is required"))
             }
         case .conduit:
-            guard conduitId?.isEmpty == false else {
+            guard conduitID?.isEmpty == false else {
                 throw HelixError.badRequest(TwitchAPIError.fallback(status: 400, message: "EventSub conduit ID is required"))
             }
         case .unknown:
@@ -292,8 +292,8 @@ public struct EventSubSubscriptionTransport: Encodable, Sendable, Equatable {
         case method
         case callback
         case secret
-        case sessionId = "session_id"
-        case conduitId = "conduit_id"
+        case sessionID = "session_id"
+        case conduitID = "conduit_id"
     }
 }
 
@@ -303,8 +303,8 @@ extension EventSubSubscriptionTransport: CustomStringConvertible, CustomDebugStr
         var fields = ["method: \(method.rawValue)"]
         if let callback { fields.append("callback: \(callback.absoluteString)") }
         if secret != nil { fields.append("secret: \(redactedPlaceholder)") }
-        if let sessionId { fields.append("sessionID: \(sessionId)") }
-        if let conduitId { fields.append("conduitID: \(conduitId)") }
+        if let sessionID { fields.append("sessionID: \(sessionID)") }
+        if let conduitID { fields.append("conduitID: \(conduitID)") }
         return "EventSubSubscriptionTransport(\(fields.joined(separator: ", ")))"
     }
 
@@ -317,8 +317,8 @@ extension EventSubSubscriptionTransport: CustomStringConvertible, CustomDebugStr
                 "method": method,
                 "callback": callback as Any,
                 "secret": secret == nil ? "nil" : redactedPlaceholder,
-                "sessionId": sessionId as Any,
-                "conduitId": conduitId as Any,
+                "sessionID": sessionID as Any,
+                "conduitID": conduitID as Any,
             ],
             displayStyle: .struct
         )

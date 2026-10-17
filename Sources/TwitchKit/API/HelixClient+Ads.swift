@@ -7,7 +7,7 @@ extension HelixClient {
             endpoint: "channels/commercial",
             method: "POST",
             body: try JSONEncoder.twitch().encode(StartCommercialRequest(
-                broadcasterId: broadcasterID,
+                broadcasterID: broadcasterID,
                 length: length
             ))
         )
@@ -38,7 +38,7 @@ extension HelixClient {
 }
 
 private struct StartCommercialRequest: Encodable {
-    let broadcasterId: String
+    let broadcasterID: String
     let length: Int
 }
 

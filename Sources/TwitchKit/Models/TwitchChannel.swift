@@ -9,7 +9,7 @@ import Foundation
 /// - SeeAlso: [Modify Channel Information](https://dev.twitch.tv/docs/api/reference/#modify-channel-information)
 public struct TwitchChannel: Codable, Sendable, Equatable {
     /// Broadcaster's user ID.
-    public let broadcasterId: String
+    public let broadcasterID: String
 
     /// Broadcaster's login name.
     public let broadcasterLogin: String?
@@ -24,7 +24,7 @@ public struct TwitchChannel: Codable, Sendable, Equatable {
     public let gameName: String
 
     /// ID of the game/category (used when updating channel info).
-    public let gameId: String
+    public let gameID: String
 
     /// Channel tags (e.g., ["English", "FPS", "Competitive"]).
     public let tags: [String]
@@ -43,24 +43,24 @@ public struct TwitchChannel: Codable, Sendable, Equatable {
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String? = nil,
         broadcasterName: String,
         title: String,
         gameName: String,
-        gameId: String,
+        gameID: String,
         tags: [String],
         broadcasterLanguage: String,
         delay: Int? = nil,
         contentClassificationLabels: [String]? = nil,
         isBrandedContent: Bool? = nil
     ) {
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.title = title
         self.gameName = gameName
-        self.gameId = gameId
+        self.gameID = gameID
         self.tags = tags
         self.broadcasterLanguage = broadcasterLanguage
         self.delay = delay

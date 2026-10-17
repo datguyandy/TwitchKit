@@ -3,13 +3,13 @@ import Foundation
 extension HelixClient {
     /// Gets the broadcaster's active charity campaign.
     ///
-    /// - Parameter broadcasterId: The broadcaster's user ID.
+    /// - Parameter broadcasterID: The broadcaster's user ID.
     /// - Returns: The active charity campaign, or `nil` if no campaign is active.
     /// - SeeAlso: [Get Charity Campaign](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign)
-    public func fetchCharityCampaign(broadcasterID broadcasterId: String) async throws -> CharityCampaign? {
+    public func fetchCharityCampaign(broadcasterID: String) async throws -> CharityCampaign? {
         let response: HelixResponse<CharityCampaign> = try await request(
             endpoint: "charity/campaigns",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         )
         return response.data.first
     }
@@ -17,17 +17,17 @@ extension HelixClient {
     /// Gets one page of charity campaign donations.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
+    ///   - broadcasterID: The broadcaster's user ID.
     ///   - first: Optional page size. Twitch currently allows up to 100.
     ///   - cursor: Optional cursor returned by a previous page.
     /// - Returns: A page of donations.
     /// - SeeAlso: [Get Charity Campaign Donations](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign-donations)
     public func fetchCharityCampaignDonationsPage(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         first: Int? = nil,
         after cursor: String? = nil
     ) async throws -> HelixPage<CharityDonation> {
-        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterId)]
+        var queryItems = [URLQueryItem(name: "broadcaster_id", value: broadcasterID)]
         try HelixQuery.appendPagination(to: &queryItems, first: first, after: cursor)
 
         let response: HelixResponse<CharityDonation> = try await request(
@@ -40,17 +40,17 @@ extension HelixClient {
     /// Returns an async sequence of charity campaign donations.
     ///
     /// - Parameters:
-    ///   - broadcasterId: The broadcaster's user ID.
+    ///   - broadcasterID: The broadcaster's user ID.
     ///   - pageSize: Optional page size. Twitch currently allows up to 100.
     /// - Returns: A lazy async sequence that requests the next page as needed.
     /// - SeeAlso: [Get Charity Campaign Donations](https://dev.twitch.tv/docs/api/reference/#get-charity-campaign-donations)
     public func charityCampaignDonations(
-        broadcasterID broadcasterId: String,
+        broadcasterID: String,
         pageSize: Int? = nil
     ) -> HelixPagedSequence<CharityDonation> {
         pagedRequest(
             endpoint: "charity/donations",
-            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterId)],
+            queryItems: [URLQueryItem(name: "broadcaster_id", value: broadcasterID)],
             pageSize: pageSize
         )
     }
@@ -58,7 +58,7 @@ extension HelixClient {
 
 public struct CharityCampaign: Decodable, Sendable, Equatable {
     public let id: String
-    public let broadcasterId: String
+    public let broadcasterID: String
     public let broadcasterLogin: String
     public let broadcasterName: String
     public let charityName: String
@@ -71,7 +71,7 @@ public struct CharityCampaign: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        broadcasterId: String,
+        broadcasterID: String,
         broadcasterLogin: String,
         broadcasterName: String,
         charityName: String,
@@ -82,7 +82,7 @@ public struct CharityCampaign: Decodable, Sendable, Equatable {
         targetAmount: CharityAmount
     ) {
         self.id = id
-        self.broadcasterId = broadcasterId
+        self.broadcasterID = broadcasterID
         self.broadcasterLogin = broadcasterLogin
         self.broadcasterName = broadcasterName
         self.charityName = charityName
@@ -96,8 +96,8 @@ public struct CharityCampaign: Decodable, Sendable, Equatable {
 
 public struct CharityDonation: Decodable, Sendable, Equatable {
     public let id: String
-    public let campaignId: String
-    public let userId: String
+    public let campaignID: String
+    public let userID: String
     public let userLogin: String
     public let userName: String
     public let amount: CharityAmount
@@ -105,15 +105,15 @@ public struct CharityDonation: Decodable, Sendable, Equatable {
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
-        campaignId: String,
-        userId: String,
+        campaignID: String,
+        userID: String,
         userLogin: String,
         userName: String,
         amount: CharityAmount
     ) {
         self.id = id
-        self.campaignId = campaignId
-        self.userId = userId
+        self.campaignID = campaignID
+        self.userID = userID
         self.userLogin = userLogin
         self.userName = userName
         self.amount = amount

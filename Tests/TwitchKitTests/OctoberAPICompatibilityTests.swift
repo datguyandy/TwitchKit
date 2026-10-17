@@ -69,11 +69,11 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         XCTAssertEqual(notification.sharedChatResub?.cumulativeMonths, 10)
         XCTAssertEqual(notification.sharedChatResub?.subTier, .tier1)
         XCTAssertNil(notification.sharedChatResub?.isPrime)
-        XCTAssertEqual(notification.sourceBroadcasterUserId, "112233")
+        XCTAssertEqual(notification.sourceBroadcasterUserID, "112233")
         XCTAssertEqual(notification.sourceBroadcasterUserLogin, "streamer33")
         XCTAssertEqual(notification.sourceBroadcasterUserName, "streamer33")
-        XCTAssertEqual(notification.sourceMessageId, "2be7193d-0366-4453-b6ec-b288ce9f2c39")
-        XCTAssertEqual(notification.sourceBadges, [ChatBadge(setId: "subscriber", id: "3", info: "3")])
+        XCTAssertEqual(notification.sourceMessageID, "2be7193d-0366-4453-b6ec-b288ce9f2c39")
+        XCTAssertEqual(notification.sourceBadges, [ChatBadge(setID: "subscriber", id: "3", info: "3")])
         XCTAssertEqual(notification.isSourceOnly, true)
     }
 
@@ -133,7 +133,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         XCTAssertEqual(notification.resub?.subTier, .tier2)
         XCTAssertNil(notification.resub?.isPrime)
         XCTAssertNil(notification.giftedDropsSummary)
-        XCTAssertNil(notification.sourceBroadcasterUserId)
+        XCTAssertNil(notification.sourceBroadcasterUserID)
         XCTAssertNil(notification.sourceBadges)
         XCTAssertNil(notification.sharedChatSub)
         XCTAssertNil(notification.sharedChatRaid)
@@ -198,7 +198,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
             return XCTFail("Expected .bitsUse for custom_power_up")
         }
         XCTAssertEqual(customUse.type, .customPowerUp)
-        XCTAssertEqual(customUse.customPowerUp, .init(title: "Hydrate", rewardId: "reward-1"))
+        XCTAssertEqual(customUse.customPowerUp, .init(title: "Hydrate", rewardID: "reward-1"))
 
         // Power-up emotes carry only `id` and `name`, without the `emote_set_id` a chat fragment has.
         let powerUp = """
@@ -221,7 +221,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         XCTAssertEqual(powerUpUse.type, .powerUp)
         XCTAssertEqual(powerUpUse.powerUp?.type, "message_effect")
         XCTAssertEqual(powerUpUse.powerUp?.emote, .init(id: "emote-1", name: "Kappa"))
-        XCTAssertEqual(powerUpUse.powerUp?.messageEffectId, "cosmic-abyss")
+        XCTAssertEqual(powerUpUse.powerUp?.messageEffectID, "cosmic-abyss")
 
         // Minimal: no message, power_up or custom_power_up keys, and an unknown type.
         let minimal = """
@@ -258,8 +258,8 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .follow(let follow) = event("channel.follow", json) else {
             return XCTFail("Expected .follow")
         }
-        XCTAssertEqual(follow.userId, "1234")
-        XCTAssertEqual(follow.broadcasterUserId, "1337")
+        XCTAssertEqual(follow.userID, "1234")
+        XCTAssertEqual(follow.broadcasterUserID, "1337")
         XCTAssertEqual(follow.broadcasterUserLogin, "cooler_user")
         XCTAssertEqual(follow.broadcasterUserName, "Cooler_User")
 
@@ -267,7 +267,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .follow(let bare) = event("channel.follow", minimal) else {
             return XCTFail("Expected .follow for minimal payload")
         }
-        XCTAssertNil(bare.broadcasterUserId)
+        XCTAssertNil(bare.broadcasterUserID)
         XCTAssertNil(bare.broadcasterUserLogin)
         XCTAssertNil(bare.broadcasterUserName)
     }
@@ -325,7 +325,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .chatUserMessageHold(let hold) = event("channel.chat.user_message_hold", json) else {
             return XCTFail("Expected .chatUserMessageHold")
         }
-        XCTAssertEqual(hold.messageId, "789")
+        XCTAssertEqual(hold.messageID, "789")
         XCTAssertNil(hold.status)
 
         let update = json.replacingOccurrences(of: #""message_id": "789","#, with: #""status": "approved", "message_id": "789","#)
@@ -387,7 +387,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .charityCampaignStart(let campaign) = event("channel.charity_campaign.start", json) else {
             return XCTFail("Expected .charityCampaignStart")
         }
-        XCTAssertEqual(campaign.broadcasterUserId, "123456")
+        XCTAssertEqual(campaign.broadcasterUserID, "123456")
         XCTAssertEqual(campaign.broadcasterUserLogin, "sunnysideup")
         XCTAssertEqual(campaign.broadcasterUserName, "SunnySideUp")
         XCTAssertEqual(campaign.targetAmount.value, 1500000)
@@ -401,7 +401,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .userAuthorizationRevoke(let revoke) = event("user.authorization.revoke", json) else {
             return XCTFail("Expected .userAuthorizationRevoke")
         }
-        XCTAssertEqual(revoke.userId, "1337")
+        XCTAssertEqual(revoke.userID, "1337")
         XCTAssertNil(revoke.userLogin)
         XCTAssertNil(revoke.userName)
 
@@ -428,7 +428,7 @@ final class OctoberAPICompatibilityTests: XCTestCase {
         guard case .guestStarGuestUpdate(let update) = event("channel.guest_star_guest.update", json) else {
             return XCTFail("Expected .guestStarGuestUpdate")
         }
-        XCTAssertNil(update.guestUserId)
+        XCTAssertNil(update.guestUserID)
         XCTAssertNil(update.state)
 
         let slotted = json

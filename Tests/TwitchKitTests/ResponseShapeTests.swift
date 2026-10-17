@@ -33,11 +33,11 @@ final class ResponseShapeTests: XCTestCase {
         let subscription = try await api(transport).checkUserSubscription(broadcasterID: "149747285", userID: "141981764")
 
         let unwrapped = try XCTUnwrap(subscription)
-        XCTAssertEqual(unwrapped.broadcasterId, "149747285")
+        XCTAssertEqual(unwrapped.broadcasterID, "149747285")
         XCTAssertEqual(unwrapped.broadcasterLogin, "twitchpresents")
         XCTAssertEqual(unwrapped.broadcasterName, "TwitchPresents")
         XCTAssertFalse(unwrapped.isGift)
-        XCTAssertNil(unwrapped.gifterId)
+        XCTAssertNil(unwrapped.gifterID)
         XCTAssertEqual(unwrapped.tier, .tier1)
 
         let request = try await firstRequest(transport)
@@ -68,7 +68,7 @@ final class ResponseShapeTests: XCTestCase {
         let subscription = try await api(transport).checkUserSubscription(broadcasterID: "1", userID: "3")
 
         XCTAssertEqual(subscription?.isGift, true)
-        XCTAssertEqual(subscription?.gifterId, "2")
+        XCTAssertEqual(subscription?.gifterID, "2")
         XCTAssertEqual(subscription?.gifterLogin, "two")
         XCTAssertEqual(subscription?.gifterName, "Two")
         XCTAssertEqual(subscription?.tier, .tier2)
@@ -108,9 +108,9 @@ final class ResponseShapeTests: XCTestCase {
             reason: "no reason"
         )
 
-        XCTAssertEqual(ban.broadcasterId, "1234")
-        XCTAssertEqual(ban.moderatorId, "5678")
-        XCTAssertEqual(ban.userId, "9876")
+        XCTAssertEqual(ban.broadcasterID, "1234")
+        XCTAssertEqual(ban.moderatorID, "5678")
+        XCTAssertEqual(ban.userID, "9876")
         XCTAssertEqual(ban.createdAt, TwitchDateParser.date(from: "2021-09-28T18:22:31Z"))
         XCTAssertNil(ban.endTime)
         XCTAssertFalse(ban.isTimeout)
@@ -258,7 +258,7 @@ final class ResponseShapeTests: XCTestCase {
 
         let page = try await api(transport).fetchGameAnalyticsPage(gameID: "493057", type: .overviewV2)
 
-        XCTAssertEqual(page.data.first?.gameId, "493057")
+        XCTAssertEqual(page.data.first?.gameID, "493057")
         XCTAssertEqual(page.data.first?.url, "https://twitch-piper-reports.s3-us-west-2.amazonaws.com/games/66170/overview/15183")
         XCTAssertEqual(page.data.first?.type, "overview_v2")
         XCTAssertNil(page.nextCursor)
