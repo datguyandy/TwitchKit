@@ -15,13 +15,55 @@ public protocol EventSubWebSocket: AnyObject, Sendable {
     func resume()
     func cancel(with closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?)
     func receive() async throws -> URLSessionWebSocketTask.Message
+
+    /// The close code the server sent, or `nil` if the connection ended
+    /// without one. A plain `Int` because Twitch's codes (4000–4007) have no
+    /// `URLSessionWebSocketTask.CloseCode` cases. Defaults to `nil`.
+    var serverCloseCode: Int? { get }
+
+    /// The reason text the server sent with its close code. Defaults to `nil`.
+    var serverCloseReason: String? { get }
+}
+
+extension EventSubWebSocket {
+    public var serverCloseCode: Int? { nil }
+    public var serverCloseReason: String? { nil }
 }
 
 // Same-module conformance of the real socket type to our own protocol.
 // `resume()` is inherited from `URLSessionTask`; `cancel(with:reason:)` and
-// the async `receive()` are `URLSessionWebSocketTask`'s own API — all three
-// match the protocol requirements exactly, so the extension body is empty.
-extension URLSessionWebSocketTask: EventSubWebSocket {}
+// the async `receive()` are `URLSessionWebSocketTask`'s own API.
+extension URLSessionWebSocketTask: EventSubWebSocket {
+    public var serverCloseCode: Int? {
+        // An imported C enum keeps raw values it has no case for, so
+        // Twitch's 4000–4007 survive here.
+        closeCode == .invalid ? nil : closeCode.rawValue
+    }
+
+    public var serverCloseReason: String? {
+        closeReason.flatMap { String(data: $0, encoding: .utf8) }
+    }
+}
+
+/// Lock-protected so ``EventSubClient/lastDisconnectReason`` can be read
+/// without awaiting the actor.
+private final class DisconnectReasonBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var reason: EventSubDisconnectReason?
+
+    var value: EventSubDisconnectReason? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return reason
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            reason = newValue
+        }
+    }
+}
 
 public actor EventSubClient {
     /// A new stream of parsed EventSub events.
@@ -108,6 +150,18 @@ public actor EventSubClient {
         connectionStateBroadcaster.latestValue ?? .disconnected
     }
     private var lastEmittedState: ConnectionState?
+
+    /// Why the connection last ended, or `nil` if it hasn't: a close code
+    /// from Twitch (for example ``EventSubCloseCode/connectionUnused``), a
+    /// lost connection, a keepalive timeout, or ``disconnect(forgettingSubscriptions:)``.
+    ///
+    /// It's set before ``connectionState`` moves to `.reconnecting`,
+    /// `.waitingForNetwork` or `.disconnected`, so read it when you see one
+    /// of those. It keeps its value after the client reconnects.
+    public nonisolated var lastDisconnectReason: EventSubDisconnectReason? {
+        disconnectReasonBox.value
+    }
+    private let disconnectReasonBox = DisconnectReasonBox()
 
     private let api: HelixClient
     nonisolated let shouldKeepReconnecting: @Sendable () async -> Bool
@@ -317,9 +371,10 @@ public actor EventSubClient {
             return
         }
         // Coalesce concurrent callers onto the in-flight attempt: they
-        // succeed together or fail with the same underlying error.
+        // succeed together or fail with the same underlying error. A caller
+        // that's cancelled stops waiting; the attempt carries on for the rest.
         if let inFlightConnect {
-            try await inFlightConnect.value
+            try await inFlightConnect.resultUnlessCancelled().get()
             return
         }
 
@@ -340,6 +395,13 @@ public actor EventSubClient {
         // caller — a cancelled initiator must not tear the handshake out
         // from under the coalesced waiters.
         let attempt = Task {
+            // Cleared when the attempt ends, not when its first caller
+            // returns: a cancelled caller returns early, and clearing then
+            // would let the next connect() start a second, racing attempt.
+            defer {
+                inFlightConnect = nil
+                isConnecting = false
+            }
             if let interruptedLadder {
                 await interruptedLadder.value
                 // disconnect() may have run while the ladder wound down.
@@ -374,11 +436,7 @@ public actor EventSubClient {
             }
         }
         inFlightConnect = attempt
-        defer {
-            inFlightConnect = nil
-            isConnecting = false
-        }
-        try await attempt.value
+        try await attempt.resultUnlessCancelled().get()
     }
 
     /// Marks the client as intending to be connected and begins path monitoring,
@@ -514,6 +572,7 @@ public actor EventSubClient {
         // Nothing reports the path until the next connect() restarts the
         // monitor, so a stale "offline" mustn't park that connect's reconnects.
         isNetworkAvailable = true
+        disconnectReasonBox.value = .requested
         emit(.disconnected)
         cancelReceiveTasks()
         keepaliveTask?.cancel()
@@ -728,7 +787,11 @@ public actor EventSubClient {
         receiveTasks.removeValue(forKey: ObjectIdentifier(task as AnyObject))
         guard !Task.isCancelled else { return }
         guard webSocketTask === task else { return }
-        handleDisconnect()
+        if let code = task.serverCloseCode {
+            handleDisconnect(reason: .closedByServer(EventSubCloseCode(rawValue: code), reason: task.serverCloseReason))
+        } else {
+            handleDisconnect(reason: .connectionLost(error.localizedDescription))
+        }
     }
 
     private func handleMessage(_ message: URLSessionWebSocketTask.Message, from task: any EventSubWebSocket) {
@@ -788,7 +851,7 @@ public actor EventSubClient {
                     // subscriptions' events). Fall back to a fresh connection
                     // on the normal ladder, as for a failed handoff.
                     logger.error("❌ EventSub: ignoring session_reconnect to untrusted URL (host \(url.host() ?? "none", privacy: .public)); reconnecting normally")
-                    handleDisconnect()
+                    handleDisconnect(reason: .untrustedReconnectURL)
                     return
                 }
                 reconnectTask?.cancel()
@@ -897,7 +960,7 @@ public actor EventSubClient {
     private func keepaliveDidExpire() {
         guard !Task.isCancelled else { return }
         keepaliveTask = nil
-        handleDisconnect()
+        handleDisconnect(reason: .keepaliveTimeout)
     }
 
     /// The watchdog observed a nil deadline and is exiting — drop our
@@ -926,12 +989,15 @@ public actor EventSubClient {
             if webSocketTask === newTask {
                 webSocketTask = oldTask
             }
-            handleDisconnect()
+            handleDisconnect(reason: .reconnectFailed)
         }
     }
 
-    private func handleDisconnect() {
-        logger.warning("⚠️ EventSub: disconnected")
+    private func handleDisconnect(reason: EventSubDisconnectReason) {
+        logger.warning("⚠️ EventSub: disconnected (\(reason.description, privacy: .public))")
+        // Before any state change below, so observers that react to
+        // .reconnecting / .waitingForNetwork already see why.
+        disconnectReasonBox.value = reason
         cancelReceiveTasks()
         keepaliveTask?.cancel()
         keepaliveTask = nil

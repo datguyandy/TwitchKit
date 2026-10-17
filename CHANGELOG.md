@@ -6,6 +6,14 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+### Added
+
+- EventSub: `lastDisconnectReason` says why the connection last ended, as an `EventSubDisconnectReason`: `.closedByServer(EventSubCloseCode, reason:)` with Twitch's close code (4000 internal server error through 4007 invalid reconnect, for example `.connectionUnused` when no subscription was created within 10 seconds, or `.other(Int)`), `.connectionLost`, `.keepaliveTimeout`, `.reconnectFailed`, `.untrustedReconnectURL` or `.requested`. It's set before `connectionState` moves to `.reconnecting`, `.waitingForNetwork` or `.disconnected`, and is logged. `EventSubWebSocket` gains `serverCloseCode` and `serverCloseReason`, with defaults returning `nil` so custom sockets keep compiling; `URLSessionWebSocketTask` reports Twitch's codes through them.
+
+### Fixed
+
+- Cancelling a task that's waiting on shared work now returns `CancellationError` at once: a `connect()` (directly, or through `subscribe()` or `joinChat`), a token refresh (including the one a Helix request starts after a 401), and an app-token request. Previously the caller stayed suspended until the shared work finished, which could take up to the 15-second connect timeout. The shared work isn't cancelled: other callers still get its result, and a caller arriving after a cancellation joins it rather than starting a second `connect()` or refresh, which would race it (two refreshes would spend the same single-use refresh token).
+
 ## [0.5.0] - 2026-10-18
 
 ### Added

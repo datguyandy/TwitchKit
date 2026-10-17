@@ -191,6 +191,7 @@ final class EventSubSocketTests: XCTestCase {
         // code must be goingAway: 1006 (abnormalClosure) is reserved by RFC
         // 6455 for *reporting* an abnormal close and must never be sent.
         XCTAssertEqual(socketA.cancelCloseCodes, [.goingAway])
+        XCTAssertEqual(client.lastDisconnectReason, .keepaliveTimeout)
 
         await client.disconnect()
     }
@@ -1323,8 +1324,11 @@ final class EventSubSocketTests: XCTestCase {
         )
         try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
+        // A local, not `Self.followCondition`, inside the Task: Swift 6.3's
+        // region-based isolation checker rejects capturing `Self` there.
+        let condition = Self.followCondition
         let subscribing = Task {
-            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+            try await client.subscribe(type: "channel.follow", version: "2", condition: condition)
         }
         let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
         XCTAssertTrue(sent)
@@ -1356,8 +1360,11 @@ final class EventSubSocketTests: XCTestCase {
         )
         try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
+        // A local, not `Self.followCondition`, inside the Task: Swift 6.3's
+        // region-based isolation checker rejects capturing `Self` there.
+        let condition = Self.followCondition
         let subscribing = Task {
-            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+            try await client.subscribe(type: "channel.follow", version: "2", condition: condition)
         }
         let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
         XCTAssertTrue(sent)
@@ -1568,6 +1575,7 @@ final class EventSubSocketTests: XCTestCase {
             "an untrusted reconnect_url must never be dialed"
         )
         XCTAssertTrue(socketA.wasCancelled)
+        XCTAssertEqual(client.lastDisconnectReason, .untrustedReconnectURL)
 
         await client.disconnect()
     }
@@ -1584,6 +1592,63 @@ final class EventSubSocketTests: XCTestCase {
         XCTAssertFalse(trusted("wss://eviltwitch.tv/ws"))
         XCTAssertFalse(trusted("wss://twitch.tv.example.com/ws"))
         XCTAssertFalse(trusted("wss://example.com/ws?host=twitch.tv"))
+    }
+
+    // MARK: - 18. Disconnect reasons and close codes
+
+    func test_serverCloseCodeIsReported() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+        XCTAssertNil(client.lastDisconnectReason)
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
+
+        socket.close(code: 4003, reason: "connection unused")
+        let reconnecting = await waitUntil { client.currentConnectionState == .reconnecting }
+
+        XCTAssertTrue(reconnecting)
+        XCTAssertEqual(client.lastDisconnectReason, .closedByServer(.connectionUnused, reason: "connection unused"))
+
+        await client.disconnect()
+        XCTAssertEqual(client.lastDisconnectReason, .requested)
+    }
+
+    func test_droppedConnectionWithoutCloseCodeIsConnectionLost() async throws {
+        let socket = FakeWebSocket()
+        let (client, _, _) = try await makeClient(sockets: [socket])
+        try await connectDeliveringWelcome(client, via: socket, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
+
+        socket.failReceive(with: HelixError.networkError("dropped"))
+        let reconnecting = await waitUntil { client.currentConnectionState == .reconnecting }
+
+        XCTAssertTrue(reconnecting)
+        guard case .connectionLost? = client.lastDisconnectReason else {
+            return XCTFail("Expected .connectionLost, got \(String(describing: client.lastDisconnectReason))")
+        }
+
+        await client.disconnect()
+    }
+
+    func test_closeCodesMapToTwitchMeanings() {
+        let expected: [Int: EventSubCloseCode] = [
+            4000: .internalServerError,
+            4001: .clientSentInboundTraffic,
+            4002: .clientFailedPingPong,
+            4003: .connectionUnused,
+            4004: .reconnectGraceTimeExpired,
+            4005: .networkTimeout,
+            4006: .networkError,
+            4007: .invalidReconnect,
+        ]
+        for (raw, code) in expected {
+            XCTAssertEqual(EventSubCloseCode(rawValue: raw), code)
+            XCTAssertEqual(code.rawValue, raw)
+        }
+        XCTAssertEqual(EventSubCloseCode(rawValue: 4099), .other(4099))
+        XCTAssertEqual(EventSubCloseCode(rawValue: 1000).rawValue, 1000)
+        XCTAssertEqual(
+            EventSubDisconnectReason.closedByServer(.connectionUnused, reason: "connection unused").description,
+            "closed by server (4003 connection unused): connection unused"
+        )
     }
 }
 
@@ -1655,6 +1720,11 @@ final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
     private var pendingReceive: CheckedContinuation<URLSessionWebSocketTask.Message, any Error>?
     private var resumeCount = 0
     private var recordedCancels: [URLSessionWebSocketTask.CloseCode] = []
+    private var receivedCloseCode: Int?
+    private var receivedCloseReason: String?
+
+    var serverCloseCode: Int? { withLock { receivedCloseCode } }
+    var serverCloseReason: String? { withLock { receivedCloseReason } }
 
     var didResume: Bool { withLock { resumeCount > 0 } }
     var cancelCloseCodes: [URLSessionWebSocketTask.CloseCode] { withLock { recordedCancels } }
@@ -1700,6 +1770,15 @@ final class FakeWebSocket: EventSubWebSocket, @unchecked Sendable {
     /// Ends the receive loop the way a dropped connection does.
     func failReceive(with error: any Error) {
         deliver(.failure(error))
+    }
+
+    /// Ends the receive loop the way a server close frame does.
+    func close(code: Int, reason: String?) {
+        withLock {
+            receivedCloseCode = code
+            receivedCloseReason = reason
+        }
+        deliver(.failure(URLError(.networkConnectionLost)))
     }
 
     private func deliver(_ result: Result<URLSessionWebSocketTask.Message, any Error>) {

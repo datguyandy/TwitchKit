@@ -122,7 +122,9 @@ public actor TwitchAppTokenProvider: TwitchAccessTokenProvider {
         while true {
             let startRevision = revision
             let request = inFlightRequest ?? startRequest()
-            let result = await request.result
+            // A cancelled caller stops waiting; the request carries on, and
+            // the next caller joins it (and clears it once it has finished).
+            let result = try await request.resultUnlessCancelled()
             if inFlightRequest == request {
                 inFlightRequest = nil
             }
