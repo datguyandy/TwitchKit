@@ -260,7 +260,7 @@ struct TwitchKitSmokeTestCLI {
         case .guestStarSessionEnd(let session):
             "Guest Star session ended: \(session.sessionId ?? "unknown")"
         case .guestStarGuestUpdate(let guest):
-            "Guest Star guest updated: \(guest.guestUserName)"
+            "Guest Star guest updated: \(guest.guestUserName ?? "empty slot")"
         case .guestStarSettingsUpdate:
             "Guest Star settings updated"
         case .subscriptionEnd(let subscription):
@@ -336,9 +336,9 @@ struct TwitchKitSmokeTestCLI {
         case .extensionBitsTransactionCreate(let transaction):
             "extension bits transaction: \(transaction.product.bits) bits"
         case .userAuthorizationGrant(let authorization):
-            "user authorization granted: \(authorization.userName)"
+            "user authorization granted: \(authorization.userName ?? authorization.userId)"
         case .userAuthorizationRevoke(let authorization):
-            "user authorization revoked: \(authorization.userName)"
+            "user authorization revoked: \(authorization.userName ?? authorization.userId)"
         case .userUpdate(let user):
             "user updated: \(user.userName)"
         case .userWhisperMessage(let whisper):

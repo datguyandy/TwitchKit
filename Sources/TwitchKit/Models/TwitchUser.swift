@@ -34,6 +34,10 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
     /// Account creation date.
     public let createdAt: Date?
 
+    /// The user's Twitch role: admin, global moderator, staff, or a normal user.
+    /// `nil` when the payload omits the field.
+    public let type: TwitchUserType?
+
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         id: String,
@@ -44,7 +48,8 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
         broadcasterType: String,
         description: String? = nil,
         offlineImageUrl: String? = nil,
-        createdAt: Date? = nil
+        createdAt: Date? = nil,
+        type: TwitchUserType? = nil
     ) {
         self.id = id
         self.login = login
@@ -55,5 +60,56 @@ public struct TwitchUser: Codable, Sendable, Equatable, Identifiable {
         self.description = description
         self.offlineImageUrl = offlineImageUrl
         self.createdAt = createdAt
+        self.type = type
+    }
+}
+
+/// A Twitch user's role, from the `type` field of Get Users.
+///
+/// A value Twitch adds later is kept verbatim in ``unknown(_:)``, and the enum
+/// accepts a string literal (`user.type == "staff"`).
+public enum TwitchUserType: Codable, RawRepresentable, Sendable, Hashable, ExpressibleByStringLiteral {
+    /// A Twitch administrator.
+    case admin
+    /// A global moderator.
+    case globalMod
+    /// A Twitch staff member.
+    case staff
+    /// A normal user; Twitch sends an empty string.
+    case normal
+    /// A value this version of TwitchKit doesn't know, kept verbatim.
+    case unknown(String)
+
+    public var rawValue: String {
+        switch self {
+        case .admin: "admin"
+        case .globalMod: "global_mod"
+        case .staff: "staff"
+        case .normal: ""
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        self = switch rawValue {
+        case "admin": .admin
+        case "global_mod": .globalMod
+        case "staff": .staff
+        case "": .normal
+        default: .unknown(rawValue)
+        }
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }

@@ -389,9 +389,13 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
     public let userLogin: String
     public let userName: String
     public let bits: Int
-    public let type: String
+    /// How the Bits were used. The raw string is available as `type.rawValue`.
+    public let type: EventSubBitsUseType
     public let message: ChatMessage.ChatMessageBody?
+    /// Data about a built-in Power-up. `nil` unless ``type`` is ``EventSubBitsUseType/powerUp``.
     public let powerUp: PowerUp?
+    /// Data about a custom Power-up. `nil` unless ``type`` is ``EventSubBitsUseType/customPowerUp``.
+    public let customPowerUp: CustomPowerUp?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -402,9 +406,10 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
         userLogin: String,
         userName: String,
         bits: Int,
-        type: String,
+        type: EventSubBitsUseType,
         message: ChatMessage.ChatMessageBody? = nil,
-        powerUp: PowerUp? = nil
+        powerUp: PowerUp? = nil,
+        customPowerUp: CustomPowerUp? = nil
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -416,20 +421,110 @@ public struct EventSubBitsUse: Decodable, Sendable, Equatable {
         self.type = type
         self.message = message
         self.powerUp = powerUp
+        self.customPowerUp = customPowerUp
     }
 
+    /// A built-in Power-up.
     public struct PowerUp: Codable, Sendable, Equatable {
+        /// The Power-up kind: `message_effect`, `celebration`, or `gigantify_an_emote`.
         public let type: String
-        public let emote: EmoteReference?
+        /// The emote associated with the Power-up, for example the gigantified emote.
+        public let emote: Emote?
+        /// The ID of the message effect, for `message_effect` Power-ups.
+        public let messageEffectId: String?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             type: String,
-            emote: EmoteReference? = nil
+            emote: Emote? = nil,
+            messageEffectId: String? = nil
         ) {
             self.type = type
             self.emote = emote
+            self.messageEffectId = messageEffectId
         }
+
+        /// The emote a Power-up applies to. Twitch sends only its ID and token here,
+        /// not the `emote_set_id` a chat fragment's ``EmoteReference`` requires.
+        public struct Emote: Codable, Sendable, Equatable {
+            /// The ID that uniquely identifies this emote.
+            public let id: String
+            /// The human-readable emote token.
+            public let name: String?
+
+            /// Creates a value directly, for example in tests or SwiftUI previews.
+            public init(
+                id: String,
+                name: String? = nil
+            ) {
+                self.id = id
+                self.name = name
+            }
+        }
+    }
+
+    /// A custom Power-up the broadcaster created.
+    public struct CustomPowerUp: Codable, Sendable, Equatable {
+        /// The title of the custom Power-up.
+        public let title: String
+        /// The ID of the custom Power-up.
+        public let rewardId: String
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            title: String,
+            rewardId: String
+        ) {
+            self.title = title
+            self.rewardId = rewardId
+        }
+    }
+}
+
+/// How Bits were used in a `channel.bits.use` event.
+///
+/// A value Twitch adds later is kept verbatim in ``unknown(_:)``, and the enum
+/// accepts a string literal, so comparisons written against the former `String`
+/// field (`event.type == "cheer"`) still compile.
+public enum EventSubBitsUseType: Codable, RawRepresentable, Sendable, Hashable, ExpressibleByStringLiteral {
+    /// The Bits were cheered in chat.
+    case cheer
+    /// The Bits were spent on a built-in Power-up.
+    case powerUp
+    /// The Bits were spent on a custom Power-up.
+    case customPowerUp
+    /// A value this version of TwitchKit doesn't know, kept verbatim.
+    case unknown(String)
+
+    public var rawValue: String {
+        switch self {
+        case .cheer: "cheer"
+        case .powerUp: "power_up"
+        case .customPowerUp: "custom_power_up"
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        self = switch rawValue {
+        case "cheer": .cheer
+        case "power_up": .powerUp
+        case "custom_power_up": .customPowerUp
+        default: .unknown(rawValue)
+        }
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -797,7 +892,9 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
     public let userName: String
     public let id: String?
     public let reward: Reward
-    public let message: ChatMessage.ChatMessageBody?
+    /// The user's message. Version 2 fragments carry only the emote ID, so this
+    /// uses ``Message`` rather than ``ChatMessage/ChatMessageBody``.
+    public let message: Message?
     public let userInput: String?
     public let redeemedAt: Date?
 
@@ -811,7 +908,7 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
         userName: String,
         id: String? = nil,
         reward: Reward,
-        message: ChatMessage.ChatMessageBody? = nil,
+        message: Message? = nil,
         userInput: String? = nil,
         redeemedAt: Date? = nil
     ) {
@@ -830,18 +927,95 @@ public struct EventSubChannelPointsAutomaticRewardRedemption: Codable, Sendable,
 
     public struct Reward: Codable, Sendable, Equatable {
         public let type: String
+        /// The reward cost, as sent by version 1.
         public let cost: Int?
         public let unlockedEmote: TwitchEmote?
+        /// The Channel Points spent, as sent by version 2.
+        public let channelPoints: Int?
+        /// The emote associated with the reward, as sent by version 2.
+        public let emote: Emote?
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
             type: String,
             cost: Int? = nil,
-            unlockedEmote: TwitchEmote? = nil
+            unlockedEmote: TwitchEmote? = nil,
+            channelPoints: Int? = nil,
+            emote: Emote? = nil
         ) {
             self.type = type
             self.cost = cost
             self.unlockedEmote = unlockedEmote
+            self.channelPoints = channelPoints
+            self.emote = emote
+        }
+
+        /// An emote tied to an automatic reward.
+        public struct Emote: Codable, Sendable, Equatable {
+            /// The emote ID.
+            public let id: String
+            /// The human-readable emote token.
+            public let name: String?
+
+            /// Creates a value directly, for example in tests or SwiftUI previews.
+            public init(
+                id: String,
+                name: String? = nil
+            ) {
+                self.id = id
+                self.name = name
+            }
+        }
+    }
+
+    /// The message attached to an automatic reward redemption.
+    public struct Message: Codable, Sendable, Equatable {
+        /// The chat message in plain text.
+        public let text: String
+        /// The ordered message fragments.
+        public let fragments: [Fragment]?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            text: String,
+            fragments: [Fragment]? = nil
+        ) {
+            self.text = text
+            self.fragments = fragments
+        }
+
+        /// One fragment of an automatic reward message.
+        public struct Fragment: Codable, Sendable, Equatable {
+            /// The fragment type: `text` or `emote`.
+            public let type: ChatFragmentType
+            /// The fragment's text.
+            public let text: String
+            /// The emote, for `emote` fragments.
+            public let emote: Emote?
+
+            /// Creates a value directly, for example in tests or SwiftUI previews.
+            public init(
+                type: ChatFragmentType,
+                text: String,
+                emote: Emote? = nil
+            ) {
+                self.type = type
+                self.text = text
+                self.emote = emote
+            }
+
+            /// An emote in a fragment. Twitch sends only its ID here.
+            public struct Emote: Codable, Sendable, Equatable {
+                /// The ID that uniquely identifies this emote.
+                public let id: String
+
+                /// Creates a value directly, for example in tests or SwiftUI previews.
+                public init(
+                    id: String
+                ) {
+                    self.id = id
+                }
+            }
         }
     }
 }
@@ -931,7 +1105,8 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     public let systemMessage: String
     public let messageId: String
     public let message: ChatMessage.ChatMessageBody
-    public let noticeType: String
+    /// The kind of notice. The raw string is available as `noticeType.rawValue`.
+    public let noticeType: EventSubChatNoticeType
     public let sub: Subscription?
     public let resub: Resubscription?
     public let subGift: SubscriptionGift?
@@ -946,8 +1121,36 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     public let bitsBadgeTier: BitsBadgeTier?
     public let watchStreak: WatchStreak?
     public let modiversary: Modiversary?
-    public let sharedChatModiversary: Modiversary?
+    /// Details of a gifted Drops summary. `nil` unless ``noticeType`` is ``EventSubChatNoticeType/giftedDropsSummary``.
+    public let giftedDropsSummary: GiftedDropsSummary?
+
+    /// The broadcaster ID of the shared-chat channel the notice came from; `nil` outside shared chat
+    /// or when the notice happened in the subscribed broadcaster's own channel.
+    public let sourceBroadcasterUserId: String?
+    /// The broadcaster login of the shared-chat channel the notice came from.
+    public let sourceBroadcasterUserLogin: String?
+    /// The broadcaster display name of the shared-chat channel the notice came from.
+    public let sourceBroadcasterUserName: String?
+    /// The ID of the source message in the shared-chat channel the notice came from.
+    public let sourceMessageId: String?
+    /// The chatter's badges in the shared-chat channel the notice came from.
+    public let sourceBadges: [ChatBadge]?
+    /// Whether the notice is only sent to the source channel. `nil` outside shared chat.
     public let isSourceOnly: Bool?
+
+    // Shared-chat variants: the same payloads as their non-shared counterparts, for a
+    // notice that happened in another channel of the shared chat session.
+    public let sharedChatSub: Subscription?
+    public let sharedChatResub: Resubscription?
+    public let sharedChatSubGift: SubscriptionGift?
+    public let sharedChatCommunitySubGift: CommunitySubscriptionGift?
+    public let sharedChatGiftPaidUpgrade: GiftPaidUpgrade?
+    public let sharedChatPrimePaidUpgrade: PrimePaidUpgrade?
+    public let sharedChatPayItForward: PayItForward?
+    public let sharedChatRaid: Raid?
+    public let sharedChatAnnouncement: Announcement?
+    public let sharedChatModiversary: Modiversary?
+    public let sharedChatGiftedDropsSummary: GiftedDropsSummary?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -963,7 +1166,7 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         systemMessage: String,
         messageId: String,
         message: ChatMessage.ChatMessageBody,
-        noticeType: String,
+        noticeType: EventSubChatNoticeType,
         sub: Subscription? = nil,
         resub: Resubscription? = nil,
         subGift: SubscriptionGift? = nil,
@@ -979,7 +1182,23 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         watchStreak: WatchStreak? = nil,
         modiversary: Modiversary? = nil,
         sharedChatModiversary: Modiversary? = nil,
-        isSourceOnly: Bool? = nil
+        isSourceOnly: Bool? = nil,
+        giftedDropsSummary: GiftedDropsSummary? = nil,
+        sourceBroadcasterUserId: String? = nil,
+        sourceBroadcasterUserLogin: String? = nil,
+        sourceBroadcasterUserName: String? = nil,
+        sourceMessageId: String? = nil,
+        sourceBadges: [ChatBadge]? = nil,
+        sharedChatSub: Subscription? = nil,
+        sharedChatResub: Resubscription? = nil,
+        sharedChatSubGift: SubscriptionGift? = nil,
+        sharedChatCommunitySubGift: CommunitySubscriptionGift? = nil,
+        sharedChatGiftPaidUpgrade: GiftPaidUpgrade? = nil,
+        sharedChatPrimePaidUpgrade: PrimePaidUpgrade? = nil,
+        sharedChatPayItForward: PayItForward? = nil,
+        sharedChatRaid: Raid? = nil,
+        sharedChatAnnouncement: Announcement? = nil,
+        sharedChatGiftedDropsSummary: GiftedDropsSummary? = nil
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -1010,6 +1229,35 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         self.modiversary = modiversary
         self.sharedChatModiversary = sharedChatModiversary
         self.isSourceOnly = isSourceOnly
+        self.giftedDropsSummary = giftedDropsSummary
+        self.sourceBroadcasterUserId = sourceBroadcasterUserId
+        self.sourceBroadcasterUserLogin = sourceBroadcasterUserLogin
+        self.sourceBroadcasterUserName = sourceBroadcasterUserName
+        self.sourceMessageId = sourceMessageId
+        self.sourceBadges = sourceBadges
+        self.sharedChatSub = sharedChatSub
+        self.sharedChatResub = sharedChatResub
+        self.sharedChatSubGift = sharedChatSubGift
+        self.sharedChatCommunitySubGift = sharedChatCommunitySubGift
+        self.sharedChatGiftPaidUpgrade = sharedChatGiftPaidUpgrade
+        self.sharedChatPrimePaidUpgrade = sharedChatPrimePaidUpgrade
+        self.sharedChatPayItForward = sharedChatPayItForward
+        self.sharedChatRaid = sharedChatRaid
+        self.sharedChatAnnouncement = sharedChatAnnouncement
+        self.sharedChatGiftedDropsSummary = sharedChatGiftedDropsSummary
+    }
+
+    /// A summary of gifted Drops, sent for `gifted_drops_summary` notices.
+    public struct GiftedDropsSummary: Codable, Sendable, Equatable {
+        /// The number of users who received a gifted Drop.
+        public let recipientCount: Int
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            recipientCount: Int
+        ) {
+            self.recipientCount = recipientCount
+        }
     }
 
     public struct WatchStreak: Codable, Sendable, Equatable {
@@ -1059,12 +1307,41 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
         public let durationMonths: Int
         public let streakMonths: Int?
         public let subTier: SubscriptionTier
-        public let isPrime: Bool
+        /// Whether this is a Prime subscription. Twitch documents the field as optional.
+        public let isPrime: Bool?
         public let isGift: Bool
         public let gifterIsAnonymous: Bool?
         public let gifterUserId: String?
         public let gifterUserLogin: String?
         public let gifterUserName: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case cumulativeMonths, durationMonths, streakMonths, subTier, isPrime, isGift
+            case gifterIsAnonymous, gifterUserId, gifterUserLogin, gifterUserName
+        }
+
+        /// The tier key used by Twitch's published `channel.chat.notification` examples.
+        private enum ExampleKeys: String, CodingKey {
+            case subPlan
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            cumulativeMonths = try container.decode(Int.self, forKey: .cumulativeMonths)
+            durationMonths = try container.decode(Int.self, forKey: .durationMonths)
+            streakMonths = try container.decodeIfPresent(Int.self, forKey: .streakMonths)
+            if let tier = try container.decodeIfPresent(SubscriptionTier.self, forKey: .subTier) {
+                subTier = tier
+            } else {
+                subTier = try decoder.container(keyedBy: ExampleKeys.self).decode(SubscriptionTier.self, forKey: .subPlan)
+            }
+            isPrime = try container.decodeIfPresent(Bool.self, forKey: .isPrime)
+            isGift = try container.decode(Bool.self, forKey: .isGift)
+            gifterIsAnonymous = try container.decodeIfPresent(Bool.self, forKey: .gifterIsAnonymous)
+            gifterUserId = try container.decodeIfPresent(String.self, forKey: .gifterUserId)
+            gifterUserLogin = try container.decodeIfPresent(String.self, forKey: .gifterUserLogin)
+            gifterUserName = try container.decodeIfPresent(String.self, forKey: .gifterUserName)
+        }
 
         /// Creates a value directly, for example in tests or SwiftUI previews.
         public init(
@@ -1072,7 +1349,7 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
             durationMonths: Int,
             streakMonths: Int? = nil,
             subTier: SubscriptionTier,
-            isPrime: Bool,
+            isPrime: Bool? = nil,
             isGift: Bool,
             gifterIsAnonymous: Bool? = nil,
             gifterUserId: String? = nil,
@@ -1254,6 +1531,120 @@ public struct EventSubChatNotification: Decodable, Sendable, Equatable {
     public struct Empty: Codable, Sendable, Equatable {}
 }
 
+/// The kind of a `channel.chat.notification` notice.
+///
+/// A value Twitch adds later is kept verbatim in ``unknown(_:)``; Twitch's own documented
+/// `unknown` notice type also decodes there, as `.unknown("unknown")`. The enum accepts a
+/// string literal, so comparisons written against the former `String` field
+/// (`notification.noticeType == "sub"`) still compile.
+public enum EventSubChatNoticeType: Codable, RawRepresentable, Sendable, Hashable, ExpressibleByStringLiteral {
+    case sub
+    case resub
+    case subGift
+    case communitySubGift
+    case giftPaidUpgrade
+    case primePaidUpgrade
+    case raid
+    case unraid
+    case payItForward
+    case announcement
+    case bitsBadgeTier
+    case charityDonation
+    case watchStreak
+    case modiversary
+    case giftedDropsSummary
+    case sharedChatSub
+    case sharedChatResub
+    case sharedChatSubGift
+    case sharedChatCommunitySubGift
+    case sharedChatGiftPaidUpgrade
+    case sharedChatPrimePaidUpgrade
+    case sharedChatRaid
+    case sharedChatPayItForward
+    case sharedChatAnnouncement
+    case sharedChatModiversary
+    case sharedChatGiftedDropsSummary
+    /// A value this version of TwitchKit doesn't know, kept verbatim.
+    case unknown(String)
+
+    public var rawValue: String {
+        switch self {
+        case .sub: "sub"
+        case .resub: "resub"
+        case .subGift: "sub_gift"
+        case .communitySubGift: "community_sub_gift"
+        case .giftPaidUpgrade: "gift_paid_upgrade"
+        case .primePaidUpgrade: "prime_paid_upgrade"
+        case .raid: "raid"
+        case .unraid: "unraid"
+        case .payItForward: "pay_it_forward"
+        case .announcement: "announcement"
+        case .bitsBadgeTier: "bits_badge_tier"
+        case .charityDonation: "charity_donation"
+        case .watchStreak: "watch_streak"
+        case .modiversary: "modiversary"
+        case .giftedDropsSummary: "gifted_drops_summary"
+        case .sharedChatSub: "shared_chat_sub"
+        case .sharedChatResub: "shared_chat_resub"
+        case .sharedChatSubGift: "shared_chat_sub_gift"
+        case .sharedChatCommunitySubGift: "shared_chat_community_sub_gift"
+        case .sharedChatGiftPaidUpgrade: "shared_chat_gift_paid_upgrade"
+        case .sharedChatPrimePaidUpgrade: "shared_chat_prime_paid_upgrade"
+        case .sharedChatRaid: "shared_chat_raid"
+        case .sharedChatPayItForward: "shared_chat_pay_it_forward"
+        case .sharedChatAnnouncement: "shared_chat_announcement"
+        case .sharedChatModiversary: "shared_chat_modiversary"
+        case .sharedChatGiftedDropsSummary: "shared_chat_gifted_drops_summary"
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        self = switch rawValue {
+        case "sub": .sub
+        case "resub": .resub
+        case "sub_gift": .subGift
+        case "community_sub_gift": .communitySubGift
+        case "gift_paid_upgrade": .giftPaidUpgrade
+        case "prime_paid_upgrade": .primePaidUpgrade
+        case "raid": .raid
+        case "unraid": .unraid
+        case "pay_it_forward": .payItForward
+        case "announcement": .announcement
+        case "bits_badge_tier": .bitsBadgeTier
+        case "charity_donation": .charityDonation
+        case "watch_streak": .watchStreak
+        case "modiversary": .modiversary
+        case "gifted_drops_summary": .giftedDropsSummary
+        case "shared_chat_sub": .sharedChatSub
+        case "shared_chat_resub": .sharedChatResub
+        case "shared_chat_sub_gift": .sharedChatSubGift
+        case "shared_chat_community_sub_gift": .sharedChatCommunitySubGift
+        case "shared_chat_gift_paid_upgrade": .sharedChatGiftPaidUpgrade
+        case "shared_chat_prime_paid_upgrade": .sharedChatPrimePaidUpgrade
+        case "shared_chat_raid": .sharedChatRaid
+        case "shared_chat_pay_it_forward": .sharedChatPayItForward
+        case "shared_chat_announcement": .sharedChatAnnouncement
+        case "shared_chat_modiversary": .sharedChatModiversary
+        case "shared_chat_gifted_drops_summary": .sharedChatGiftedDropsSummary
+        default: .unknown(rawValue)
+        }
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
     public let broadcasterUserId: String
     public let broadcasterUserLogin: String
@@ -1263,7 +1654,9 @@ public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
     public let userName: String
     public let messageId: String
     public let message: ChatMessage.ChatMessageBody
-    public let status: ChatUserMessageStatus
+    /// The moderation outcome. Only `channel.chat.user_message_update` carries it;
+    /// it's `nil` for `channel.chat.user_message_hold`.
+    public let status: ChatUserMessageStatus?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -1275,7 +1668,7 @@ public struct EventSubChatUserMessageModeration: Codable, Sendable, Equatable {
         userName: String,
         messageId: String,
         message: ChatMessage.ChatMessageBody,
-        status: ChatUserMessageStatus
+        status: ChatUserMessageStatus? = nil
     ) {
         self.broadcasterUserId = broadcasterUserId
         self.broadcasterUserLogin = broadcasterUserLogin
@@ -1698,11 +2091,12 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
     public let moderatorUserLogin: String?
     public let moderatorUserName: String?
     public let sessionId: String?
-    public let guestUserId: String
-    public let guestUserLogin: String
-    public let guestUserName: String
+    // Twitch sends the guest fields and state as null when the slot is now empty.
+    public let guestUserId: String?
+    public let guestUserLogin: String?
+    public let guestUserName: String?
     public let slotId: String?
-    public let state: GuestStarGuestState
+    public let state: GuestStarGuestState?
     public let isAudioEnabled: Bool?
     public let isVideoEnabled: Bool?
     public let isLive: Bool?
@@ -1716,11 +2110,11 @@ public struct EventSubGuestStarGuestUpdate: Codable, Sendable, Equatable {
         moderatorUserLogin: String? = nil,
         moderatorUserName: String? = nil,
         sessionId: String? = nil,
-        guestUserId: String,
-        guestUserLogin: String,
-        guestUserName: String,
+        guestUserId: String? = nil,
+        guestUserLogin: String? = nil,
+        guestUserName: String? = nil,
         slotId: String? = nil,
-        state: GuestStarGuestState,
+        state: GuestStarGuestState? = nil,
         isAudioEnabled: Bool? = nil,
         isVideoEnabled: Bool? = nil,
         isLive: Bool? = nil
@@ -1818,7 +2212,9 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
     public let broadcasterUserLogin: String
     public let broadcasterUserName: String
     public let tier: SubscriptionTier
-    public let message: ChatMessage.ChatMessageBody
+    /// The resubscription message. Twitch sends text plus emote positions here,
+    /// not the fragment list a ``ChatMessage/ChatMessageBody`` carries.
+    public let message: Message
     public let cumulativeMonths: Int
     public let durationMonths: Int
     public let streakMonths: Int?
@@ -1832,7 +2228,7 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
         broadcasterUserLogin: String,
         broadcasterUserName: String,
         tier: SubscriptionTier,
-        message: ChatMessage.ChatMessageBody,
+        message: Message,
         cumulativeMonths: Int,
         durationMonths: Int,
         streakMonths: Int? = nil
@@ -1848,6 +2244,44 @@ public struct EventSubSubscriptionMessage: Codable, Sendable, Equatable {
         self.cumulativeMonths = cumulativeMonths
         self.durationMonths = durationMonths
         self.streakMonths = streakMonths
+    }
+
+    /// The text of a resubscription message and where its emotes appear.
+    public struct Message: Codable, Sendable, Equatable {
+        /// The text of the resubscription chat message.
+        public let text: String
+        /// The emotes in the text, with their positions. `nil` or empty when there are none.
+        public let emotes: [Emote]?
+
+        /// Creates a value directly, for example in tests or SwiftUI previews.
+        public init(
+            text: String,
+            emotes: [Emote]? = nil
+        ) {
+            self.text = text
+            self.emotes = emotes
+        }
+
+        /// An emote's ID and its position in the message text.
+        public struct Emote: Codable, Sendable, Equatable {
+            /// The index of where the emote starts in the text.
+            public let begin: Int
+            /// The index of where the emote ends in the text.
+            public let end: Int
+            /// The emote ID.
+            public let id: String
+
+            /// Creates a value directly, for example in tests or SwiftUI previews.
+            public init(
+                begin: Int,
+                end: Int,
+                id: String
+            ) {
+                self.begin = begin
+                self.end = end
+                self.id = id
+            }
+        }
     }
 }
 
@@ -2210,6 +2644,40 @@ public struct EventSubCharityCampaign: Decodable, Sendable, Equatable {
     public let targetAmount: CharityAmount
     public let startedAt: Date?
     public let stoppedAt: Date?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, broadcasterUserId, broadcasterUserLogin, broadcasterUserName
+        case charityName, charityDescription, charityLogo, charityWebsite
+        case currentAmount, targetAmount, startedAt, stoppedAt
+    }
+
+    /// The broadcaster keys Twitch documents for the campaign start, progress and stop events.
+    private enum CampaignBroadcasterKeys: String, CodingKey {
+        case broadcasterId, broadcasterLogin, broadcasterName
+    }
+
+    // Twitch documents `broadcaster_id`/`broadcaster_login`/`broadcaster_name` for the
+    // campaign events, unlike the `broadcaster_user_*` keys every other event uses.
+    // Accept either so the event decodes whichever spelling arrives.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let campaign = try decoder.container(keyedBy: CampaignBroadcasterKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        broadcasterUserId = try container.decodeIfPresent(String.self, forKey: .broadcasterUserId)
+            ?? campaign.decode(String.self, forKey: .broadcasterId)
+        broadcasterUserLogin = try container.decodeIfPresent(String.self, forKey: .broadcasterUserLogin)
+            ?? campaign.decode(String.self, forKey: .broadcasterLogin)
+        broadcasterUserName = try container.decodeIfPresent(String.self, forKey: .broadcasterUserName)
+            ?? campaign.decode(String.self, forKey: .broadcasterName)
+        charityName = try container.decode(String.self, forKey: .charityName)
+        charityDescription = try container.decode(String.self, forKey: .charityDescription)
+        charityLogo = try container.decodeIfPresent(URL.self, forKey: .charityLogo)
+        charityWebsite = try container.decodeIfPresent(URL.self, forKey: .charityWebsite)
+        currentAmount = try container.decode(CharityAmount.self, forKey: .currentAmount)
+        targetAmount = try container.decode(CharityAmount.self, forKey: .targetAmount)
+        startedAt = try container.decodeIfPresent(Date.self, forKey: .startedAt)
+        stoppedAt = try container.decodeIfPresent(Date.self, forKey: .stoppedAt)
+    }
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
@@ -2759,15 +3227,17 @@ public struct EventSubExtensionBitsTransaction: Codable, Sendable, Equatable {
 public struct EventSubUserAuthorization: Codable, Sendable, Equatable {
     public let clientId: String
     public let userId: String
-    public let userLogin: String
-    public let userName: String
+    /// The user's login. `nil` in `user.authorization.revoke` when the user no longer exists.
+    public let userLogin: String?
+    /// The user's display name. `nil` in `user.authorization.revoke` when the user no longer exists.
+    public let userName: String?
 
     /// Creates a value directly, for example in tests or SwiftUI previews.
     public init(
         clientId: String,
         userId: String,
-        userLogin: String,
-        userName: String
+        userLogin: String? = nil,
+        userName: String? = nil
     ) {
         self.clientId = clientId
         self.userId = userId

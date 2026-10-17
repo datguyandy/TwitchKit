@@ -17,6 +17,15 @@ public struct TwitchFollow: Codable, Sendable, Equatable {
     /// Display name of the user who followed.
     public let userName: String
 
+    /// ID of the broadcaster who was followed.
+    public let broadcasterUserId: String?
+
+    /// Login name of the broadcaster who was followed.
+    public let broadcasterUserLogin: String?
+
+    /// Display name of the broadcaster who was followed.
+    public let broadcasterUserName: String?
+
     /// When the follow occurred.
     public let followedAt: Date
 
@@ -25,11 +34,17 @@ public struct TwitchFollow: Codable, Sendable, Equatable {
         userId: String,
         userLogin: String? = nil,
         userName: String,
-        followedAt: Date
+        followedAt: Date,
+        broadcasterUserId: String? = nil,
+        broadcasterUserLogin: String? = nil,
+        broadcasterUserName: String? = nil
     ) {
         self.userId = userId
         self.userLogin = userLogin
         self.userName = userName
         self.followedAt = followedAt
+        self.broadcasterUserId = broadcasterUserId
+        self.broadcasterUserLogin = broadcasterUserLogin
+        self.broadcasterUserName = broadcasterUserName
     }
 }
