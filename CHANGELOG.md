@@ -6,6 +6,8 @@ TwitchKit follows semantic versioning while it is pre-1.0. During the 0.x series
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-18
+
 ### Added
 
 - Auth: `TwitchAppTokenProvider` supplies app access tokens from the client credentials flow, for Helix calls that need one (EventSub webhook and conduit subscriptions, conduits) and for server-side apps. It requests a token on first use, keeps it in memory, requests a new one shortly before expiry (`renewalMargin`, 5 minutes by default) or when Twitch rejects it, shares one request between concurrent callers, and can `revoke()` its token. `TwitchClient.appAPI` is a `HelixClient` built on it, available when the client is created with a `clientSecret`; `api` keeps using the user's token.
