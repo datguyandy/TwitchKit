@@ -1324,8 +1324,11 @@ final class EventSubSocketTests: XCTestCase {
         )
         try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
+        // A local, not `Self.followCondition`, inside the Task: Swift 6.3's
+        // region-based isolation checker rejects capturing `Self` there.
+        let condition = Self.followCondition
         let subscribing = Task {
-            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+            try await client.subscribe(type: "channel.follow", version: "2", condition: condition)
         }
         let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
         XCTAssertTrue(sent)
@@ -1357,8 +1360,11 @@ final class EventSubSocketTests: XCTestCase {
         )
         try await connectDeliveringWelcome(client, via: socketA, welcomeText: welcomeJSON(messageID: "welcome-1", sessionID: "session-1"))
 
+        // A local, not `Self.followCondition`, inside the Task: Swift 6.3's
+        // region-based isolation checker rejects capturing `Self` there.
+        let condition = Self.followCondition
         let subscribing = Task {
-            try await client.subscribe(type: "channel.follow", version: "2", condition: Self.followCondition)
+            try await client.subscribe(type: "channel.follow", version: "2", condition: condition)
         }
         let sent = await waitUntil { await !transport.recordedRequests().isEmpty }
         XCTAssertTrue(sent)
