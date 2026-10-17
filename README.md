@@ -12,16 +12,16 @@ The package is currently pre-1.0. It provides typed authentication, token storag
 
 ## Requirements
 
-- Swift 6.0 or newer
-- iOS 16 or newer
-- macOS 13 or newer
+- Swift 6.2 or newer (Xcode 26)
+- iOS 18 or newer
+- macOS 15 or newer
 
 ## Installation
 
 Add TwitchKit as a Swift Package dependency:
 
 ```swift
-.package(url: "https://github.com/AndrewBeshay/TwitchKit.git", from: "0.4.0")
+.package(url: "https://github.com/AndrewBeshay/TwitchKit.git", from: "0.5.0")
 ```
 
 Then add the product to your target:
@@ -59,7 +59,7 @@ let url = twitch.auth.implicitGrantURL(scopes: [.userReadChat], state: state)
 
 let session = ASWebAuthenticationSession(
     url: url,
-    callback: .https(host: "auth.example.com", path: "/twitch/callback") // iOS 17.4+ / macOS 14.4+
+    callback: .https(host: "auth.example.com", path: "/twitch/callback")
 ) { callbackURL, error in
     guard let callbackURL else { return }
     Task {
@@ -366,7 +366,7 @@ TwitchKit exposes helpers for Twitch-supported OAuth flows:
 Choosing a flow for an iOS or macOS app:
 
 - **Device code flow with a "Public" client** is the recommended on-device path. Register the app with Client Type *Public* in the Twitch developer console: it needs no client secret and still gets (single-use) refresh tokens. Twitch doesn't support PKCE, so this is the only flow that safely gives a shipped app a refresh token.
-- **Implicit grant** is legacy: no refresh token, and the access token arrives in the redirect URL. If you use it, present it with `ASWebAuthenticationSession` (`prefersEphemeralWebBrowserSession = true`, HTTPS callback via `.https(host:path:)` on iOS 17.4+/macOS 14.4+), send `TwitchOAuthClient.makeState()`, and check it with `authenticate(withCallbackURL:expectedState:)` or `TwitchOAuthClient.parseCallback(_:expectedState:)`. The URL builders add a random `state` when you don't pass one, but only a state you kept can be checked.
+- **Implicit grant** is legacy: no refresh token, and the access token arrives in the redirect URL. If you use it, present it with `ASWebAuthenticationSession` (`prefersEphemeralWebBrowserSession = true`, HTTPS callback via `.https(host:path:)`), send `TwitchOAuthClient.makeState()`, and check it with `authenticate(withCallbackURL:expectedState:)` or `TwitchOAuthClient.parseCallback(_:expectedState:)`. The URL builders add a random `state` when you don't pass one, but only a state you kept can be checked.
 - **Never ship a client secret in an app.** Anything in the bundle can be extracted. Run the authorization code and client credentials flows on a server.
 - **OIDC `id_token`s are not verified by TwitchKit.** If you use one for sign-in, verify its signature against Twitch's JWKS (`https://id.twitch.tv/oauth2/keys`), `iss` (`https://id.twitch.tv/oauth2`), `aud` (your client ID), `exp`, and that `nonce` matches the one you sent.
 

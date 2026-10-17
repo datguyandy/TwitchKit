@@ -1,6 +1,54 @@
 # TwitchKit Code Audit
 
-## Current audit — 2026-09-21
+## Current audit — 2026-10-18
+
+**Starting state:** `main` at `2cb0b1d` (0.4.0), clean. Two unmerged branches: `claude/audit-round-2-fixes` (all of its fixes and tests were already on `main`; left in place for the owner to delete) and `claude/affectionate-einstein-0yfloq` (25 commits, based on `main`'s tip, 332 passing tests), which was fast-forwarded into `main` and then corrected by the findings below.
+
+**Method:** four independent reviews, each read-only and verified against code paths: (1) a correctness review of the 25 branch commits, (2) a field-level comparison with Twitch's current docs — the changelog since August 2026, all 149 Helix method/path pairs, all 77 EventSub type/version pairs, ~60 payloads and all 81 scopes, (3) Swift 6 concurrency and API Design Guidelines, and (4) security, privacy and Apple-platform requirements. Fixes were made with a regression test each; the EventSub lifecycle tests were checked to fail with their fix removed.
+
+### Findings addressed
+
+| Priority | Area | Finding | Resolution |
+| --- | --- | --- | --- |
+| P0 | OAuth | Device Code Flow threw on the first poll: Twitch's pending body has `message: "authorization_pending"` and no `error` key | Match `error` or `message`, case-insensitively; typed `.deviceCodeRejected`; send `scopes` |
+| High | EventSub | A subscribe that outlived its session was recorded active on the new session, where it didn't exist — events silently never arrived | Session check after the create; re-create on the current session |
+| High | EventSub | After a forgetting disconnect, an old `ChatRoom.leave()` deleted a newer room's subscriptions (common in SwiftUI account switches) | Rooms carry their subscription generation; stale leaves are no-ops |
+| High | Security | The four-argument webhook `isValid` resolved to the signature-only overload, so replayed requests passed | `isValid` always checks freshness; `isSignatureValid` is explicit |
+| Medium | EventSub | Network restore during `connect()` started a racing ladder that failed the connect | No ladder while a connect is in flight |
+| Medium | EventSub | Late events were replayed into chat rooms joined later | Backlog only while there are no consumers, max 30 s; filtered streams never replay |
+| Medium | EventSub | Reconnect attempts never reset, so the "5 attempts" limit was per client lifetime | Reset on `session_welcome` and successful reconnects |
+| Medium | EventSub | `ChatRoom` dropped without `leave()` leaked its subscription claims | Released from `deinit` |
+| Medium | EventSub | A 409 on create discarded the existing subscription's ID, so it could never be deleted | `TwitchAPIError.id`, recorded on conflict |
+| Medium | Security | Authenticated responses could be written to the shared on-disk `URLCache`; `id.twitch.tv` cookies persisted | Ephemeral session by default, per-request cache policy, WebSocket included |
+| Medium | Security | A valid token issued to another client ID was accepted | `client_id` checked on validation and callback; mismatches are forgotten |
+| Medium | Security | No OAuth `state` generation or check; implicit callbacks unparsed | `makeState()`, `parseCallback(_:expectedState:)`, `authenticate(withCallbackURL:expectedState:)` |
+| Medium | API | `channel.chat.notification` missed the 2026-10-01 gifted-drops notices and every `shared_chat_*` payload; six other event types decoded as `.unknown` because optional fields were required | Fields added; optionality corrected against the reference |
+| Medium | Privacy | Default scopes requested the stream key, email and broadcast management | Defaults are chat-only (owner-approved) |
+| Low | EventSub/Auth | `disconnect()` didn't stop a waiting `connect()`; lazy path-update read; rejected token without refresh token kept in use; app-token revoke race; unchecked `session_reconnect` host | Each fixed with a test |
+| Low | Security | Keychain accessibility not applied on update/migration; secrets visible in `print`/`dump`; webhook/conduit secrets and callbacks unchecked; decode errors that can echo chat logged `.public` | Fixed; `PrivacyInfo.xcprivacy` added |
+| Low | Swift | Swift 6.0 tools, iOS 16/macOS 13, ~80 bare existentials, a per-call `DateFormatter`, a locked `ISO8601DateFormatter` cache, `Id`/`Url` property casing | Swift 6.2 + upcoming features, iOS 18/macOS 15 (owner-approved), `@concurrent` network paths, `Date.ISO8601FormatStyle`, ID/URL rename (owner-approved) with a Twitch key strategy |
+
+### Twitch changes checked
+
+- [Documentation changelog](https://dev.twitch.tv/docs/change-log/): one entry since the previous audit (2026-10-01, gifted-drops notice types). No deprecations, decommissions, EventSub version bumps or new scopes; the [announcements forum](https://discuss.dev.twitch.com/c/announcements/13) has had no posts since 2026-05-01.
+- [API reference](https://dev.twitch.tv/docs/api/reference/), [EventSub reference](https://dev.twitch.tv/docs/eventsub/eventsub-reference/), [subscription types](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/), [OAuth flows](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/), [scopes](https://dev.twitch.tv/docs/authentication/scopes/), [token validation](https://dev.twitch.tv/docs/authentication/validate-tokens/).
+
+### Remaining limits and deferred work
+
+- Verified with mocked HTTP/WebSocket transports and recorded Twitch-documented payloads. No authenticated Twitch calls, iOS device runs, or signed-Keychain behaviour were exercised.
+- `channel.moderate` v2 lacks its `shared_chat_*`/`source_*` fields, Guest Star updates lack `host_*`, and the v1 automatic-reward `unlockedEmote` can't decode `{id, name}` (TwitchKit subscribes to v2).
+- `HelixError.networkError(String)` still flattens non-`URLError` failures; a typed underlying error would be source-breaking and is left for a later release. Public `TimeInterval` parameters have no `Duration` overloads yet.
+- Tests are XCTest (398); a Swift Testing migration and clock injection to replace the remaining fixed sleeps are worthwhile but not done. About 2,000 public declarations, mostly model properties, lack doc comments.
+- `AsyncBroadcaster` and `NWPathNetworkMonitor` keep `NSLock`-guarded `@unchecked Sendable` state; both were reviewed as correct. `Date.HTTPFormatStyle` parsing needs iOS/macOS 26, so the cached `DateFormatter` stays.
+- Apps still own webhook message-ID deduplication and OIDC `id_token` verification (documented in the README).
+
+### Verification
+
+- `swift build --build-tests`: no warnings, no errors (Swift 6.4, macOS).
+- `swift test`: **398 tests, 0 failures**.
+- `swift package generate-documentation --target TwitchKit`: no warnings.
+
+## Previous audit — 2026-09-21
 
 **Starting state:** clean `claude/audit-round-2-fixes` at `2c2a137`, two commits ahead of `main`. Switched to `main` and fetched/pulled successfully; upstream remains `72b0666`. Last tagged release is `0.3.4`; the larger July audit is merged but unreleased. The old branch is preserved. Its two commits' changes were reviewed and incorporated into the working tree, without moving `main` or rewriting history.
 
